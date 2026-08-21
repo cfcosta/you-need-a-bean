@@ -143,10 +143,9 @@
             packages = with pkgs; [
               rust
 
-              bacon
               bun
-              cargo-mutants
               cargo-nextest
+              cargo-watch
               formatter
             ];
           };
