@@ -9,7 +9,8 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
+use axum::http::{StatusCode, Uri};
+use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
 use bean_core::model::{Day, Ledger, MonthKey, Txn};
@@ -18,12 +19,15 @@ use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use serde_json::{Map, Value, json};
 
+use crate::ui::UiSource;
+
 /// Everything a request handler needs, built once at startup.
 pub struct AppState {
     pub ledger: Ledger,
     pub parse_ms: u64,
     /// Fixed "today" for deterministic tests; `None` means the real clock.
     pub today_override: Option<Day>,
+    pub ui: UiSource,
 }
 
 impl AppState {
@@ -32,11 +36,17 @@ impl AppState {
             ledger,
             parse_ms,
             today_override: None,
+            ui: UiSource::Embedded,
         }
     }
 
     pub fn with_today(mut self, today: Day) -> Self {
         self.today_override = Some(today);
+        self
+    }
+
+    pub fn with_ui(mut self, ui: UiSource) -> Self {
+        self.ui = ui;
         self
     }
 
@@ -50,7 +60,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/summary", get(summary))
         .route("/api/month/{month}", get(month_view))
         .route("/api/category/{account}/{month}", get(category_view))
-        .fallback(not_found)
+        .fallback(fallback)
         .with_state(state)
 }
 
@@ -60,8 +70,13 @@ fn err(status: StatusCode, message: &str) -> ApiError {
     (status, Json(json!({ "error": message })))
 }
 
-async fn not_found() -> ApiError {
-    err(StatusCode::NOT_FOUND, "not found")
+/// Unmatched routes: API misses stay JSON, everything else is the UI.
+async fn fallback(State(state): State<Arc<AppState>>, uri: Uri) -> Response {
+    let path = uri.path();
+    if path == "/api" || path.starts_with("/api/") {
+        return err(StatusCode::NOT_FOUND, "not found").into_response();
+    }
+    state.ui.respond(path)
 }
 
 async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {

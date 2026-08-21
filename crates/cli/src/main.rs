@@ -4,6 +4,7 @@ use std::time::Instant;
 
 use bean_cli::api::{AppState, router};
 use bean_cli::args::Args;
+use bean_cli::ui::UiSource;
 use bean_core::loader::load;
 use bean_core::model::Ledger;
 
@@ -37,8 +38,11 @@ fn run() -> Result<(), String> {
         parse_ms
     );
 
-    let state = Arc::new(AppState::new(ledger, parse_ms));
-    serve(args, state)
+    let mut state = AppState::new(ledger, parse_ms);
+    if let Some(dir) = args.ui_dir.clone() {
+        state = state.with_ui(UiSource::Dir(dir));
+    }
+    serve(args, Arc::new(state))
 }
 
 #[tokio::main]
