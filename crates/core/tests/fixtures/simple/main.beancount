@@ -1,0 +1,11 @@
+option "title" "Simple Ledger"
+option "operating_currency" "USD"
+option "operating_currency" "BRL"
+
+2026-01-01 open Assets:Cash USD
+2026-01-01 open Expenses:Food:Groceries USD
+  name: "Groceries"
+
+2026-01-10 * "Mercado" "Weekly shop"
+  Expenses:Food:Groceries   120.00 USD
+  Assets:Cash

@@ -1,0 +1,5 @@
+option "title" "Should not win"
+option "operating_currency" "EUR"
+
+2026-01-01 open Assets:Cash USD
+2026-01-01 open Expenses:Misc USD

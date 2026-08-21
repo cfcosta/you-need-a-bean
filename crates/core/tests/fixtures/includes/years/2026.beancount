@@ -1,0 +1,5 @@
+include "../shared.beancount"
+
+2026-02-01 * "Year txn"
+  Expenses:Misc  2.00 USD
+  Assets:Cash

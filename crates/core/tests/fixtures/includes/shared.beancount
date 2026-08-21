@@ -1,0 +1,5 @@
+include "main.beancount"
+
+2026-03-01 * "Shared txn"
+  Expenses:Misc  3.00 USD
+  Assets:Cash

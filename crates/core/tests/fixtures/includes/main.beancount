@@ -1,0 +1,12 @@
+option "title" "Multi-file"
+option "operating_currency" "USD"
+
+include "accounts.beancount"
+include "years/2026.beancount"
+include "months/*.beancount"
+include "accounts.beancount"
+include "missing/*.beancount"
+
+2026-01-05 * "Root txn"
+  Expenses:Misc  1.00 USD
+  Assets:Cash
