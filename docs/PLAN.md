@@ -124,6 +124,19 @@ openTxns, closedGroups}` — same as the mockup's `state` object.
   100 ms; a synthetic ~100k-directive ledger stays comfortably subsecond
   end-to-end at startup, and API responses stay in single-digit ms.
 
+### Reproducible synthetic benchmark
+
+Corpus: `bun tools/perf-gen.ts /tmp/big 2100` — a deterministic
+120-month ledger (2016-09 – 2026-08), 252,505 directives across 123
+files (~26 MB), two operating currencies, and glob includes. Every
+account, payee, amount, and date in the corpus is generated.
+
+Build the release binary, serve `/tmp/big/main.beancount`, then measure
+startup through the first HTTP response, resident memory, median/max API
+latency, static-asset latency, browser completion, and rapid month
+navigation. Results depend on the host and should be recorded locally;
+the committed corpus contains no personal-ledger or host-specific output.
+
 ## Testing
 
 Strict TDD: every behavior lands as a failing test first; `jj commit`
