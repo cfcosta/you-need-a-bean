@@ -1,3 +1,6 @@
 /target
 /node_modules
 /beancount
+
+# Local test artifacts (chrome-cdp screenshots etc.)
+output/
