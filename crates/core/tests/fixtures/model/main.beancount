@@ -1,0 +1,64 @@
+option "title" "Model Ledger"
+option "operating_currency" "USD"
+
+2025-11-01 open Assets:Cash                 USD
+2025-11-01 open Assets:US:BofA:Checking     USD
+  name: "Checking"
+2025-11-01 open Assets:ETrade:VEA           VEA
+2025-11-01 open Assets:Vault                USD
+  ynab: "tracking"
+2025-11-01 open Assets:Old                  USD
+  ynab: "hidden"
+2025-11-01 open Assets:Points               VACHR
+2025-11-01 open Liabilities:US:Chase:Slate  USD
+2025-11-01 open Income:Salary               USD
+2025-11-01 open Expenses:Home:Rent          USD
+  name: "Monthly Rent"
+2025-11-01 open Expenses:Food:Groceries     USD
+2025-11-01 open Expenses:Food:Dining:Coffee
+2025-11-01 open Expenses:Vacation
+
+2026-01-02 price EUR  1.05 USD
+2026-01-10 price EUR  1.10 USD
+2026-01-15 price USD  5.00 BRL
+
+2025-12-05 * "Dec groceries"
+  Expenses:Food:Groceries    30.00 USD
+  Assets:Cash
+
+2026-01-03 * "SuperMart" "Weekly shop"
+  Expenses:Food:Groceries    40.00 USD
+  Assets:Cash
+
+2026-01-08 * "SuperMart" "Top-up" #food ^trip-1
+  note: "with coupons"
+  Expenses:Food:Groceries    60.00 USD
+  Assets:Cash
+
+2026-01-12 * "Cafe Rio" "espresso"
+  Expenses:Food:Dining:Coffee    30.00 BRL
+  Assets:Cash                    -6.00 USD @@ 30.00 BRL
+
+2026-01-20 * "ETrade" "Buy VEA"
+  Assets:ETrade:VEA    2 VEA {100.00 USD}
+  Assets:Cash
+
+2026-01-30 * "Employer" "Salary"
+  Income:Salary            -1000.00 USD
+  Assets:US:BofA:Checking
+
+2026-02-10 * "SuperMart" "Feb shop"
+  Expenses:Food:Groceries    50.00 USD
+  Assets:Cash
+
+2026-02-14 * "SuperMart" "Refund"
+  Expenses:Food:Groceries   -20.00 USD
+  Assets:Cash
+
+2026-02-20 * "Landlord" "Rent"
+  Expenses:Home:Rent         500.00 USD
+  Assets:US:BofA:Checking
+
+2026-03-01 * "Getaway" "Island hop"
+  Expenses:Vacation    3 VACHR
+  Assets:Points

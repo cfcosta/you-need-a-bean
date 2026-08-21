@@ -2,3 +2,4 @@
 //! answering the read-only budget queries the UI needs.
 
 pub mod loader;
+pub mod model;
