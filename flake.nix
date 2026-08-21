@@ -52,7 +52,11 @@
               formatter =
                 (treefmt-nix.lib.evalModule pkgs {
                   projectRootFile = "flake.nix";
-                  settings.global.excludes = [ "*.lock" ];
+                  settings.global.excludes = [
+                    "*.lock"
+                    # Vendored crate: keep byte-comparable to upstream.
+                    "vendor/*"
+                  ];
                   programs = {
                     nixfmt.enable = true;
                     rustfmt = {

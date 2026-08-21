@@ -153,6 +153,19 @@ fn lists_transactions_per_category_month() {
 }
 
 #[test]
+fn parses_amounts_written_with_a_unary_plus() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/plus/main.beancount");
+    let ledger = Ledger::build(load(&path).unwrap());
+
+    // `+123.45 USD` is valid beancount; the posting must not be dropped.
+    assert_eq!(ledger.sum("Assets:A", m("2030-02"), "USD"), dec("-118.45"));
+    assert_eq!(ledger.sum("Assets:B", m("2030-02"), "USD"), dec("133.45"));
+    // Elided legs still absorb the residual of `+`-signed amounts.
+    assert_eq!(ledger.sum("Assets:C", m("2030-02"), "USD"), dec("-15"));
+}
+
+#[test]
 fn converts_with_direct_inverse_and_pivot_rates() {
     let ledger = ledger();
     let end_jan = (2026, 1, 31);

@@ -1,6 +1,11 @@
 [workspace]
 members = ["crates/cli", "crates/core"]
+exclude = ["vendor/beancount-parser"]
 resolver = "3"
+
+# Vendored with a grammar fix (unary plus in amounts); see vendor/*/VENDOR.md.
+[patch.crates-io]
+beancount-parser = { path = "vendor/beancount-parser" }
 
 [workspace.package]
 version = "0.1.0"

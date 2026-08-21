@@ -1,0 +1,17 @@
+option "operating_currency" "USD"
+
+2030-01-01 open Assets:A  USD
+2030-01-01 open Assets:B  USD
+2030-01-01 open Assets:C  USD
+
+2030-02-05 * "fabricated transfer written with an explicit plus sign"
+  Assets:A  -123.45 USD
+  Assets:B  +123.45 USD
+
+2030-02-06 * "fabricated plus amount with an elided counter-leg"
+  Assets:B  +10.00 USD
+  Assets:C
+
+2030-02-07 * "fabricated unary plus on a parenthesized expression"
+  Assets:A  + (2.00 + 3.00) USD
+  Assets:C
