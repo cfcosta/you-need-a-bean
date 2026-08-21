@@ -133,7 +133,7 @@ export function BudgetTable({
                   {g.name}
                 </span>
                 <span className="g-amt">{fmt(g.spent, cur)}</span>
-                <span className="g-amt">
+                <span className="g-amt dim">
                   {g.avg != null ? fmt(g.avg, cur) : "—"}
                 </span>
                 <span className="g-amt">
