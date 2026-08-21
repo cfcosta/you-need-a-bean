@@ -1,22 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { CategoryView, MonthView, Summary } from "./api";
-import { getCategory, getMonth, getSummary } from "./api";
+import type { CategoryView, MonthView, ReportsView, Summary } from "./api";
+import { getCategory, getMonth, getReports, getSummary } from "./api";
 import { BudgetTable } from "./components/BudgetTable";
 import { Inspector } from "./components/Inspector";
+import { Reports } from "./components/Reports";
 import { Sidebar } from "./components/Sidebar";
 import { StatStrip } from "./components/StatStrip";
 import { Topbar } from "./components/Topbar";
 import { monthWindow } from "./months";
 
+type Page = "budget" | "reports";
+
 export function App() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
+  const [page, setPage] = useState<Page>("budget");
   const [month, setMonth] = useState<string | null>(null);
   const [basis, setBasis] = useState(6);
   const [cur, setCur] = useState<string | null>(null);
   const [cat, setCat] = useState<string | null>(null);
   const [view, setView] = useState<MonthView | null>(null);
+  const [reports, setReports] = useState<ReportsView | null>(null);
   const [catView, setCatView] = useState<CategoryView | null>(null);
   const [openTxns, setOpenTxns] = useState<ReadonlySet<number>>(new Set());
   const [closedGroups, setClosedGroups] = useState<ReadonlySet<string>>(
@@ -59,6 +64,17 @@ export function App() {
       alive = false;
     };
   }, [month, basis, cur]);
+
+  useEffect(() => {
+    if (page !== "reports" || cur == null) return;
+    let alive = true;
+    getReports(basis, cur)
+      .then((r) => alive && setReports(r))
+      .catch((e: Error) => alive && showToast(e.message));
+    return () => {
+      alive = false;
+    };
+  }, [page, basis, cur]);
 
   useEffect(() => {
     if (cat != null || view == null) return;
@@ -116,15 +132,21 @@ export function App() {
     });
   };
 
+  const navigate = (p: Page) => {
+    setPage(p);
+    setSidebarOpen(false);
+  };
+
   return (
     <>
-      <div id="app">
+      <div id="app" className={page === "reports" ? "no-insp" : ""}>
         <Sidebar
           summary={summary}
           view={view}
           cur={cur}
           open={sidebarOpen}
-          onToast={showToast}
+          page={page}
+          onNavigate={navigate}
         />
         <main id="main">
           <Topbar
@@ -134,12 +156,13 @@ export function App() {
             basis={basis}
             cur={cur}
             window={window}
+            page={page}
             onMonth={selectMonth}
             onBasis={setBasis}
             onCur={setCur}
             onBurger={() => setSidebarOpen(true)}
           />
-          {view != null && (
+          {page === "budget" && view != null && (
             <>
               <StatStrip view={view} cur={cur} window={window} />
               <BudgetTable
@@ -154,17 +177,25 @@ export function App() {
               />
             </>
           )}
+          {page === "reports" &&
+            (reports != null ? (
+              <Reports data={reports} cur={cur} />
+            ) : (
+              <div className="empty">crunching the numbers…</div>
+            ))}
         </main>
-        <Inspector
-          view={cat != null ? catView : null}
-          cur={cur}
-          basis={basis}
-          month={month}
-          open={inspectorOpen}
-          openTxns={openTxns}
-          onToggleTxn={toggleTxn}
-          onClose={() => setInspectorOpen(false)}
-        />
+        {page === "budget" && (
+          <Inspector
+            view={cat != null ? catView : null}
+            cur={cur}
+            basis={basis}
+            month={month}
+            open={inspectorOpen}
+            openTxns={openTxns}
+            onToggleTxn={toggleTxn}
+            onClose={() => setInspectorOpen(false)}
+          />
+        )}
       </div>
       <div
         id="scrim"

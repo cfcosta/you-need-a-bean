@@ -637,6 +637,190 @@ a:focus-visible {
   color: var(--over-text);
 }
 
+/* ---------- Reports ---------- */
+#app.no-insp {
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+#reports {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px 26px;
+}
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 14px 16px 13px;
+}
+.report-card h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.report-card .sub2 {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.report-card .lbl {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fire-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px 32px;
+  flex-wrap: wrap;
+}
+.fire-num {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+.fire-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.fire-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, auto));
+  gap: 10px 28px;
+}
+.fire-stat .v {
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+.fire-stat .v.ok {
+  color: var(--good-text);
+}
+.fire-stat .v.bad {
+  color: var(--over-text);
+}
+.fire-progress {
+  margin-top: 16px;
+}
+.fire-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.fire-bar .fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--good);
+}
+.fire-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 10.5px;
+  color: var(--ink-2);
+}
+.fire-legend b {
+  font-weight: 650;
+  color: var(--ink);
+}
+.fire-scenarios {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.scenario {
+  flex: 1;
+  min-width: 150px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  padding: 8px 12px 9px;
+}
+.scenario .r {
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.scenario .t {
+  font-size: 13.5px;
+  font-weight: 650;
+  margin-top: 2px;
+}
+.scenario .eta {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.fine {
+  margin-top: 12px;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 10px;
+}
+.chart-svg .grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.chart-svg .grid.zero {
+  stroke: var(--line-2);
+}
+.chart-svg .axis {
+  fill: var(--muted);
+  font-size: 9.5px;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.chart-svg .cap {
+  fill: var(--ink);
+  font-size: 10.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.chart-svg .nw-area {
+  fill: var(--accent);
+  opacity: 0.13;
+}
+.chart-svg .nw-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.chart-svg .nw-dot {
+  fill: var(--accent);
+}
+.chart-svg .cf-bar.pos {
+  fill: var(--good);
+}
+.chart-svg .cf-bar.neg {
+  fill: var(--over);
+}
+.month-label.page-title {
+  text-align: left;
+  min-width: 148px;
+}
+
 /* ---------- Inspector ---------- */
 #inspector {
   background: var(--surface);
@@ -1016,7 +1200,8 @@ a:focus-visible {
   }
 }
 @media (max-width: 900px) {
-  #app {
+  #app,
+  #app.no-insp {
     grid-template-columns: minmax(0, 1fr);
   }
   #sidebar {

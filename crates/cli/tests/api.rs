@@ -140,6 +140,58 @@ async fn category_endpoint_lists_txns() {
 }
 
 #[tokio::test]
+async fn reports_endpoint_shapes_series_and_fire() {
+    let (status, body) = get("/api/reports").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["month"], json!("2026-08"));
+
+    let net_worth = body["net_worth"].as_array().unwrap();
+    assert_eq!(net_worth.len(), 9);
+    // December: -30 cash, -100 on the card.
+    assert_eq!(
+        net_worth[0],
+        json!({
+            "month": "2025-12",
+            "assets": -30.0,
+            "liabilities": -100.0,
+            "net": -130.0
+        })
+    );
+    // August carries balances forward; unpriced commodities (VEA,
+    // VACHR) stay out of the convertible total.
+    assert_eq!(net_worth[8]["month"], json!("2026-08"));
+    assert_eq!(net_worth[8]["net"], json!(-56.0));
+
+    let cashflow = body["cashflow"].as_array().unwrap();
+    assert_eq!(cashflow.len(), 9);
+    assert_eq!(
+        cashflow[1],
+        json!({
+            "month": "2026-01",
+            "income": 1000.0,
+            "expenses": 196.0,
+            "net": 804.0
+        })
+    );
+
+    let fire = &body["fire"];
+    assert_eq!(fire["window"], json!(["2026-02", "2026-07"]));
+    // Feb spent 530, nothing since: 530 / 6.
+    assert_eq!(fire["monthly_spend"], json!(88.33));
+    assert_eq!(fire["annual_spend"], json!(1059.96));
+    assert_eq!(fire["fire_number"], json!(26499.0));
+    assert_eq!(fire["net_worth"], json!(-56.0));
+    assert_eq!(fire["progress"], json!(-0.0021));
+    assert_eq!(fire["monthly_savings"], json!(-88.33));
+    assert_eq!(fire["swr_monthly"], json!(-0.19));
+    let scenarios = fire["scenarios"].as_array().unwrap();
+    assert_eq!(scenarios.len(), 3);
+    assert_eq!(scenarios[1]["rate"], json!(0.05));
+    // Negative savings and negative net worth: FIRE never arrives.
+    assert_eq!(scenarios[1]["months"], Value::Null);
+}
+
+#[tokio::test]
 async fn bad_params_and_unknown_routes_error_as_json() {
     let (status, body) = get("/api/month/2026-13").await;
     assert_eq!(status, StatusCode::BAD_REQUEST);

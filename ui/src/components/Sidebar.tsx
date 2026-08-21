@@ -50,13 +50,15 @@ export function Sidebar({
   view,
   cur,
   open,
-  onToast,
+  page,
+  onNavigate,
 }: {
   summary: Summary;
   view: MonthView | null;
   cur: string;
   open: boolean;
-  onToast: (msg: string) => void;
+  page: "budget" | "reports";
+  onNavigate: (page: "budget" | "reports") => void;
 }) {
   return (
     <nav
@@ -102,7 +104,11 @@ export function Sidebar({
       </div>
 
       <div className="side-nav">
-        <button className="nav-item active">
+        <button
+          className={`nav-item${page === "budget" ? " active" : ""}`}
+          aria-current={page === "budget" ? "page" : undefined}
+          onClick={() => onNavigate("budget")}
+        >
           <svg
             width="13"
             height="13"
@@ -115,9 +121,9 @@ export function Sidebar({
           Budget
         </button>
         <button
-          className="nav-item"
-          aria-disabled="true"
-          onClick={() => onToast("Reports land in v2 — Budget is all there is today")}
+          className={`nav-item${page === "reports" ? " active" : ""}`}
+          aria-current={page === "reports" ? "page" : undefined}
+          onClick={() => onNavigate("reports")}
         >
           <svg
             width="13"
@@ -128,7 +134,7 @@ export function Sidebar({
           >
             <path d="M1 14h14v1H1v-1zm2-4h2v3H3v-3zm4-5h2v8H7V5zm4 2h2v6h-2V7z" />
           </svg>
-          Reports <span className="soon">v2</span>
+          Reports
         </button>
       </div>
 

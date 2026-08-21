@@ -60,6 +60,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/summary", get(summary))
         .route("/api/month/{month}", get(month_view))
         .route("/api/category/{account}/{month}", get(category_view))
+        .route("/api/reports", get(reports))
         .fallback(fallback)
         .with_state(state)
 }
@@ -180,6 +181,68 @@ async fn category_view(
         "history": history,
         "split": amounts_json(&view.split),
         "txns": txns,
+    })))
+}
+
+async fn reports(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Result<Json<Value>, ApiError> {
+    let (basis, cur) = params(&state, &query)?;
+    let view = state.ledger.reports_view(state.today(), basis, &cur);
+
+    let net_worth: Vec<Value> = view
+        .net_worth
+        .iter()
+        .map(|p| {
+            json!({
+                "month": p.month.to_string(),
+                "assets": num(p.assets),
+                "liabilities": num(p.liabilities),
+                "net": num(p.net),
+            })
+        })
+        .collect();
+    let cashflow: Vec<Value> = view
+        .cashflow
+        .iter()
+        .map(|p| {
+            json!({
+                "month": p.month.to_string(),
+                "income": num(p.income),
+                "expenses": num(p.expenses),
+                "net": num(p.net),
+            })
+        })
+        .collect();
+    let fire = &view.fire;
+    let scenarios: Vec<Value> = fire
+        .scenarios
+        .iter()
+        .map(|s| {
+            json!({
+                "rate": s.rate,
+                "months": s.months.map_or(Value::Null, |m| json!(m)),
+            })
+        })
+        .collect();
+    Ok(Json(json!({
+        "month": view.month.to_string(),
+        "net_worth": net_worth,
+        "cashflow": cashflow,
+        "fire": {
+            "window": fire.window.map_or(Value::Null, |(from, to)| {
+                json!([from.to_string(), to.to_string()])
+            }),
+            "monthly_spend": num(fire.monthly_spend),
+            "annual_spend": num(fire.annual_spend),
+            "fire_number": num(fire.fire_number),
+            "net_worth": num(fire.net_worth),
+            "progress": ratio_json(fire.progress),
+            "monthly_savings": num(fire.monthly_savings),
+            "swr_monthly": num(fire.swr_monthly),
+            "scenarios": scenarios,
+        },
     })))
 }
 

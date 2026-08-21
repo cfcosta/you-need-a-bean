@@ -355,7 +355,7 @@ impl Ledger {
 /// Quantize a display value to cents. Applied at the leaves (category
 /// spend/avg, account conversions, income) so every aggregate is a sum
 /// of already-rounded values and what the UI shows always adds up.
-fn cents(value: Decimal) -> Decimal {
+pub(crate) fn cents(value: Decimal) -> Decimal {
     value.round_dp(2)
 }
 

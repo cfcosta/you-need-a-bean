@@ -30,6 +30,22 @@ export function fmtCode(n: number, cur: string): string {
   return (n < 0 ? "−" : "") + nf2.format(Math.abs(n)) + " " + cur;
 }
 
+/** "R$ 1.2M" — compact money for chart axes and last-point labels. */
+export function fmtCompact(n: number, cur: string): string {
+  const a = Math.abs(n);
+  const short = (v: number, suffix: string) =>
+    (v >= 100 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, "")) + suffix;
+  const s =
+    a >= 1e9
+      ? short(a / 1e9, "B")
+      : a >= 1e6
+        ? short(a / 1e6, "M")
+        : a >= 1e3
+          ? short(a / 1e3, "k")
+          : nf0.format(a);
+  return (n < 0 ? "−" : "") + (SYM[cur] ?? cur) + " " + s;
+}
+
 const MONTHS = [
   "January",
   "February",

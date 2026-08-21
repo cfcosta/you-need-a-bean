@@ -10,6 +10,7 @@ export function Topbar({
   basis,
   cur,
   window,
+  page,
   onMonth,
   onBasis,
   onCur,
@@ -21,6 +22,7 @@ export function Topbar({
   basis: number;
   cur: string;
   window: [string, string] | null;
+  page: "budget" | "reports";
   onMonth: (m: string) => void;
   onBasis: (b: number) => void;
   onCur: (c: string) => void;
@@ -44,6 +46,12 @@ export function Topbar({
           <path d="M1 3h14v1.5H1V3zm0 4.25h14v1.5H1v-1.5zM1 11.5h14V13H1v-1.5z" />
         </svg>
       </button>
+      {page === "reports" ? (
+        <div className="month-label page-title">
+          <h1>Reports</h1>
+          <div className="sub num">as of {summary.today}</div>
+        </div>
+      ) : (
       <div className="month-pager">
         <button
           className="pager-btn"
@@ -88,6 +96,7 @@ export function Topbar({
           </svg>
         </button>
       </div>
+      )}
       <div className="topbar-right">
         <span className="seg-label">Target</span>
         <div className="seg" role="group" aria-label="Average window">

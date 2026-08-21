@@ -1,0 +1,61 @@
+option "title" "Reports"
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Checking    USD
+2026-01-01 open Assets:Broker      VTI
+2026-01-01 open Liabilities:Card   USD
+2026-01-01 open Income:Salary      USD
+2026-01-01 open Expenses:Rent      USD
+2026-01-01 open Expenses:Food      USD
+2026-01-01 open Equity:Opening     USD
+
+2026-01-01 price VTI 100.00 USD
+2026-03-01 price VTI 110.00 USD
+
+2026-01-01 * "Opening balance"
+  Assets:Checking  10000.00 USD
+  Equity:Opening
+
+2026-01-05 * "Salary"
+  Income:Salary  -5000.00 USD
+  Assets:Checking
+
+2026-01-10 * "Rent"
+  Expenses:Rent  2000.00 USD
+  Assets:Checking
+
+2026-01-15 * "Food on the card"
+  Expenses:Food  1000.00 USD
+  Liabilities:Card
+
+2026-01-20 * "Buy VTI"
+  Assets:Broker  20 VTI {100.00 USD}
+  Assets:Checking
+
+2026-02-05 * "Salary"
+  Income:Salary  -5000.00 USD
+  Assets:Checking
+
+2026-02-10 * "Rent"
+  Expenses:Rent  2000.00 USD
+  Assets:Checking
+
+2026-02-12 * "Pay off the card"
+  Liabilities:Card  1000.00 USD
+  Assets:Checking
+
+2026-02-15 * "Food"
+  Expenses:Food  1000.00 USD
+  Assets:Checking
+
+2026-03-05 * "Salary"
+  Income:Salary  -6000.00 USD
+  Assets:Checking
+
+2026-03-10 * "Rent"
+  Expenses:Rent  2000.00 USD
+  Assets:Checking
+
+2026-03-15 * "Food"
+  Expenses:Food  2000.00 USD
+  Assets:Checking

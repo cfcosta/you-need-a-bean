@@ -1,4 +1,4 @@
-// Typed client for the three JSON endpoints the Rust binary serves.
+// Typed client for the JSON endpoints the Rust binary serves.
 
 export type Status = "good" | "warn" | "over";
 
@@ -83,6 +83,44 @@ export interface CategoryView {
   txns: Txn[];
 }
 
+export interface NetWorthPoint {
+  month: string;
+  assets: number;
+  liabilities: number;
+  net: number;
+}
+
+export interface CashflowPoint {
+  month: string;
+  income: number;
+  expenses: number;
+  net: number;
+}
+
+export interface FireScenario {
+  rate: number;
+  months: number | null;
+}
+
+export interface Fire {
+  window: [string, string] | null;
+  monthly_spend: number;
+  annual_spend: number;
+  fire_number: number;
+  net_worth: number;
+  progress: number | null;
+  monthly_savings: number;
+  swr_monthly: number;
+  scenarios: FireScenario[];
+}
+
+export interface ReportsView {
+  month: string;
+  net_worth: NetWorthPoint[];
+  cashflow: CashflowPoint[];
+  fire: Fire;
+}
+
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) {
@@ -108,3 +146,6 @@ export const getCategory = (
   get<CategoryView>(
     `/api/category/${encodeURIComponent(account)}/${month}?basis=${basis}&cur=${cur}`,
   );
+
+export const getReports = (basis: number, cur: string) =>
+  get<ReportsView>(`/api/reports?basis=${basis}&cur=${cur}`);
