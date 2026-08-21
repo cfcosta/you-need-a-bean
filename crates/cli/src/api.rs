@@ -72,8 +72,14 @@ async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {
         .iter()
         .map(|m| m.to_string())
         .collect();
+    let root = ledger
+        .files
+        .first()
+        .and_then(|p| p.file_name())
+        .map(|n| n.to_string_lossy().into_owned());
     Json(json!({
         "title": ledger.title,
+        "root": root,
         "files": ledger.files.len(),
         "directives": ledger.directives,
         "parse_ms": state.parse_ms,

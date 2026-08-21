@@ -36,6 +36,7 @@ async fn summary_reports_ledger_shape() {
     let (status, body) = get("/api/summary").await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["title"], json!("Model Ledger"));
+    assert_eq!(body["root"], json!("main.beancount"));
     assert_eq!(body["files"], json!(1));
     assert_eq!(body["directives"], json!(28));
     assert_eq!(body["parse_ms"], json!(7));
