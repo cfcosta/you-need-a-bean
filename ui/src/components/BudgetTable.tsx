@@ -36,7 +36,7 @@ function VsBar({
   const over = row.avg != null ? row.avg - row.spent < 0 : false;
   const tip =
     row.avg == null
-      ? `${fmt(row.spent, cur)} spent — no earlier months to average`
+      ? `${fmt(row.spent, cur)} spent — no earlier spending to average`
       : over
         ? `${fmt(row.spent, cur)} spent — ${fmt(row.spent - row.avg, cur)} over the ${basis}-mo average of ${fmt(row.avg, cur)}`
         : `${fmt(row.spent, cur)} spent of ${fmt(row.avg, cur)} typical`;
@@ -88,7 +88,7 @@ export function BudgetTable({
         <div>
           <span
             className="hint"
-            title={`Average of the previous ${basis} months (${windowLabel(window)})`}
+            title={`Average of months with spending in the previous ${basis} (${windowLabel(window)})`}
           >
             Typical / mo
           </span>

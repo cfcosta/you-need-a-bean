@@ -106,8 +106,8 @@ export function Topbar({
               className={b === basis ? "on" : ""}
               title={
                 b === basis
-                  ? `Average of the previous ${b} months (${windowLabel(window)})`
-                  : `Average over the previous ${b} months`
+                  ? `Average of months with spending in the previous ${b} (${windowLabel(window)})`
+                  : `Average of months with spending in the previous ${b}`
               }
               onClick={() => onBasis(b)}
             >

@@ -34,7 +34,8 @@ pub struct CategoryRow {
     pub label: String,
     /// This month's spend in the display currency (convertible part only).
     pub spent: Decimal,
-    /// Trailing average ("typical"); `None` when there is no window.
+    /// Trailing average ("typical") over the window months that saw
+    /// spending; `None` when there is no window or none of them did.
     pub avg: Option<Decimal>,
     /// spent / avg; `None` when there is no positive average.
     pub ratio: Option<Decimal>,
@@ -123,8 +124,10 @@ impl Ledger {
         (from <= to && to < month).then_some((from, to))
     }
 
-    /// Mean monthly spend over the window; missing months count as zero,
-    /// each month converted at its own end date.
+    /// Mean monthly spend over the window, skipping months without any
+    /// spend so sporadic categories aren't diluted toward zero; each
+    /// month converts at its own end date. `None` when there is no
+    /// window or no month in it saw spending.
     pub fn average(
         &self,
         account: &str,
@@ -133,14 +136,18 @@ impl Ledger {
         cur: &str,
     ) -> Option<Decimal> {
         let (from, to) = self.window(month, basis)?;
-        let count = from.months_until(to);
         let mut total = Decimal::ZERO;
+        let mut count = 0u32;
         let mut m = from;
         while m <= to {
-            total += self.spent_converted(account, m, cur);
+            let spent = self.spent_converted(account, m, cur);
+            if !spent.is_zero() {
+                total += spent;
+                count += 1;
+            }
             m = m.next();
         }
-        Some(total / Decimal::from(count))
+        (count > 0).then(|| total / Decimal::from(count))
     }
 
     /// The whole monthly page: stat tiles, grouped category table, and

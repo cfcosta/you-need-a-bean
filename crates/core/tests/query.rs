@@ -39,12 +39,15 @@ fn averages_use_trailing_window_clamped_to_first_activity() {
     );
     // The first month has no window at all.
     assert_eq!(avg("Expenses:Food:Groceries", "2025-12", 6), None);
-    // Missing months count as zero: (0 + 0 + 500 + 0) / 4.
-    assert_eq!(avg("Expenses:Home:Rent", "2026-04", 12), Some(dec("125")));
+    // Months without spend don't dilute the average: rent was paid
+    // once inside the window, so typical rent is that payment.
+    assert_eq!(avg("Expenses:Home:Rent", "2026-04", 12), Some(dec("500")));
+    // A window whose months never saw spending has no typical at all.
+    assert_eq!(avg("Expenses:Home:Rent", "2026-02", 3), None);
     // History converts at each month's own end date: 30 BRL → 6 USD.
     assert_eq!(
         avg("Expenses:Food:Dining:Coffee", "2026-02", 6),
-        Some(dec("3"))
+        Some(dec("6"))
     );
 }
 
@@ -83,9 +86,9 @@ fn month_view_aggregates_groups_and_totals() {
     assert_eq!(games.ratio, Some(dec("0.9")));
     assert_eq!(games.status, Some(Status::Warn));
 
-    // A window that exists but averaged zero gives no usable target.
+    // A window that exists but never saw rent gives no typical.
     let rent = &view.groups[2].categories[0];
-    assert_eq!(rent.avg, Some(dec("0")));
+    assert_eq!(rent.avg, None);
     assert_eq!(rent.ratio, None);
     assert_eq!(rent.status, None);
 }
@@ -246,13 +249,14 @@ fn views_quantize_money_at_the_leaves_so_sums_add_up() {
     assert_eq!(view.spent, dec("9.99"));
     assert_eq!(view.income, dec("100.00"));
 
-    // Averages round at the leaf too: window [Jan, Feb] gives
-    // 3.333 / 2 = 1.6665 → 1.67 per category, so typical is 5.01.
+    // Averages round at the leaf too, and skip no-spend months: only
+    // January in the [Jan, Feb] window saw spending, so the typical is
+    // January itself — 3.333 → 3.33 per category, 9.99 in total.
     let march = ledger.month_view(m("2026-03"), 3, "USD");
     let food = &march.groups[0];
-    assert_eq!(food.categories[0].avg, Some(dec("1.67")));
-    assert_eq!(food.avg, Some(dec("3.34")));
-    assert_eq!(march.typical, Some(dec("5.01")));
+    assert_eq!(food.categories[0].avg, Some(dec("3.33")));
+    assert_eq!(food.avg, Some(dec("6.66")));
+    assert_eq!(march.typical, Some(dec("9.99")));
 
     // The inspector shows the same cents as the table row.
     let cat = ledger

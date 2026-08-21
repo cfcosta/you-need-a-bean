@@ -292,8 +292,8 @@ function InspectorBody({
         </div>
         <div className="target-sub">
           {view.window != null
-            ? `average of ${windowLabel(view.window)} (${basis} mo)`
-            : "no earlier months to average yet"}
+            ? `avg of active months in ${windowLabel(view.window)} (${basis} mo)`
+            : "no earlier spending to average yet"}
         </div>
         <div className={`target-meter meter ${st}`}>
           <span className="fill" style={{ width: `${meterPct}%` }} />
