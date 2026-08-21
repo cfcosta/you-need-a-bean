@@ -510,6 +510,22 @@ fn weight(
     amount: &beancount_parser::Amount<Decimal>,
     posting: &beancount_parser::Posting<Decimal>,
 ) -> (Decimal, String) {
+    // When both a cost and a price are present, the cost wins (beancount
+    // semantics); an empty cost (`{}`) falls through to the price.
+    if let Some(cost) = &posting.cost
+        && let Some(basis) = &cost.amount
+    {
+        let value = if cost.total {
+            if amount.value.is_sign_negative() {
+                -basis.value
+            } else {
+                basis.value
+            }
+        } else {
+            amount.value * basis.value
+        };
+        return (value, basis.currency.to_string());
+    }
     if let Some(price) = &posting.price {
         return match price {
             PostingPrice::Unit(p) => {
@@ -524,11 +540,6 @@ fn weight(
                 (value, p.currency.to_string())
             }
         };
-    }
-    if let Some(cost) = &posting.cost
-        && let Some(per_unit) = &cost.amount
-    {
-        return (amount.value * per_unit.value, per_unit.currency.to_string());
     }
     (amount.value, amount.currency.to_string())
 }

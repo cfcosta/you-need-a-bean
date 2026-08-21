@@ -128,6 +128,11 @@ pub struct Cost<D> {
     pub amount: Option<Amount<D>>,
     /// The date of this cost basis
     pub date: Option<Date>,
+    /// Whether the amount is a total cost (`{{ ... }}`) rather than
+    /// a per-unit cost (`{ ... }`)
+    ///
+    /// Local patch vs upstream 2.6.0; see VENDOR.md.
+    pub total: bool,
 }
 
 /// Price of a posting
@@ -383,7 +388,12 @@ fn posting<D: Decimal>(input: Span<'_>) -> IResult<'_, Posting<D>> {
 }
 
 fn cost<D: Decimal>(input: Span<'_>) -> IResult<'_, Cost<D>> {
-    let (input, _) = terminated(char_tag('{'), space0).parse(input)?;
+    // Local patch vs upstream 2.6.0: accept the total-cost form
+    // `{{ 700.00 USD }}`, which Python beancount's grammar allows.
+    // See VENDOR.md.
+    let (input, total) =
+        alt((value(true, tag("{{")), value(false, tag("{")))).parse(input)?;
+    let (input, _) = space0(input)?;
     let (input, (cost, date)) = alt((
         map(
             separated_pair(
@@ -406,6 +416,18 @@ fn cost<D: Decimal>(input: Span<'_>) -> IResult<'_, Cost<D>> {
         map(success(true), |_| (None, None)),
     ))
     .parse(input)?;
-    let (input, _) = preceded(space0, char_tag('}')).parse(input)?;
-    Ok((input, Cost { amount: cost, date }))
+    let (input, _) = space0(input)?;
+    let (input, _) = if total {
+        tag("}}").parse(input)?
+    } else {
+        tag("}").parse(input)?
+    };
+    Ok((
+        input,
+        Cost {
+            amount: cost,
+            date,
+            total,
+        },
+    ))
 }

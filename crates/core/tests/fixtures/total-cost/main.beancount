@@ -1,0 +1,13 @@
+option "operating_currency" "USD"
+
+2030-01-01 open Assets:Cash:ExampleBroker  USD
+2030-01-01 open Assets:Investments:ExampleBroker
+2030-01-01 open Income:Dividends  USD
+
+2030-03-10 * "fabricated purchase of 7 MOCK for a lump sum"
+  Assets:Investments:ExampleBroker  7 MOCK {{ 700.00 USD }}
+  Assets:Cash:ExampleBroker
+
+2030-03-15 * "fabricated purchase with both a cost and a redundant price"
+  Assets:Investments:ExampleBroker  2 TEST {5.00 USD} @ 6.00 USD
+  Assets:Cash:ExampleBroker

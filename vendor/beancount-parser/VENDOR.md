@@ -13,11 +13,20 @@ beancount's grammar.
 - `literal` takes an optional `+` or `-` sign (upstream: `-` only).
 - `negation` handles `+ (…)` as well as `- (…)`.
 
+`src/transaction.rs`: costs accept the total form `{{ 700.00 USD }}`
+alongside the per-unit form `{ 5.00 USD }`, matching Python beancount's
+grammar.
+
+- `cost` recognises `{{ … }}` delimiters.
+- `Cost` gains a `total: bool` field (the struct is `#[non_exhaustive]`,
+  so this is not a breaking change for downstream readers).
+
 Upstream silently drops posting lines it cannot parse (the transaction's
 posting iterator stops, and the leftover lines match the top-level
-comment fallback), so without this patch every `+123.45 USD`-style
-posting vanished from the ledger along with the postings after it in the
-same transaction — no error, just wrong balances.
+comment fallback), so without these patches every `+123.45 USD`-style
+or `{{ … }}`-cost posting vanished from the ledger along with the
+postings after it in the same transaction — no error, just wrong
+balances.
 
 Everything else is byte-identical to the crates.io release. `vendor/` is
 excluded from treefmt so the diff against upstream stays reviewable.

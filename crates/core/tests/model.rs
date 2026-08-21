@@ -166,6 +166,32 @@ fn parses_amounts_written_with_a_unary_plus() {
 }
 
 #[test]
+fn weighs_total_cost_postings_and_prefers_cost_over_price() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/total-cost/main.beancount");
+    let loaded = load(&path).unwrap();
+    assert!(
+        loaded.warnings.is_empty(),
+        "warnings: {:?}",
+        loaded.warnings
+    );
+    let ledger = Ledger::build(loaded);
+
+    // `{{ 700.00 USD }}` is a total cost; the posting must parse and its
+    // elided leg must absorb the lump sum, not quantity × total.
+    assert_eq!(
+        ledger.sum("Assets:Investments:ExampleBroker", m("2030-03"), "MOCK"),
+        dec("7")
+    );
+    // When a posting carries both `{cost}` and `@ price`, beancount weighs
+    // it by the cost: 2 × 5.00, not 2 × 6.00. Residual: -700.00 - 10.00.
+    assert_eq!(
+        ledger.sum("Assets:Cash:ExampleBroker", m("2030-03"), "USD"),
+        dec("-710.00")
+    );
+}
+
+#[test]
 fn converts_with_direct_inverse_and_pivot_rates() {
     let ledger = ledger();
     let end_jan = (2026, 1, 31);
