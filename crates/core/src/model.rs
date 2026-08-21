@@ -67,6 +67,28 @@ impl MonthKey {
     pub fn end_of_month(self) -> Day {
         (self.year, self.month, self.days_in_month())
     }
+
+    /// Zero-based month count since year 0, for month arithmetic.
+    fn ordinal(self) -> u32 {
+        u32::from(self.year) * 12 + u32::from(self.month) - 1
+    }
+
+    fn from_ordinal(ordinal: u32) -> Self {
+        Self::new((ordinal / 12) as u16, (ordinal % 12 + 1) as u8)
+    }
+
+    pub fn minus(self, months: u32) -> Self {
+        Self::from_ordinal(self.ordinal().saturating_sub(months))
+    }
+
+    pub fn prev(self) -> Self {
+        self.minus(1)
+    }
+
+    /// Number of months in the inclusive range `self..=to` (0 if empty).
+    pub fn months_until(self, to: MonthKey) -> u32 {
+        (to.ordinal() + 1).saturating_sub(self.ordinal())
+    }
 }
 
 impl fmt::Display for MonthKey {
@@ -508,7 +530,11 @@ fn weight(
     (amount.value, amount.currency.to_string())
 }
 
-fn add_sum(sums: &mut Vec<(String, Decimal)>, currency: &str, value: Decimal) {
+pub(crate) fn add_sum(
+    sums: &mut Vec<(String, Decimal)>,
+    currency: &str,
+    value: Decimal,
+) {
     match sums.iter_mut().find(|(c, _)| c == currency) {
         Some((_, total)) => *total += value,
         None => sums.push((currency.to_string(), value)),
