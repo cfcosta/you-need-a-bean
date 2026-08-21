@@ -1,0 +1,11 @@
+;; A household ledger split across files, the way real setups grow:
+;; account declarations and prices live apart from the postings, and
+;; each month gets its own file picked up by a glob include.
+
+option "title" "Multi-File Household"
+option "operating_currency" "USD"
+option "operating_currency" "BRL"
+
+include "accounts.beancount"
+include "prices.beancount"
+include "months/*.beancount"

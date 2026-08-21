@@ -1,0 +1,31 @@
+;; Account declarations, with the pretty names the UI shows.
+
+2024-01-01 open Assets:US:Chase:Checking      USD
+  name: "Everyday Checking"
+2024-01-01 open Assets:BR:Nubank:Conta        BRL
+  name: "Nubank Conta"
+2024-01-01 open Liabilities:US:Amex:Blue      USD
+  name: "Amex Blue"
+2024-01-01 open Assets:US:Vanguard:VTI        VTI
+  name: "Vanguard Index"
+  ynab: "tracking"
+
+2024-01-01 open Income:US:Acme:Salary         USD
+  name: "Acme Salary"
+2024-01-01 open Income:BR:Freela              BRL
+  name: "Freelance BR"
+
+2024-01-01 open Expenses:Food:Groceries       USD, BRL
+  name: "Groceries"
+2024-01-01 open Expenses:Food:Restaurants     USD, BRL
+  name: "Eating Out"
+2024-01-01 open Expenses:Home:Rent            USD
+  name: "Rent"
+2024-01-01 open Expenses:Home:Utilities       USD
+  name: "Utilities"
+2024-01-01 open Expenses:Transport:Fuel       USD
+  name: "Fuel"
+2024-01-01 open Expenses:Transport:Rideshare  BRL
+  name: "Rideshare"
+2024-01-01 open Expenses:Fun:Streaming        USD
+  name: "Streaming"

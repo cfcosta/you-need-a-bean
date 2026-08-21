@@ -1,0 +1,11 @@
+;; Month-end exchange rates and fund prices.
+
+2026-04-30 price USD   5.10 BRL
+2026-05-31 price USD   5.20 BRL
+2026-06-30 price USD   5.35 BRL
+2026-07-31 price USD   5.42 BRL
+2026-08-20 price USD   5.40 BRL
+
+2026-05-31 price VTI 265.00 USD
+2026-06-30 price VTI 271.50 USD
+2026-07-31 price VTI 268.75 USD

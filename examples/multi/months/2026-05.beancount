@@ -1,0 +1,49 @@
+;; May 2026
+
+2026-05-01 * "Landlord" "May rent"
+  Expenses:Home:Rent           1800.00 USD
+  Assets:US:Chase:Checking
+
+2026-05-03 * "Whole Foods" "weekly shop"
+  Expenses:Food:Groceries       162.40 USD
+  Liabilities:US:Amex:Blue
+
+2026-05-08 * "Con Edison" "electricity"
+  Expenses:Home:Utilities       128.75 USD
+  Assets:US:Chase:Checking
+
+2026-05-10 * "Whole Foods" "weekly shop"
+  Expenses:Food:Groceries       141.10 USD
+  Liabilities:US:Amex:Blue
+
+2026-05-11 * "Netflix"
+  Expenses:Fun:Streaming         15.49 USD
+  Liabilities:US:Amex:Blue
+
+2026-05-14 * "Shell" "fill-up"
+  Expenses:Transport:Fuel        58.30 USD
+  Liabilities:US:Amex:Blue
+
+2026-05-17 * "Osteria" "date night"
+  Expenses:Food:Restaurants     112.80 USD
+  Liabilities:US:Amex:Blue
+
+2026-05-20 * "Mercado da Vila" "feira"
+  Expenses:Food:Groceries       310.55 BRL
+  Assets:BR:Nubank:Conta
+
+2026-05-24 * "Whole Foods" "weekly shop"
+  Expenses:Food:Groceries       154.90 USD
+  Liabilities:US:Amex:Blue
+
+2026-05-26 * "99" "airport run"
+  Expenses:Transport:Rideshare   64.20 BRL
+  Assets:BR:Nubank:Conta
+
+2026-05-29 * "Acme Corp" "May salary"
+  Income:US:Acme:Salary       -6500.00 USD
+  Assets:US:Chase:Checking
+
+2026-05-30 * "Cliente Silva" "site freela"
+  Income:BR:Freela            -2400.00 BRL
+  Assets:BR:Nubank:Conta

@@ -1,0 +1,45 @@
+;; June 2026
+
+2026-06-01 * "Landlord" "June rent"
+  Expenses:Home:Rent           1800.00 USD
+  Assets:US:Chase:Checking
+
+2026-06-04 * "Whole Foods" "weekly shop"
+  Expenses:Food:Groceries       158.65 USD
+  Liabilities:US:Amex:Blue
+
+2026-06-07 * "Whole Foods" "returned the mixer"
+  Expenses:Food:Groceries       -48.99 USD
+  Liabilities:US:Amex:Blue
+
+2026-06-09 * "Con Edison" "electricity"
+  Expenses:Home:Utilities       143.20 USD
+  Assets:US:Chase:Checking
+
+2026-06-11 * "Netflix"
+  Expenses:Fun:Streaming         15.49 USD
+  Liabilities:US:Amex:Blue
+
+2026-06-13 * "Vanguard" "monthly buy"
+  Assets:US:Vanguard:VTI              4 VTI {269.10 USD}
+  Assets:US:Chase:Checking
+
+2026-06-15 * "Shell" "fill-up"
+  Expenses:Transport:Fuel        61.75 USD
+  Liabilities:US:Amex:Blue
+
+2026-06-18 * "Sushi Aki" "omakase"
+  Expenses:Food:Restaurants     186.00 USD
+  Liabilities:US:Amex:Blue
+
+2026-06-21 * "Whole Foods" "weekly shop"
+  Expenses:Food:Groceries       149.30 USD
+  Liabilities:US:Amex:Blue
+
+2026-06-25 * "99" "downtown"
+  Expenses:Transport:Rideshare   38.40 BRL
+  Assets:BR:Nubank:Conta
+
+2026-06-30 * "Acme Corp" "June salary"
+  Income:US:Acme:Salary       -6500.00 USD
+  Assets:US:Chase:Checking

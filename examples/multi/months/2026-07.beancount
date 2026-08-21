@@ -1,0 +1,51 @@
+;; July 2026 — the São Paulo trip month.
+
+2026-07-01 * "Landlord" "July rent"
+  Expenses:Home:Rent           1800.00 USD
+  Assets:US:Chase:Checking
+
+2026-07-02 * "Whole Foods" "weekly shop"
+  Expenses:Food:Groceries       171.85 USD
+  Liabilities:US:Amex:Blue
+
+2026-07-08 * "Con Edison" "electricity"
+  Expenses:Home:Utilities       151.60 USD
+  Assets:US:Chase:Checking
+
+2026-07-10 * "Mercado da Vila" "estoque da viagem" #groceries ^trip-brazil-2026
+  note: "stocked the apartment for two weeks"
+  Expenses:Food:Groceries       412.30 BRL
+  Assets:BR:Nubank:Conta
+
+2026-07-11 * "Netflix"
+  Expenses:Fun:Streaming         15.49 USD
+  Liabilities:US:Amex:Blue
+
+2026-07-12 * "Fogo de Chão" "churrascaria com a família" #eating-out ^trip-brazil-2026
+  Expenses:Food:Restaurants     389.90 BRL
+  Assets:BR:Nubank:Conta
+
+2026-07-15 * "99" "Guarulhos até Pinheiros" ^trip-brazil-2026
+  Expenses:Transport:Rideshare  118.70 BRL
+  Assets:BR:Nubank:Conta
+
+2026-07-18 ! "Padaria Estrela" "pão de queijo, waiting for the card to settle"
+  Expenses:Food:Restaurants      52.40 BRL
+  Liabilities:US:Amex:Blue       -9.70 USD @@ 52.40 BRL
+
+2026-07-21 * "Coco Bambu" "jantar de despedida" #eating-out ^trip-brazil-2026
+  receipt: "coco-bambu-9917"
+  Expenses:Food:Restaurants     276.50 BRL
+  Assets:BR:Nubank:Conta
+
+2026-07-26 * "Whole Foods" "back home, restock"
+  Expenses:Food:Groceries       193.40 USD
+  Liabilities:US:Amex:Blue
+
+2026-07-28 * "Shell" "fill-up"
+  Expenses:Transport:Fuel        63.10 USD
+  Liabilities:US:Amex:Blue
+
+2026-07-31 * "Acme Corp" "July salary"
+  Income:US:Acme:Salary       -6500.00 USD
+  Assets:US:Chase:Checking
