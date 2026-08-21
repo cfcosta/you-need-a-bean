@@ -551,6 +551,10 @@ a:focus-visible {
   text-align: right;
   font-size: 12.5px;
 }
+/* The typical column reads as the reference for the bar next to it. */
+.cell.dim {
+  color: var(--muted);
+}
 .cell .c2 {
   display: block;
   font-size: 9.5px;

@@ -85,6 +85,7 @@ export function BudgetTable({
     <div id="table-card">
       <div className="thead">
         <div>Category</div>
+        <div>Spent</div>
         <div>
           <span
             className="hint"
@@ -93,7 +94,6 @@ export function BudgetTable({
             Typical / mo
           </span>
         </div>
-        <div>Spent</div>
         <div>
           <span
             className="hint"
@@ -132,10 +132,10 @@ export function BudgetTable({
                   </span>
                   {g.name}
                 </span>
+                <span className="g-amt">{fmt(g.spent, cur)}</span>
                 <span className="g-amt">
                   {g.avg != null ? fmt(g.avg, cur) : "—"}
                 </span>
-                <span className="g-amt">{fmt(g.spent, cur)}</span>
                 <span className="g-amt">
                   {g.avg != null && g.avg > 0
                     ? `${Math.round((g.spent / g.avg) * 100)}%`
@@ -160,9 +160,6 @@ export function BudgetTable({
                         <span className="p">{c.label}</span>
                       </span>
                       <span className="cell num">
-                        {c.avg != null ? fmt(c.avg, cur) : "—"}
-                      </span>
-                      <span className="cell num">
                         {fmt(c.spent, cur)}
                         {mixed.length > 0 && (
                           <span
@@ -172,6 +169,9 @@ export function BudgetTable({
                             +{mixed.join("+")}
                           </span>
                         )}
+                      </span>
+                      <span className="cell num dim">
+                        {c.avg != null ? fmt(c.avg, cur) : "—"}
                       </span>
                       <VsBar
                         row={c}
