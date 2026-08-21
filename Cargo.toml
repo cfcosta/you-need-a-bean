@@ -1,7 +1,12 @@
-[package]
-name = "you-need-a-bean"
+[workspace]
+members = ["crates/cli", "crates/core"]
+resolver = "3"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 authors = ["Cainã Costa <me@cfcosta.com>"]
 
-[dependencies]
+[profile.release]
+lto = "thin"
+codegen-units = 1

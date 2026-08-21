@@ -1,0 +1,12 @@
+[package]
+name = "you-need-a-bean-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "you-need-a-bean"
+path = "src/main.rs"
+
+[dependencies]
+you-need-a-bean-core = { path = "../core" }
