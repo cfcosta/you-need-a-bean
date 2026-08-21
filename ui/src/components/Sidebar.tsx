@@ -14,10 +14,9 @@ function AccountList({
   rows: AccountRow[];
   cur: string;
 }) {
-  // Accounts opened but never posted to carry no balances; skip them.
-  const live = rows.filter((a) => Object.keys(a.balances).length > 0);
-  if (live.length === 0) return null;
-  const total = live.reduce((s, a) => s + (a.converted ?? 0), 0);
+  // The server already hides zero-balance accounts.
+  if (rows.length === 0) return null;
+  const total = rows.reduce((s, a) => s + (a.converted ?? 0), 0);
   return (
     <div className="acct-section">
       <div className="acct-title">
@@ -26,7 +25,7 @@ function AccountList({
           ≈ {fmt(total, cur, 0)}
         </span>
       </div>
-      {live.map((a) => {
+      {rows.map((a) => {
         const codes = Object.keys(a.balances);
         const single = codes.length === 1 ? codes[0] : null;
         const shown =

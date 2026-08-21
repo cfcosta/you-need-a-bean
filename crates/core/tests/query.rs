@@ -119,15 +119,12 @@ fn sidebar_balances_accumulate_and_convert() {
         .iter()
         .map(|a| a.account.as_str())
         .collect();
-    assert_eq!(
-        tracking,
-        vec!["Assets:ETrade:VEA", "Assets:Points", "Assets:Vault"]
-    );
+    // Assets:Points has no postings yet by February and Assets:Vault
+    // never has any; zero balances stay out of the sidebar.
+    assert_eq!(tracking, vec!["Assets:ETrade:VEA"]);
     let vea = &view.tracking_accounts[0];
     assert_eq!(vea.balances, vec![("VEA".to_string(), dec("2"))]);
     assert_eq!(vea.converted, None);
-    // No postings yet by February.
-    assert!(view.tracking_accounts[1].balances.is_empty());
 
     // Hidden accounts never appear.
     assert!(
@@ -197,6 +194,34 @@ fn category_view_lists_history_window_and_txns() {
             .category_view("Expenses:Nope", m("2026-02"), 3, "USD")
             .is_none()
     );
+}
+
+#[test]
+fn sidebar_hides_accounts_with_all_zero_balances() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/sidebar/main.beancount");
+    let ledger = Ledger::build(load(&path).unwrap());
+    let names = |view: &bean_core::query::MonthView| -> Vec<String> {
+        view.budget_accounts
+            .iter()
+            .chain(&view.tracking_accounts)
+            .map(|a| a.account.clone())
+            .collect()
+    };
+
+    // January: the wallet holds money, the points balance is nonzero
+    // even though PTS never converts, and the never-used account stays
+    // out of the way.
+    let jan = ledger.month_view(m("2026-01"), 6, "USD");
+    assert_eq!(
+        names(&jan),
+        vec!["Assets:Cash", "Assets:Wallet", "Assets:Points"]
+    );
+
+    // February: the wallet went back to exactly zero, so it disappears;
+    // the untouched points balance carries over and stays visible.
+    let feb = ledger.month_view(m("2026-02"), 6, "USD");
+    assert_eq!(names(&feb), vec!["Assets:Cash", "Assets:Points"]);
 }
 
 #[test]

@@ -1,0 +1,24 @@
+option "title" "Sidebar"
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Cash    USD
+2026-01-01 open Assets:Wallet  USD
+2026-01-01 open Assets:Empty   USD
+2026-01-01 open Assets:Points  PTS
+2026-01-01 open Income:Job     USD
+
+2026-01-02 * "Seed"
+  Income:Job  -100.00 USD
+  Assets:Cash
+
+2026-01-03 * "Fund wallet"
+  Assets:Wallet  40.00 USD
+  Assets:Cash
+
+2026-01-04 * "Earn points"
+  Assets:Points  5 PTS
+  Income:Job  -5 PTS
+
+2026-02-01 * "Empty the wallet"
+  Assets:Wallet  -40.00 USD
+  Assets:Cash

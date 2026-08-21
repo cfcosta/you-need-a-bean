@@ -183,6 +183,11 @@ impl Ledger {
                 || info.account.starts_with("Liabilities:")
             {
                 let row = self.account_row(info, month, cur);
+                // A sidebar full of zero rows is noise: closed accounts
+                // and accounts with no activity yet stay hidden.
+                if row.balances.iter().all(|(_, v)| v.is_zero()) {
+                    continue;
+                }
                 match info.kind {
                     AccountKind::Budget => budget_accounts.push(row),
                     AccountKind::Tracking => tracking_accounts.push(row),
