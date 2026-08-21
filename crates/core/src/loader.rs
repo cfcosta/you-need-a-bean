@@ -9,7 +9,9 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-use beancount_parser::{Directive, Entry, parse_iter};
+use beancount_parser::{
+    Account, Directive, DirectiveContent, Entry, parse_iter,
+};
 use rust_decimal::Decimal;
 
 /// Everything read from disk, before any budget modelling.
@@ -107,6 +109,7 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
             })?;
         let dir = path.parent().expect("a readable file has a parent");
 
+        let mut blocks: Vec<(u32, Option<Vec<Account>>)> = Vec::new();
         for entry in parse_iter::<Decimal>(&text) {
             let entry = entry.map_err(|err| LoadError::Syntax {
                 path: path.clone(),
@@ -114,6 +117,16 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
             })?;
             match entry {
                 Entry::Directive(directive) => {
+                    let postings = match &directive.content {
+                        DirectiveContent::Transaction(txn) => Some(
+                            txn.postings
+                                .iter()
+                                .map(|p| p.account.clone())
+                                .collect(),
+                        ),
+                        _ => None,
+                    };
+                    blocks.push((directive.line_number, postings));
                     ledger.directives.push(directive)
                 }
                 Entry::Option(option) => {
@@ -131,10 +144,100 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
                 _ => {}
             }
         }
+        if let Some(warning) = dropped_posting_warning(&path, &text, blocks) {
+            ledger.warnings.push(warning);
+        }
         ledger.files.push(path);
     }
 
     Ok(ledger)
+}
+
+/// The parser skips lines it cannot read (and everything after them in the
+/// same transaction) instead of erroring, which silently changes balances.
+/// Compare the raw text against what actually parsed and flag the leftovers.
+fn dropped_posting_warning(
+    path: &Path,
+    text: &str,
+    mut blocks: Vec<(u32, Option<Vec<Account>>)>,
+) -> Option<String> {
+    let mut dropped = 0usize;
+    let mut first: Option<(usize, &str)> = None;
+    let mut current: Option<usize> = None;
+    let mut next = 0usize;
+
+    for (idx, line) in text.lines().enumerate() {
+        let line_no = idx + 1;
+        while next < blocks.len() && (blocks[next].0 as usize) <= line_no {
+            current = Some(next);
+            next += 1;
+        }
+        let Some(token) = posting_like(line) else {
+            continue;
+        };
+        // A candidate is accounted for if the enclosing transaction still has
+        // a parsed posting for that account; otherwise the parser dropped it.
+        let mut matched = false;
+        if let Some(queue) = current.and_then(|i| blocks[i].1.as_mut())
+            && let Some(pos) = queue.iter().position(|a| a.as_str() == token)
+        {
+            queue.drain(..=pos);
+            matched = true;
+        }
+        if !matched {
+            dropped += 1;
+            first.get_or_insert((line_no, line.trim()));
+        }
+    }
+
+    let (line_no, content) = first?;
+    Some(format!(
+        "{}: {dropped} posting-like line(s) could not be parsed and were \
+         ignored (first at line {line_no}: {content})",
+        path.display(),
+    ))
+}
+
+/// The account token of an indented line shaped like a posting: an optional
+/// `!`/`*` flag followed by `Root:Segment...` rooted at a beancount account
+/// type. Comments and metadata (lowercase keys) never match.
+fn posting_like(line: &str) -> Option<&str> {
+    if !line.starts_with([' ', '\t']) {
+        return None;
+    }
+    let mut rest = line.trim_start();
+    if rest.starts_with(';') {
+        return None;
+    }
+    if let Some(stripped) = rest.strip_prefix(['!', '*']) {
+        rest = stripped.trim_start();
+    }
+    let token = rest.split_whitespace().next()?;
+    is_account(token).then_some(token)
+}
+
+fn is_account(token: &str) -> bool {
+    let mut segments = token.split(':');
+    let root = segments.next().unwrap_or_default();
+    let known_root = matches!(
+        root,
+        "Assets" | "Liabilities" | "Equity" | "Income" | "Expenses"
+    );
+    if !known_root {
+        return false;
+    }
+    let mut children = 0usize;
+    for segment in segments {
+        let mut chars = segment.chars();
+        let starts_ok = chars
+            .next()
+            .is_some_and(|c| c.is_uppercase() || c.is_ascii_digit());
+        if !starts_ok || !chars.all(|c| c.is_alphanumeric() || c == '-') {
+            return false;
+        }
+        children += 1;
+    }
+    children >= 1
 }
 
 fn enqueue_include(

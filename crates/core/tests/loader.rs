@@ -58,6 +58,32 @@ fn zero_match_glob_is_a_warning_not_an_error() {
 }
 
 #[test]
+fn warns_when_posting_like_lines_are_dropped() {
+    // The parser skips lines it cannot read instead of failing; money must
+    // never disappear silently, so the loader flags them.
+    let ledger = load(&fixture("skipped/main.beancount")).unwrap();
+    assert_eq!(ledger.warnings.len(), 1, "warnings: {:?}", ledger.warnings);
+    let warning = &ledger.warnings[0];
+    assert!(warning.contains("main.beancount"), "{warning}");
+    assert!(warning.contains("2 posting"), "{warning}");
+    assert!(warning.contains("line 7"), "{warning}");
+    assert!(warning.contains("Expenses:Stuff"), "{warning}");
+
+    // The intact transaction still loads normally.
+    assert_eq!(ledger.directives.len(), 4);
+}
+
+#[test]
+fn clean_ledgers_load_without_posting_warnings() {
+    let ledger = load(&fixture("model/main.beancount")).unwrap();
+    assert!(
+        ledger.warnings.is_empty(),
+        "warnings: {:?}",
+        ledger.warnings
+    );
+}
+
+#[test]
 fn missing_include_is_an_error() {
     let err = load(&fixture("broken/missing.beancount")).unwrap_err();
     match err {

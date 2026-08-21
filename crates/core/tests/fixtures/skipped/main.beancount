@@ -1,0 +1,12 @@
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Bank  USD
+2026-01-01 open Expenses:Stuff  USD
+
+2026-01-05 * "gadget with an amount the parser cannot read"
+  Expenses:Stuff  10..0 USD
+  Assets:Bank
+
+2026-01-06 * "fine transaction"
+  Expenses:Stuff  25.00 USD
+  Assets:Bank
