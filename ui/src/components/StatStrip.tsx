@@ -25,12 +25,12 @@ export function StatStrip({
     <div id="strip">
       <div className="tile">
         <div className="lbl">Income{sofar}</div>
-        <div className="val num">{fmt(view.income, cur, 0)}</div>
+        <div className="val num">{fmt(view.income, cur)}</div>
         <div className="sub">all Income accounts</div>
       </div>
       <div className="tile">
         <div className="lbl">Spent{sofar}</div>
-        <div className="val num">{fmt(view.spent, cur, 0)}</div>
+        <div className="val num">{fmt(view.spent, cur)}</div>
         <div className="sub">
           {pctTyp != null
             ? `${pctTyp}% of a typical month`
@@ -41,14 +41,14 @@ export function StatStrip({
       <div className="tile">
         <div className="lbl">Typical month</div>
         <div className="val num">
-          {view.typical != null ? fmt(view.typical, cur, 0) : "—"}
+          {view.typical != null ? fmt(view.typical, cur) : "—"}
         </div>
         <div className="sub">avg of {windowLabel(window)}</div>
       </div>
       <div className="tile">
         <div className="lbl">Net{sofar}</div>
         <div className="val num">
-          <span className={net >= 0 ? "pos" : ""}>{fmt(net, cur, 0)}</span>
+          <span className={net >= 0 ? "pos" : ""}>{fmt(net, cur)}</span>
         </div>
         <div className="sub">income − spending</div>
       </div>

@@ -133,9 +133,9 @@ export function BudgetTable({
                   {g.name}
                 </span>
                 <span className="g-amt">
-                  {g.avg != null ? fmt(g.avg, cur, 0) : "—"}
+                  {g.avg != null ? fmt(g.avg, cur) : "—"}
                 </span>
-                <span className="g-amt">{fmt(g.spent, cur, 0)}</span>
+                <span className="g-amt">{fmt(g.spent, cur)}</span>
                 <span className="g-amt">
                   {g.avg != null && g.avg > 0
                     ? `${Math.round((g.spent / g.avg) * 100)}%`

@@ -200,7 +200,7 @@ impl Ledger {
 
         MonthView {
             month,
-            income,
+            income: cents(income),
             spent: groups.iter().map(|g| g.spent).sum(),
             typical: sum_present(groups.iter().map(|g| g.avg)),
             groups,
@@ -218,8 +218,8 @@ impl Ledger {
         cur: &str,
     ) -> Option<CategoryView<'_>> {
         let info = self.account(account)?;
-        let spent = self.spent_converted(account, month, cur);
-        let avg = self.average(account, month, basis, cur);
+        let spent = cents(self.spent_converted(account, month, cur));
+        let avg = self.average(account, month, basis, cur).map(cents);
         let (ratio, status) = ratio_status(spent, avg);
         let history = (0..6)
             .rev()
@@ -227,7 +227,7 @@ impl Ledger {
                 let m = month.minus(back);
                 HistoryPoint {
                     month: m,
-                    spent: self.spent_converted(account, m, cur),
+                    spent: cents(self.spent_converted(account, m, cur)),
                 }
             })
             .collect();
@@ -275,8 +275,8 @@ impl Ledger {
         basis: u32,
         cur: &str,
     ) -> CategoryRow {
-        let spent = self.spent_converted(&info.account, month, cur);
-        let avg = self.average(&info.account, month, basis, cur);
+        let spent = cents(self.spent_converted(&info.account, month, cur));
+        let avg = self.average(&info.account, month, basis, cur).map(cents);
         let (ratio, status) = ratio_status(spent, avg);
         CategoryRow {
             account: info.account.clone(),
@@ -314,7 +314,8 @@ impl Ledger {
             account: info.account.clone(),
             label: info.label.clone(),
             balances,
-            converted: (!parts.is_empty()).then(|| parts.iter().copied().sum()),
+            converted: (!parts.is_empty())
+                .then(|| cents(parts.iter().copied().sum())),
         }
     }
 
@@ -344,6 +345,13 @@ impl Ledger {
             )
         });
     }
+}
+
+/// Quantize a display value to cents. Applied at the leaves (category
+/// spend/avg, account conversions, income) so every aggregate is a sum
+/// of already-rounded values and what the UI shows always adds up.
+fn cents(value: Decimal) -> Decimal {
+    value.round_dp(2)
 }
 
 fn ratio_status(

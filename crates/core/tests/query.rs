@@ -200,6 +200,51 @@ fn category_view_lists_history_window_and_txns() {
 }
 
 #[test]
+fn views_quantize_money_at_the_leaves_so_sums_add_up() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/rounding/main.beancount");
+    let ledger = Ledger::build(load(&path).unwrap());
+
+    // Each category converts to 3.333 USD exactly; displayed cents must
+    // sum to the displayed totals, so quantization happens at the leaf.
+    let view = ledger.month_view(m("2026-01"), 6, "USD");
+    for group in &view.groups {
+        for c in &group.categories {
+            assert!(c.spent.scale() <= 2, "{}: {}", c.account, c.spent);
+        }
+        assert_eq!(
+            group.spent,
+            group.categories.iter().map(|c| c.spent).sum::<Decimal>()
+        );
+    }
+    assert_eq!(view.groups[0].spent, dec("6.66"));
+    assert_eq!(view.spent, dec("9.99"));
+    assert_eq!(view.income, dec("100.00"));
+
+    // Averages round at the leaf too: window [Jan, Feb] gives
+    // 3.333 / 2 = 1.6665 → 1.67 per category, so typical is 5.01.
+    let march = ledger.month_view(m("2026-03"), 3, "USD");
+    let food = &march.groups[0];
+    assert_eq!(food.categories[0].avg, Some(dec("1.67")));
+    assert_eq!(food.avg, Some(dec("3.34")));
+    assert_eq!(march.typical, Some(dec("5.01")));
+
+    // The inspector shows the same cents as the table row.
+    let cat = ledger
+        .category_view("Expenses:Food:Dining", m("2026-01"), 6, "USD")
+        .unwrap();
+    assert_eq!(cat.spent, dec("3.33"));
+    assert!(cat.history.iter().all(|p| p.spent.scale() <= 2));
+
+    // Sidebar conversions are display values as well: the cash residual
+    // is 90.0011 USD exactly, shown as 90.00.
+    let cash = &view.budget_accounts[0];
+    assert_eq!(cash.converted, Some(dec("90.00")));
+    // Native balances stay exact — they are ledger truth, not display.
+    assert_eq!(cash.balances, vec![("USD".to_string(), dec("90.0011"))]);
+}
+
+#[test]
 fn months_range_and_default_month_clamp() {
     let ledger = ledger();
 
