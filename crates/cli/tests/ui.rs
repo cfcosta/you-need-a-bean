@@ -52,22 +52,45 @@ async fn serves_the_embedded_ui_at_root() {
 
     // The page references its hashed bundle; that asset must be served too.
     let js = body
-        .split("src=\"./")
+        .split("src=\"")
         .nth(1)
         .and_then(|rest| rest.split('"').next())
         .expect("index.html references a script");
-    let (status, content_type, _) = get(&app, &format!("/{js}")).await;
+    let (status, content_type, _) = get(&app, js).await;
     assert_eq!(status, StatusCode::OK);
     assert!(content_type.contains("javascript"), "{content_type}");
 
     let css = body
-        .split("href=\"./")
+        .split("href=\"")
         .nth(1)
         .and_then(|rest| rest.split('"').next())
         .expect("index.html references a stylesheet");
-    let (status, content_type, _) = get(&app, &format!("/{css}")).await;
+    let (status, content_type, _) = get(&app, css).await;
     assert_eq!(status, StatusCode::OK);
     assert!(content_type.starts_with("text/css"), "{content_type}");
+}
+
+#[tokio::test]
+async fn deep_routes_still_load_the_app_bundle() {
+    let app = app(UiSource::Embedded);
+
+    // A browser at /some/deep/route resolves the page's asset references
+    // against /some/deep/, so the bundle only loads if those references
+    // are absolute.
+    let (status, _, body) = get(&app, "/some/deep/route").await;
+    assert_eq!(status, StatusCode::OK);
+    let js = body
+        .split("src=\"")
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("index.html references a script");
+    assert!(js.starts_with('/'), "asset reference is relative: {js}");
+
+    let (status, content_type, _) = get(&app, js).await;
+    assert!(
+        status == StatusCode::OK && content_type.contains("javascript"),
+        "{js} must serve the bundle, got {status} {content_type}"
+    );
 }
 
 #[tokio::test]

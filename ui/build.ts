@@ -6,6 +6,8 @@ const result = await Bun.build({
   entrypoints: ["./src/index.html"],
   outdir: "./dist",
   target: "browser",
+  // Absolute asset URLs, so the SPA fallback works on nested routes.
+  publicPath: "/",
   minify: true,
   sourcemap: "none",
   define: { "process.env.NODE_ENV": '"production"' },
