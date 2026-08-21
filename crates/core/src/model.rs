@@ -144,6 +144,8 @@ pub struct Ledger {
     pub operating_currencies: Vec<String>,
     pub files: Vec<PathBuf>,
     pub warnings: Vec<String>,
+    /// How many directives the source files contained, for diagnostics.
+    pub directives: usize,
     pub first_txn_month: Option<MonthKey>,
     pub last_txn_month: Option<MonthKey>,
     pub txns: Vec<Txn>,
@@ -335,6 +337,7 @@ impl Builder {
             operating_currencies: operating,
             files: loaded.files,
             warnings: loaded.warnings,
+            directives: loaded.directives.len(),
             first_txn_month: self.first_month,
             last_txn_month: self.last_month,
             txns: self.txns,
