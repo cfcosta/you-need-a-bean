@@ -56,6 +56,27 @@ fn reports_track_net_worth_and_cashflow_by_month() {
 }
 
 #[test]
+fn year_breakdown_totals_the_trailing_year_by_group() {
+    let view = ledger().reports_view((2026, 4, 15), 3, "USD");
+
+    // A fixed twelve-month window clamped to first activity — the
+    // display basis (3 here) plays no part.
+    assert_eq!(view.year_window, Some((m("2026-01"), m("2026-03"))));
+
+    let rows: Vec<(&str, Decimal)> = view
+        .year_groups
+        .iter()
+        .map(|g| (g.name.as_str(), g.total))
+        .collect();
+    // Rent 3 × 2,000, Food 1,000 + 1,000 + 2,000. Refunds bought and
+    // returned the same gear, nets to zero, and drops out.
+    assert_eq!(
+        rows,
+        vec![("Rent", dec("6000.00")), ("Food", dec("4000.00"))]
+    );
+}
+
+#[test]
 fn fire_numbers_follow_the_four_percent_rule() {
     let view = ledger().reports_view((2026, 4, 15), 3, "USD");
     let fire = &view.fire;

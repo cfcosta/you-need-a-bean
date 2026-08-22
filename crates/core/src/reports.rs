@@ -60,6 +60,13 @@ pub struct FireView {
     pub scenarios: Vec<FireScenario>,
 }
 
+/// One expense group's share of the trailing year.
+#[derive(Debug, Clone)]
+pub struct YearGroup {
+    pub name: String,
+    pub total: Decimal,
+}
+
 #[derive(Debug, Clone)]
 pub struct ReportsView {
     /// The month the FIRE numbers are anchored to (today, clamped).
@@ -67,6 +74,11 @@ pub struct ReportsView {
     pub net_worth: Vec<NetWorthPoint>,
     pub cashflow: Vec<CashflowPoint>,
     pub fire: FireView,
+    /// The trailing-twelve-month window behind `year_groups`.
+    pub year_window: Option<(MonthKey, MonthKey)>,
+    /// Converted spend per expense group over that window, biggest
+    /// first. Groups that net to zero or less over the year drop out.
+    pub year_groups: Vec<YearGroup>,
 }
 
 impl Ledger {
@@ -146,11 +158,36 @@ impl Ledger {
             net_at(&net_worth, current),
             &cashflow,
         );
+
+        // Where the year went: spend per expense group over the
+        // trailing twelve months, hidden accounts included — the same
+        // every-account stance as the flows above.
+        let year_window = self.window(current, 12);
+        let mut totals: BTreeMap<&str, Decimal> = BTreeMap::new();
+        for info in self.accounts() {
+            let Some(group) = &info.group else { continue };
+            if let Some(spend) = self.year_spend(&info.account, current, cur) {
+                *totals.entry(group).or_default() += spend;
+            }
+        }
+        let mut year_groups: Vec<YearGroup> = totals
+            .into_iter()
+            .filter(|&(_, total)| total > Decimal::ZERO)
+            .map(|(name, total)| YearGroup {
+                name: name.to_string(),
+                total: cents(total),
+            })
+            .collect();
+        year_groups
+            .sort_by(|a, b| b.total.cmp(&a.total).then(a.name.cmp(&b.name)));
+
         ReportsView {
             month: current,
             net_worth,
             cashflow,
             fire,
+            year_window,
+            year_groups,
         }
     }
 

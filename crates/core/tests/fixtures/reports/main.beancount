@@ -7,6 +7,7 @@ option "operating_currency" "USD"
 2026-01-01 open Income:Salary      USD
 2026-01-01 open Expenses:Rent      USD
 2026-01-01 open Expenses:Food      USD
+2026-01-01 open Expenses:Refunds:Gear  USD
 2026-01-01 open Equity:Opening     USD
 
 2026-01-01 price VTI 100.00 USD
@@ -30,6 +31,14 @@ option "operating_currency" "USD"
 
 2026-01-20 * "Buy VTI"
   Assets:Broker  20 VTI {100.00 USD}
+  Assets:Checking
+
+2026-01-25 * "Gear for the trip"
+  Expenses:Refunds:Gear  200.00 USD
+  Assets:Checking
+
+2026-01-28 * "Gear returned"
+  Expenses:Refunds:Gear  -200.00 USD
   Assets:Checking
 
 2026-02-05 * "Salary"

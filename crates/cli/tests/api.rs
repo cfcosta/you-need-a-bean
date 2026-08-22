@@ -192,6 +192,19 @@ async fn reports_endpoint_shapes_series_and_fire() {
     assert_eq!(scenarios[1]["rate"], json!(0.05));
     // Negative savings and negative net worth: FIRE never arrives.
     assert_eq!(scenarios[1]["months"], Value::Null);
+
+    let year = &body["year"];
+    assert_eq!(year["window"], json!(["2025-12", "2026-07"]));
+    // Vacation is absent: its only spending is VACHR with no price,
+    // which never converts.
+    assert_eq!(
+        year["groups"],
+        json!([
+            {"name": "Home", "total": 500.0},
+            {"name": "Fun", "total": 190.0},
+            {"name": "Food", "total": 166.0},
+        ])
+    );
 }
 
 #[tokio::test]

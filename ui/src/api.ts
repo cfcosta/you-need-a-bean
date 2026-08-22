@@ -114,11 +114,17 @@ export interface Fire {
   scenarios: FireScenario[];
 }
 
+export interface YearGroup {
+  name: string;
+  total: number;
+}
+
 export interface ReportsView {
   month: string;
   net_worth: NetWorthPoint[];
   cashflow: CashflowPoint[];
   fire: Fire;
+  year: { window: [string, string] | null; groups: YearGroup[] };
 }
 
 async function get<T>(url: string): Promise<T> {

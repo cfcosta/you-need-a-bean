@@ -169,10 +169,11 @@ impl Ledger {
     }
 
     /// Total converted spend over the trailing twelve months — the
-    /// sort weight behind the table. Amortizing what the year really
+    /// sort weight behind the table and the raw material of the
+    /// reports page's year breakdown. Amortizing what the year really
     /// cost, empty months and refunds included, ranks a big quarterly
     /// bill above daily noise. `None` when the month has no window.
-    fn year_spend(
+    pub(crate) fn year_spend(
         &self,
         account: &str,
         month: MonthKey,

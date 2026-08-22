@@ -847,6 +847,82 @@ a:focus-visible {
 .chart-svg .cf-bar.neg {
   fill: var(--over);
 }
+.chart-svg .cf-bar.clip {
+  opacity: 0.55;
+}
+.chart-svg .sr-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.report-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 12px;
+  align-items: start;
+}
+.report-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+@media (max-width: 1080px) {
+  .report-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.yr-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 12px;
+}
+.yr-row {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11.5px;
+}
+.yr-name {
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yr-track {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.yr-bar {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+}
+.yr-amt {
+  justify-self: end;
+  min-width: 56px;
+  text-align: right;
+  font-weight: 550;
+}
+.yr-pct {
+  justify-self: end;
+  min-width: 30px;
+  text-align: right;
+  color: var(--muted);
+}
+.yr-row.other .yr-name {
+  color: var(--muted);
+  font-weight: 450;
+}
+.yr-row.other .yr-bar {
+  opacity: 0.45;
+}
 .month-label.page-title {
   text-align: left;
   min-width: 148px;

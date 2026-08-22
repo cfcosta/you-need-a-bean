@@ -226,6 +226,11 @@ async fn reports(
             })
         })
         .collect();
+    let year_groups: Vec<Value> = view
+        .year_groups
+        .iter()
+        .map(|g| json!({"name": g.name, "total": num(g.total)}))
+        .collect();
     Ok(Json(json!({
         "month": view.month.to_string(),
         "net_worth": net_worth,
@@ -242,6 +247,12 @@ async fn reports(
             "monthly_savings": num(fire.monthly_savings),
             "swr_monthly": num(fire.swr_monthly),
             "scenarios": scenarios,
+        },
+        "year": {
+            "window": view.year_window.map_or(Value::Null, |(from, to)| {
+                json!([from.to_string(), to.to_string()])
+            }),
+            "groups": year_groups,
         },
     })))
 }

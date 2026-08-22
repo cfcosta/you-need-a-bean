@@ -205,11 +205,204 @@ function CashflowChart({
   );
 }
 
+interface SavingsPoint {
+  month: string;
+  income: number;
+  net: number;
+  /** net / income; `null` when the month brought no income. */
+  rate: number | null;
+  /** 3-month aggregate rate: Σnet / Σincome over the trailing three. */
+  trend: number | null;
+}
+
+function savingsSeries(points: CashflowPoint[]): SavingsPoint[] {
+  return points.map((p, i) => {
+    const win = points.slice(Math.max(0, i - 2), i + 1);
+    const inc3 = win.reduce((s, q) => s + q.income, 0);
+    const net3 = win.reduce((s, q) => s + q.net, 0);
+    return {
+      month: p.month,
+      income: p.income,
+      net: p.net,
+      rate: p.income > 0 ? p.net / p.income : null,
+      trend: inc3 > 0 ? net3 / inc3 : null,
+    };
+  });
+}
+
+function SavingsRateChart({
+  points,
+  cur,
+}: {
+  points: SavingsPoint[];
+  cur: string;
+}) {
+  const W = 460;
+  const H = 170;
+  const TOP = 16;
+  const BOT = 20;
+  const PAD = 8;
+  const n = points.length;
+  // Geometry is clamped to ±100% so one weird month can't flatten the
+  // rest; tooltips keep the true number.
+  const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+  if (n === 0 || points.every((p) => p.rate == null)) {
+    return <div className="empty">no income months to chart</div>;
+  }
+  const values = points.flatMap((p) => [
+    ...(p.rate != null ? [clamp(p.rate)] : []),
+    ...(p.trend != null ? [clamp(p.trend)] : []),
+  ]);
+  const [min, max] = bounds(values);
+  const y = (v: number) => TOP + ((max - v) * (H - TOP - BOT)) / (max - min);
+  const slot = (W - 2 * PAD) / n;
+  const bw = Math.max(2, Math.min(22, slot - 2));
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+
+  // The trend line breaks where three straight months bring no income.
+  let line = "";
+  let pen = false;
+  points.forEach((p, i) => {
+    if (p.trend == null) {
+      pen = false;
+      return;
+    }
+    const cx = PAD + i * slot + slot / 2;
+    line += `${pen ? "L" : "M"}${cx.toFixed(1)},${y(clamp(p.trend)).toFixed(1)}`;
+    pen = true;
+  });
+
+  return (
+    <svg
+      className="chart-svg"
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label="Savings rate by month"
+    >
+      {ticks(min, max, 3)
+        .filter((v) => Math.abs(v) > 1e-9)
+        .map((v) => (
+          <g key={v}>
+            <line x1={PAD} x2={W - PAD} y1={y(v)} y2={y(v)} className="grid" />
+            <text x={PAD} y={y(v) - 3} className="axis">
+              {pct(v)}
+            </text>
+          </g>
+        ))}
+      <line x1={PAD} x2={W - PAD} y1={y(0)} y2={y(0)} className="grid zero" />
+      {points.map((p, i) => {
+        const cx = PAD + i * slot + slot / 2;
+        const r = p.rate;
+        // Past −1000% the percentage is noise; the amounts below tell
+        // the story.
+        const label =
+          r == null
+            ? "no income this month"
+            : r < -10
+              ? "spending dwarfed income"
+              : `saved ${pct(r)} of income`;
+        const tip = `${monthName(p.month)}\n${label}\nin ${fmt(p.income, cur)} · net ${fmt(p.net, cur)}`;
+        return (
+          <g key={p.month}>
+            {r != null && (
+              <rect
+                x={cx - bw / 2}
+                y={r >= 0 ? y(clamp(r)) : y(0)}
+                width={bw}
+                height={Math.max(1.5, Math.abs(y(clamp(r)) - y(0)))}
+                rx="2"
+                className={`cf-bar ${r >= 0 ? "pos" : "neg"}${
+                  r === clamp(r) ? "" : " clip"
+                }`}
+              />
+            )}
+            <rect
+              x={cx - slot / 2}
+              y={0}
+              width={slot}
+              height={H}
+              fill="transparent"
+            >
+              <title>{tip}</title>
+            </rect>
+            {i % 3 === 0 && (
+              <text x={cx} y={H - 5} textAnchor="middle" className="axis">
+                {monthShort(p.month)}
+                {p.month.slice(5, 7) === "01" ? ` ${p.month.slice(2, 4)}` : ""}
+              </text>
+            )}
+          </g>
+        );
+      })}
+      <path d={line} className="sr-line" />
+    </svg>
+  );
+}
+
+function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
+  const groups = data.year.groups;
+  const total = groups.reduce((s, g) => s + g.total, 0);
+  const top = groups.slice(0, 9);
+  const rest = groups.slice(9);
+  const restTotal = rest.reduce((s, g) => s + g.total, 0);
+  const max = groups[0]?.total ?? 0;
+  const width = (v: number) =>
+    max > 0 ? `${Math.min(100, (v / max) * 100)}%` : "0%";
+  const share = (v: number) => {
+    const p = (v / total) * 100;
+    return p >= 0.5 ? `${Math.round(p)}%` : "<1%";
+  };
+
+  return (
+    <div className="report-card">
+      <h2>Where the year went</h2>
+      <div className="sub2">
+        spend by group, {windowLabel(data.year.window)} ·{" "}
+        {fmt(total, cur, 0)} total
+      </div>
+      {groups.length === 0 ? (
+        <div className="empty">no spending in the last year</div>
+      ) : (
+        <div className="yr-rows">
+          {top.map((g) => (
+            <div
+              key={g.name}
+              className="yr-row"
+              title={`${g.name}: ${fmt(g.total, cur)}`}
+            >
+              <span className="yr-name">{g.name}</span>
+              <span className="yr-track">
+                <span className="yr-bar" style={{ width: width(g.total) }} />
+              </span>
+              <span className="yr-amt num">{fmtCompact(g.total, cur)}</span>
+              <span className="yr-pct num">{share(g.total)}</span>
+            </div>
+          ))}
+          {rest.length > 0 && (
+            <div
+              className="yr-row other"
+              title={rest.map((g) => `${g.name}: ${fmt(g.total, cur)}`).join("\n")}
+            >
+              <span className="yr-name">{rest.length} more groups</span>
+              <span className="yr-track">
+                <span className="yr-bar" style={{ width: width(restTotal) }} />
+              </span>
+              <span className="yr-amt num">{fmtCompact(restTotal, cur)}</span>
+              <span className="yr-pct num">{share(restTotal)}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
   const f = data.fire;
   const hasTarget = f.fire_number > 0;
   const fill = Math.max(0, Math.min(1, f.progress ?? 0)) * 100;
   const cash = data.cashflow.slice(-24);
+  const savings = savingsSeries(data.cashflow).slice(-24);
 
   return (
     <section id="reports">
@@ -307,23 +500,42 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
         </div>
       </div>
 
-      <div className="report-card">
-        <h2>Net worth</h2>
-        <div className="sub2">
-          assets + liabilities at month end, converted to {cur}
-        </div>
-        <NetWorthChart points={data.net_worth} cur={cur} />
-      </div>
+      <div className="report-grid">
+        <div className="report-col">
+          <div className="report-card">
+            <h2>Net worth</h2>
+            <div className="sub2">
+              assets + liabilities at month end, converted to {cur}
+            </div>
+            <NetWorthChart points={data.net_worth} cur={cur} />
+          </div>
 
-      <div className="report-card">
-        <h2>Monthly cashflow</h2>
-        <div className="sub2">
-          income − expenses
-          {cash.length < data.cashflow.length
-            ? ` · last ${cash.length} months`
-            : ""}
+          <div className="report-card">
+            <h2>Monthly cashflow</h2>
+            <div className="sub2">
+              income − expenses
+              {cash.length < data.cashflow.length
+                ? ` · last ${cash.length} months`
+                : ""}
+            </div>
+            <CashflowChart points={cash} cur={cur} />
+          </div>
         </div>
-        <CashflowChart points={cash} cur={cur} />
+
+        <div className="report-col">
+          <div className="report-card">
+            <h2>Savings rate</h2>
+            <div className="sub2">
+              share of income kept · line = 3-mo trend
+              {savings.length < data.cashflow.length
+                ? ` · last ${savings.length} months`
+                : ""}
+            </div>
+            <SavingsRateChart points={savings} cur={cur} />
+          </div>
+
+          <YearCard data={data} cur={cur} />
+        </div>
       </div>
     </section>
   );
