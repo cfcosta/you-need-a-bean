@@ -1,5 +1,13 @@
+import type { MouseEvent } from "react";
+
 import type { AccountRow, MonthView, Summary } from "../api";
 import { fmt } from "../format";
+import type { Page } from "../router";
+
+/** A click the app should handle itself, rather than letting the browser
+ * open a tab or a window. */
+const plain = (e: MouseEvent) =>
+  e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
 function parseLabel(ms: number): string {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
@@ -51,14 +59,16 @@ export function Sidebar({
   cur,
   open,
   page,
+  href,
   onNavigate,
 }: {
   summary: Summary;
   view: MonthView | null;
   cur: string;
   open: boolean;
-  page: "budget" | "reports";
-  onNavigate: (page: "budget" | "reports") => void;
+  page: Page;
+  href: (page: Page) => string;
+  onNavigate: (page: Page) => void;
 }) {
   return (
     <nav
@@ -104,10 +114,15 @@ export function Sidebar({
       </div>
 
       <div className="side-nav">
-        <button
+        <a
           className={`nav-item${page === "budget" ? " active" : ""}`}
+          href={href("budget")}
           aria-current={page === "budget" ? "page" : undefined}
-          onClick={() => onNavigate("budget")}
+          onClick={(e) => {
+            if (!plain(e)) return;
+            e.preventDefault();
+            onNavigate("budget");
+          }}
         >
           <svg
             width="13"
@@ -119,11 +134,16 @@ export function Sidebar({
             <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h11A1.5 1.5 0 0 1 15 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9zM2.5 5v7.5h11V5h-11z" />
           </svg>
           Budget
-        </button>
-        <button
+        </a>
+        <a
           className={`nav-item${page === "reports" ? " active" : ""}`}
+          href={href("reports")}
           aria-current={page === "reports" ? "page" : undefined}
-          onClick={() => onNavigate("reports")}
+          onClick={(e) => {
+            if (!plain(e)) return;
+            e.preventDefault();
+            onNavigate("reports");
+          }}
         >
           <svg
             width="13"
@@ -135,7 +155,7 @@ export function Sidebar({
             <path d="M1 14h14v1H1v-1zm2-4h2v3H3v-3zm4-5h2v8H7V5zm4 2h2v6h-2V7z" />
           </svg>
           Reports
-        </button>
+        </a>
       </div>
 
       {view && (

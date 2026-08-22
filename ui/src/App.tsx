@@ -9,17 +9,20 @@ import { Sidebar } from "./components/Sidebar";
 import { StatStrip } from "./components/StatStrip";
 import { Topbar } from "./components/Topbar";
 import { monthWindow } from "./months";
-
-type Page = "budget" | "reports";
+import type { Page } from "./router";
+import { DEFAULT_BASIS, parseRoute, resolveRoute, routeUrl } from "./router";
 
 export function App() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
   const [page, setPage] = useState<Page>("budget");
   const [month, setMonth] = useState<string | null>(null);
-  const [basis, setBasis] = useState(6);
+  const [basis, setBasis] = useState(DEFAULT_BASIS);
   const [cur, setCur] = useState<string | null>(null);
   const [cat, setCat] = useState<string | null>(null);
+  // The auto-picked category is an implementation detail; only one the
+  // reader chose is worth putting in the URL.
+  const [catChosen, setCatChosen] = useState(false);
   const [view, setView] = useState<MonthView | null>(null);
   const [reports, setReports] = useState<ReportsView | null>(null);
   const [catView, setCatView] = useState<CategoryView | null>(null);
@@ -31,6 +34,9 @@ export function App() {
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Where the URL last pointed, so the next write knows whether it is a
+  // navigation (new history entry) or a change of view (rewrite).
+  const wasAt = useRef<{ page: Page; month: string } | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -43,9 +49,16 @@ export function App() {
     getSummary()
       .then((s) => {
         if (!alive) return;
+        // The URL decides where we open; the ledger decides what of it
+        // makes sense.
+        const r = resolveRoute(parseRoute(location), s);
+        setCatChosen(r.cat != null);
         setSummary(s);
-        setMonth(s.default_month);
-        setCur(s.operating_currencies[0] ?? "USD");
+        setPage(r.page);
+        setMonth(r.month);
+        setBasis(r.basis);
+        setCur(r.cur);
+        setCat(r.cat);
         if (s.title != null) document.title = `${s.title} — you need a bean`;
       })
       .catch((e: Error) => alive && setFatal(e.message));
@@ -53,6 +66,44 @@ export function App() {
       alive = false;
     };
   }, []);
+
+  // Keep the address bar honest. Moving between pages or months is
+  // navigation and earns a history entry; changing basis, currency or
+  // category rewrites where you already are.
+  useEffect(() => {
+    if (summary == null || month == null || cur == null) return;
+    const url = routeUrl(
+      { page, month, basis, cur, cat: catChosen ? cat : null },
+      summary,
+    );
+    if (url !== location.pathname + location.search) {
+      const moved =
+        wasAt.current != null &&
+        (wasAt.current.page !== page || wasAt.current.month !== month);
+      if (moved) history.pushState(null, "", url);
+      else history.replaceState(null, "", url);
+    }
+    wasAt.current = { page, month };
+  }, [summary, page, month, basis, cur, cat, catChosen]);
+
+  useEffect(() => {
+    if (summary == null) return;
+    const onPop = () => {
+      const r = resolveRoute(parseRoute(location), summary);
+      // The browser already moved us, so this is where we now are: the
+      // writer above must not answer it with another history entry.
+      wasAt.current = { page: r.page, month: r.month };
+      setCatChosen(r.cat != null);
+      setPage(r.page);
+      setMonth(r.month);
+      setBasis(r.basis);
+      setCur(r.cur);
+      setCat(r.cat);
+      setOpenTxns(new Set());
+    };
+    addEventListener("popstate", onPop);
+    return () => removeEventListener("popstate", onPop);
+  }, [summary]);
 
   useEffect(() => {
     if (month == null || cur == null) return;
@@ -111,6 +162,7 @@ export function App() {
     setOpenTxns(new Set());
   };
   const selectCat = (account: string) => {
+    setCatChosen(true);
     setCat(account);
     setOpenTxns(new Set());
     if (matchMedia("(max-width: 1200px)").matches) setInspectorOpen(true);
@@ -136,6 +188,12 @@ export function App() {
     setPage(p);
     setSidebarOpen(false);
   };
+  // Real links in the nav, so the browser's own gestures work.
+  const hrefFor = (p: Page) =>
+    routeUrl(
+      { page: p, month, basis, cur, cat: catChosen ? cat : null },
+      summary,
+    );
 
   return (
     <>
@@ -146,6 +204,7 @@ export function App() {
           cur={cur}
           open={sidebarOpen}
           page={page}
+          href={hrefFor}
           onNavigate={navigate}
         />
         <main id="main">

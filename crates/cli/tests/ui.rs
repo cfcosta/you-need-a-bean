@@ -102,6 +102,18 @@ async fn non_api_paths_fall_back_to_the_index() {
     assert!(content_type.starts_with("text/html"), "{content_type}");
     assert!(body.contains("id=\"root\""));
 
+    // The frontend keeps the page, the month and the view options in the
+    // URL, so reloading any of them has to boot the app.
+    for uri in ["/reports", "/budget/2026-05?basis=12&cur=USD"] {
+        let (status, content_type, body) = get(&app, uri).await;
+        assert_eq!(status, StatusCode::OK, "{uri}");
+        assert!(
+            content_type.starts_with("text/html"),
+            "{uri}: {content_type}"
+        );
+        assert!(body.contains("id=\"root\""), "{uri}");
+    }
+
     // API misses keep answering JSON, never HTML.
     let (status, content_type, body) = get(&app, "/api/no-such-endpoint").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
