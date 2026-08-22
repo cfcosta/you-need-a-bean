@@ -1358,6 +1358,31 @@ a:focus-visible {
   display: none;
 }
 
+/* The files on disk stopped parsing. Says so where the numbers are,
+   because otherwise a save that silently changes nothing reads as a
+   bug in the page. */
+#stale {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+  margin: 12px 20px 0;
+  padding: 9px 12px;
+  border: 1px solid var(--warn-track);
+  border-radius: 9px;
+  background: var(--warn-tint);
+}
+.stale-what {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--warn-text);
+}
+.stale-why {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
 #toast {
   position: fixed;
   bottom: 18px;

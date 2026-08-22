@@ -12,6 +12,10 @@ export interface Summary {
   months: string[];
   today: string;
   default_month: string;
+  /** Counts the times the server reparsed the files; 0 is the boot load. */
+  revision: number;
+  /** Why the last reparse failed, if it did. The data is the last good one. */
+  reload_error: string | null;
 }
 
 export interface CategoryRow {

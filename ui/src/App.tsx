@@ -12,6 +12,10 @@ import { monthWindow } from "./months";
 import type { Page } from "./router";
 import { DEFAULT_BASIS, parseRoute, resolveRoute, routeUrl } from "./router";
 
+// How often we ask the server whether it has reread the ledger. Cheap
+// enough to go unnoticed, quick enough that a save feels immediate.
+const RELOAD_POLL_MS = 1500;
+
 export function App() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
@@ -37,6 +41,9 @@ export function App() {
   // Where the URL last pointed, so the next write knows whether it is a
   // navigation (new history entry) or a change of view (rewrite).
   const wasAt = useRef<{ page: Page; month: string } | null>(null);
+  // What the last poll saw of the server's reading of the ledger, so a
+  // reload is noticed exactly once.
+  const seen = useRef<{ revision: number; error: string | null } | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -52,6 +59,7 @@ export function App() {
         // The URL decides where we open; the ledger decides what of it
         // makes sense.
         const r = resolveRoute(parseRoute(location), s);
+        seen.current = { revision: s.revision, error: s.reload_error };
         setCatChosen(r.cat != null);
         setSummary(s);
         setPage(r.page);
@@ -66,6 +74,43 @@ export function App() {
       alive = false;
     };
   }, []);
+
+  // The server rereads the ledger when its files change. Follow it, so
+  // saving a file in your editor shows up here without a refresh.
+  const loaded = summary != null;
+  // Every view below is derived from one reading of the ledger, so they
+  // all refetch when the server moves to the next one.
+  const revision = summary?.revision ?? 0;
+  useEffect(() => {
+    if (!loaded) return;
+    let alive = true;
+    const timer = setInterval(() => {
+      getSummary()
+        .then((s) => {
+          const was = seen.current;
+          if (
+            !alive ||
+            (was != null &&
+              was.revision === s.revision &&
+              was.error === s.reload_error)
+          ) {
+            return;
+          }
+          if (was != null && s.revision > was.revision) {
+            showToast("ledger reloaded");
+          }
+          seen.current = { revision: s.revision, error: s.reload_error };
+          setSummary(s);
+        })
+        // A poll that misses is not worth interrupting anyone over; the
+        // next one is a moment away.
+        .catch(() => {});
+    }, RELOAD_POLL_MS);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [loaded]);
 
   // Keep the address bar honest. Moving between pages or months is
   // navigation and earns a history entry; changing basis, currency or
@@ -114,7 +159,7 @@ export function App() {
     return () => {
       alive = false;
     };
-  }, [month, basis, cur]);
+  }, [month, basis, cur, revision]);
 
   useEffect(() => {
     if (page !== "reports" || cur == null) return;
@@ -125,7 +170,7 @@ export function App() {
     return () => {
       alive = false;
     };
-  }, [page, basis, cur]);
+  }, [page, basis, cur, revision]);
 
   useEffect(() => {
     if (cat != null || view == null) return;
@@ -146,7 +191,7 @@ export function App() {
     return () => {
       alive = false;
     };
-  }, [cat, month, basis, cur]);
+  }, [cat, month, basis, cur, revision]);
 
   if (fatal != null) {
     return <div className="empty">cannot reach the ledger server: {fatal}</div>;
@@ -221,6 +266,15 @@ export function App() {
             onCur={setCur}
             onBurger={() => setSidebarOpen(true)}
           />
+          {summary.reload_error != null && (
+            <div id="stale" role="status">
+              <span className="stale-what">
+                the ledger changed but would not parse — showing the last
+                reading that worked
+              </span>
+              <span className="stale-why mono">{summary.reload_error}</span>
+            </div>
+          )}
           {page === "budget" && view != null && (
             <>
               <StatStrip view={view} cur={cur} window={window} />
