@@ -1,5 +1,6 @@
 import type { CategoryView, Txn } from "../api";
 import { fmt, fmtCode, monthName, monthShort, windowLabel } from "../format";
+import { postingFlow } from "../postings";
 import { displayStatus } from "./BudgetTable";
 
 const PLOT_H = 94; // px height of the chart's plot area
@@ -126,7 +127,73 @@ function TxnChips({ txn }: { txn: Txn }) {
   );
 }
 
-function TxnDetail({ txn, cur }: { txn: Txn; cur: string }) {
+/** The postings as a flow: the accounts hang off one rail, money coming
+ * in at the top and going out below it. A transaction that splits also
+ * gets a bar per leg, drawn against the biggest one. */
+function PostingFlow({ txn, account }: { txn: Txn; account: string }) {
+  const { rows, note, split } = postingFlow(txn.postings);
+  return (
+    <div>
+      <div className="detail-label pf-head">
+        Postings
+        {note != null && <span className="pf-note">{note}</span>}
+      </div>
+      <div className={`postings${split ? " split" : ""}`}>
+        {rows.map((r, i) => {
+          const shown =
+            r.amount != null && r.currency != null
+              ? fmt(r.amount, r.currency)
+              : "auto";
+          const hint =
+            r.amount != null && r.currency != null
+              ? fmtCode(r.amount, r.currency)
+              : "(amount elided)";
+          const rail =
+            rows.length === 1
+              ? "alone"
+              : i === 0
+                ? "first"
+                : i === rows.length - 1
+                  ? "last"
+                  : "mid";
+          return (
+            <div
+              key={i}
+              className={`pf-row ${r.side} rail-${rail}${
+                r.account === account ? " here" : ""
+              }`}
+              title={`${r.account}  ${hint}`}
+            >
+              <span className="pf-acct mono">
+                <span className="pf-path">{r.path}</span>
+                <span className="pf-leaf">{r.leaf}</span>
+              </span>
+              <span className="pf-amt num">{shown}</span>
+              {split && (
+                <span className="pf-track">
+                  <span
+                    className="pf-bar"
+                    style={{ width: `${(r.share * 100).toFixed(2)}%` }}
+                  />
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TxnDetail({
+  txn,
+  account,
+  cur,
+}: {
+  txn: Txn;
+  account: string;
+  cur: string;
+}) {
   const meta = Object.entries(txn.meta);
   const hasMeta = meta.length > 0 || txn.tags.length > 0 || txn.links.length > 0;
   const rate =
@@ -139,25 +206,7 @@ function TxnDetail({ txn, cur }: { txn: Txn; cur: string }) {
       : null;
   return (
     <div className="txn-detail">
-      <div>
-        <div className="detail-label">Postings</div>
-        <div className="postings mono num">
-          <table>
-            <tbody>
-              {txn.postings.map((p, i) => (
-                <tr key={i}>
-                  <td>{p.account}</td>
-                  <td>
-                    {p.amount != null && p.currency != null
-                      ? fmtCode(p.amount, p.currency)
-                      : ""}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <PostingFlow txn={txn} account={account} />
       {hasMeta && (
         <div>
           <div className="detail-label">Metadata</div>
@@ -361,7 +410,9 @@ function InspectorBody({
                       )}
                   </span>
                 </button>
-                {isOpen && <TxnDetail txn={t} cur={cur} />}
+                {isOpen && (
+                  <TxnDetail txn={t} account={view.account} cur={cur} />
+                )}
               </div>
             );
           })}

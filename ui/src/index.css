@@ -1139,6 +1139,8 @@ a:focus-visible {
   flex-wrap: wrap;
 }
 .txn .narr {
+  /* Inline spans do not ellipsize: long narrations ran off the panel. */
+  display: block;
   font-size: 11px;
   color: var(--ink-2);
   white-space: nowrap;
@@ -1200,24 +1202,140 @@ a:focus-visible {
   color: var(--ink);
   overflow-wrap: anywhere;
 }
+/* The accounts hang off one unbroken rail, so no gap between the rows —
+   they space themselves with padding instead. */
 .postings {
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: 7px;
-  padding: 8px 10px;
-  overflow-x: auto;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
 }
-.postings table {
-  border-collapse: collapse;
+.pf-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.pf-note {
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--warn-text);
+}
+.pf-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 7px;
+  row-gap: 3px;
+  padding: 2px 0 2px 20px;
   font-size: 10.5px;
+  /* The rail and its nodes are placed against this, not against the
+     font's own idea of where the line sits. */
+  line-height: 16px;
+}
+.pf-row::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line-2);
+}
+.pf-row.rail-first::before {
+  top: 10px;
+}
+.pf-row.rail-last::before {
+  bottom: auto;
+  height: 10px;
+}
+.pf-row.rail-alone::before {
+  display: none;
+}
+.pf-row::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 6.5px;
+  box-sizing: border-box;
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--accent);
+}
+.pf-row.from::after {
+  background: var(--bar-past);
+}
+.pf-row.auto::after {
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+}
+.pf-acct {
+  display: flex;
+  min-width: 0;
+}
+.pf-path {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.postings td {
-  padding: 1.5px 0;
+.pf-leaf {
+  flex: none;
+  color: var(--ink);
+  font-weight: 600;
 }
-.postings td + td {
-  padding-left: 22px;
+.pf-amt {
   text-align: right;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.pf-row.from .pf-amt {
+  color: var(--ink-2);
+}
+.pf-row.auto .pf-amt {
+  color: var(--muted);
+  font-style: italic;
+}
+/* Only a transaction that splits gets bars: two equal legs have no
+   proportion to show. Every bar starts at the same edge so the parts
+   read against the whole. */
+.postings.split .pf-row {
+  padding-bottom: 5px;
+}
+.pf-track {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+}
+.pf-bar {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: 99px;
+  background: var(--accent);
+}
+.pf-row.from .pf-bar {
+  background: var(--bar-past);
+}
+.pf-row.auto .pf-track {
+  visibility: hidden;
+}
+/* The posting that put this transaction in the category you are looking
+   at. */
+.pf-row.here {
+  border-radius: 4px;
+  background: var(--accent-wash);
+}
+.pf-row.here .pf-leaf {
+  color: var(--accent-ink);
 }
 .link-chip {
   color: var(--accent-ink);
