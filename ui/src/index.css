@@ -434,7 +434,11 @@ a:focus-visible {
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: var(--shadow);
+  /* Clips the corners — which zeroes the automatic minimum size, so
+     without flex-shrink: 0 this card would shrink to the viewport
+     inside the #main column and silently cut the table off. */
   overflow: hidden;
+  flex-shrink: 0;
 }
 .thead {
   display: grid;
