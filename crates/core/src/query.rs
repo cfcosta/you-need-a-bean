@@ -4,11 +4,17 @@
 //! Everything here is a pure read over the indexes in [`Ledger`]; the
 //! HTTP layer only shapes these results into JSON.
 
+use std::collections::HashMap;
+
 use rust_decimal::Decimal;
 
 use crate::model::{
     AccountInfo, AccountKind, Day, Ledger, MonthKey, Txn, add_sum,
 };
+
+/// A month counting more than this multiple of the median month is an
+/// outlier: it contributes the cap to the average instead of itself.
+const SPIKE_CAP: u32 = 3;
 
 /// Spend vs the trailing average, with the mockup's thresholds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,7 +41,8 @@ pub struct CategoryRow {
     /// This month's spend in the display currency (convertible part only).
     pub spent: Decimal,
     /// Trailing average ("typical") over the window months that saw
-    /// spending; `None` when there is no window or none of them did.
+    /// spending, one-off spikes capped; `None` when there is no window
+    /// or none of them did.
     pub avg: Option<Decimal>,
     /// spent / avg; `None` when there is no positive average.
     pub ratio: Option<Decimal>,
@@ -126,7 +133,9 @@ impl Ledger {
 
     /// Mean monthly spend over the window, skipping months without any
     /// spend so sporadic categories aren't diluted toward zero; each
-    /// month converts at its own end date. `None` when there is no
+    /// month converts at its own end date. Months far above the median
+    /// count as [`SPIKE_CAP`] × the median, so a one-off emergency
+    /// leans on the typical without owning it. `None` when there is no
     /// window or no month in it saw spending.
     pub fn average(
         &self,
@@ -136,18 +145,21 @@ impl Ledger {
         cur: &str,
     ) -> Option<Decimal> {
         let (from, to) = self.window(month, basis)?;
-        let mut total = Decimal::ZERO;
-        let mut count = 0u32;
+        let mut spends = Vec::new();
         let mut m = from;
         while m <= to {
             let spent = self.spent_converted(account, m, cur);
             if !spent.is_zero() {
-                total += spent;
-                count += 1;
+                spends.push(spent);
             }
             m = m.next();
         }
-        (count > 0).then(|| total / Decimal::from(count))
+        if spends.is_empty() {
+            return None;
+        }
+        let cap = median(&mut spends) * Decimal::from(SPIKE_CAP);
+        let total: Decimal = spends.iter().map(|s| (*s).min(cap)).sum();
+        Some(total / Decimal::from(spends.len() as u64))
     }
 
     /// The whole monthly page: stat tiles, grouped category table, and
@@ -204,23 +216,35 @@ impl Ledger {
         }
 
         // Biggest typical spend first, so the table leads with the
-        // categories that matter month after month; rows the window
-        // knows nothing about sink to the bottom, ordered by this
-        // month's spend, then name. `None < Some` makes the descending
-        // Option compare do exactly that.
+        // categories that matter month after month. The order always
+        // runs on the 12-month average — not the displayed basis — so
+        // switching the target window never reshuffles the table; rows
+        // the last year knows nothing about sink to the bottom, ordered
+        // by this month's spend, then name. `None < Some` makes the
+        // descending Option compare do exactly that.
+        let weight_of: HashMap<String, Option<Decimal>> = groups
+            .iter()
+            .flat_map(|g| &g.categories)
+            .map(|c| {
+                (c.account.clone(), self.average(&c.account, month, 12, cur))
+            })
+            .collect();
         for group in &mut groups {
             group.categories.sort_by(|a, b| {
-                b.avg
-                    .cmp(&a.avg)
+                weight_of[&b.account]
+                    .cmp(&weight_of[&a.account])
                     .then_with(|| b.spent.cmp(&a.spent))
                     .then_with(|| a.label.cmp(&b.label))
             });
             group.spent = group.categories.iter().map(|c| c.spent).sum();
             group.avg = sum_present(group.categories.iter().map(|c| c.avg));
         }
+        let weight = |g: &Group| {
+            sum_present(g.categories.iter().map(|c| weight_of[&c.account]))
+        };
         groups.sort_by(|a, b| {
-            b.avg
-                .cmp(&a.avg)
+            weight(b)
+                .cmp(&weight(a))
                 .then_with(|| b.spent.cmp(&a.spent))
                 .then_with(|| a.name.cmp(&b.name))
         });
@@ -398,6 +422,17 @@ fn ratio_status(
         Status::Good
     };
     (Some(ratio), Some(status))
+}
+
+/// Median of a nonempty slice; sorts it in place.
+fn median(xs: &mut [Decimal]) -> Decimal {
+    xs.sort_unstable();
+    let mid = xs.len() / 2;
+    if xs.len() % 2 == 1 {
+        xs[mid]
+    } else {
+        (xs[mid - 1] + xs[mid]) / Decimal::from(2)
+    }
 }
 
 /// Sum of the `Some` values; `None` when every input is `None`.

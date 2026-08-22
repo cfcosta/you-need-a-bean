@@ -292,7 +292,7 @@ function InspectorBody({
         </div>
         <div className="target-sub">
           {view.window != null
-            ? `avg of active months in ${windowLabel(view.window)} (${basis} mo)`
+            ? `avg of active months in ${windowLabel(view.window)} (${basis} mo) · spikes capped`
             : "no earlier spending to average yet"}
         </div>
         <div className={`target-meter meter ${st}`}>

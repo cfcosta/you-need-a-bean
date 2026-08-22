@@ -52,6 +52,57 @@ fn averages_use_trailing_window_clamped_to_first_activity() {
 }
 
 #[test]
+fn averages_cap_one_off_spikes_at_three_times_the_median() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/outliers/main.beancount");
+    let ledger = Ledger::build(load(&path).unwrap());
+
+    // Vet runs 150/mo with one 900 emergency. The spike counts as 3×
+    // the median (450), so the typical is (150·4 + 450) / 5, not the
+    // naive (150·4 + 900) / 5 = 300.
+    assert_eq!(
+        ledger.average("Expenses:Spiky:Vet", m("2026-03"), 12, "USD"),
+        Some(dec("210"))
+    );
+    // Same story inside a shorter window: (150·2 + 450) / 3.
+    assert_eq!(
+        ledger.average("Expenses:Spiky:Vet", m("2026-03"), 3, "USD"),
+        Some(dec("250"))
+    );
+    // Two identical months sit at the median: nothing to cap.
+    assert_eq!(
+        ledger.average("Expenses:Old:Server", m("2026-01"), 12, "USD"),
+        Some(dec("1200"))
+    );
+}
+
+#[test]
+fn table_sorts_on_the_twelve_month_average_whatever_the_basis() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/outliers/main.beancount");
+    let ledger = Ledger::build(load(&path).unwrap());
+    let view = ledger.month_view(m("2026-03"), 3, "USD");
+
+    // Server spent nothing in the 3-month window, but its 12-month
+    // weight (1200/mo) still tops the table; switching the basis must
+    // never reshuffle the order.
+    let names: Vec<&str> =
+        view.groups.iter().map(|g| g.name.as_str()).collect();
+    assert_eq!(names, vec!["Old", "Spiky", "New"]);
+
+    let old = &view.groups[0];
+    let labels: Vec<&str> =
+        old.categories.iter().map(|c| c.label.as_str()).collect();
+    assert_eq!(labels, vec!["Server", "Lamp"]);
+
+    // The displayed typical still honors the chosen basis: nothing in
+    // the window means no typical, top slot or not.
+    assert_eq!(old.categories[0].avg, None);
+    assert_eq!(old.categories[1].avg, Some(dec("10")));
+    assert_eq!(view.groups[1].categories[0].avg, Some(dec("250")));
+}
+
+#[test]
 fn month_view_aggregates_groups_and_totals() {
     let ledger = ledger();
     let view = ledger.month_view(m("2026-01"), 6, "USD");

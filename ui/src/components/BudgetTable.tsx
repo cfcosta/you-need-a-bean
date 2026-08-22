@@ -148,7 +148,7 @@ export function BudgetTable({
         <div>
           <span
             className="hint"
-            title={`Average of months with spending in the previous ${basis} (${windowLabel(window)})`}
+            title={`Average of months with spending in the previous ${basis} (${windowLabel(window)}); one-off spikes count as 3× the median`}
           >
             Typical / mo
           </span>

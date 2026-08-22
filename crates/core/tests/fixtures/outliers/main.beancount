@@ -1,0 +1,52 @@
+option "title" "Outliers"
+option "operating_currency" "USD"
+
+2025-09-01 open Assets:Cash          USD
+2025-09-01 open Expenses:Spiky:Vet   USD
+2025-09-01 open Expenses:Old:Server  USD
+2025-09-01 open Expenses:Old:Lamp    USD
+2025-09-01 open Expenses:New:Snacks  USD
+
+2025-10-05 * "Vet checkup"
+  Expenses:Spiky:Vet    150.00 USD
+  Assets:Cash
+
+2025-10-10 * "Server rent"
+  Expenses:Old:Server  1200.00 USD
+  Assets:Cash
+
+2025-11-05 * "Vet checkup"
+  Expenses:Spiky:Vet    150.00 USD
+  Assets:Cash
+
+2025-11-10 * "Server rent"
+  Expenses:Old:Server  1200.00 USD
+  Assets:Cash
+
+2025-12-05 * "Vet checkup"
+  Expenses:Spiky:Vet    150.00 USD
+  Assets:Cash
+
+2026-01-05 * "Vet checkup"
+  Expenses:Spiky:Vet    150.00 USD
+  Assets:Cash
+
+2026-01-15 * "Desk lamp"
+  Expenses:Old:Lamp      10.00 USD
+  Assets:Cash
+
+2026-01-20 * "Snacks"
+  Expenses:New:Snacks    50.00 USD
+  Assets:Cash
+
+2026-02-05 * "Vet emergency"
+  Expenses:Spiky:Vet    900.00 USD
+  Assets:Cash
+
+2026-02-15 * "Desk lamp bulb"
+  Expenses:Old:Lamp      10.00 USD
+  Assets:Cash
+
+2026-02-20 * "Snacks"
+  Expenses:New:Snacks    50.00 USD
+  Assets:Cash
