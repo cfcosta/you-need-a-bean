@@ -62,19 +62,21 @@ async fn month_endpoint_shapes_groups_and_accounts() {
     assert_eq!(body["spent"], json!(196.0));
     assert_eq!(body["typical"], json!(130.0));
 
-    let food = &body["groups"][0];
+    // Groups and categories arrive sorted by typical spend, biggest
+    // first, so Fun (avg 100) precedes Food (avg 30).
+    let food = &body["groups"][1];
     assert_eq!(food["name"], json!("Food"));
     assert_eq!(food["spent"], json!(106.0));
     assert_eq!(food["avg"], json!(30.0));
-    let coffee = &food["categories"][0];
+    let coffee = &food["categories"][1];
     assert_eq!(coffee["label"], json!("Dining · Coffee"));
     assert_eq!(coffee["split"], json!({"BRL": 30.0}));
-    let groceries = &food["categories"][1];
+    let groceries = &food["categories"][0];
     assert_eq!(groceries["account"], json!("Expenses:Food:Groceries"));
     assert_eq!(groceries["status"], json!("over"));
     assert_eq!(groceries["ratio"], json!(3.3333));
 
-    let games = &body["groups"][1]["categories"][0];
+    let games = &body["groups"][0]["categories"][0];
     assert_eq!(games["ratio"], json!(0.9));
     assert_eq!(games["status"], json!("warn"));
     let rent = &body["groups"][2]["categories"][0];

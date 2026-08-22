@@ -203,12 +203,27 @@ impl Ledger {
             }
         }
 
-        groups.sort_by(|a, b| a.name.cmp(&b.name));
+        // Biggest typical spend first, so the table leads with the
+        // categories that matter month after month; rows the window
+        // knows nothing about sink to the bottom, ordered by this
+        // month's spend, then name. `None < Some` makes the descending
+        // Option compare do exactly that.
         for group in &mut groups {
-            group.categories.sort_by(|a, b| a.label.cmp(&b.label));
+            group.categories.sort_by(|a, b| {
+                b.avg
+                    .cmp(&a.avg)
+                    .then_with(|| b.spent.cmp(&a.spent))
+                    .then_with(|| a.label.cmp(&b.label))
+            });
             group.spent = group.categories.iter().map(|c| c.spent).sum();
             group.avg = sum_present(group.categories.iter().map(|c| c.avg));
         }
+        groups.sort_by(|a, b| {
+            b.avg
+                .cmp(&a.avg)
+                .then_with(|| b.spent.cmp(&a.spent))
+                .then_with(|| a.name.cmp(&b.name))
+        });
 
         MonthView {
             month,

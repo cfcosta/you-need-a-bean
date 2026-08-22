@@ -60,27 +60,32 @@ fn month_view_aggregates_groups_and_totals() {
     assert_eq!(view.spent, dec("196"));
     assert_eq!(view.typical, Some(dec("130")));
 
+    // Biggest typical spend reads first: Fun averages 100 to Food's 30,
+    // and groups the window knows nothing about sink to the bottom in
+    // name order.
     let names: Vec<&str> =
         view.groups.iter().map(|g| g.name.as_str()).collect();
-    assert_eq!(names, vec!["Food", "Fun", "Home", "Vacation"]);
+    assert_eq!(names, vec!["Fun", "Food", "Home", "Vacation"]);
 
-    let food = &view.groups[0];
+    let food = &view.groups[1];
     assert_eq!(food.spent, dec("106"));
     assert_eq!(food.avg, Some(dec("30")));
+    // Same rule inside the group: coffee has no average yet, so it
+    // trails groceries despite being alphabetically first.
     let labels: Vec<&str> =
         food.categories.iter().map(|c| c.label.as_str()).collect();
-    assert_eq!(labels, vec!["Dining · Coffee", "Groceries"]);
+    assert_eq!(labels, vec!["Groceries", "Dining · Coffee"]);
 
-    let coffee = &food.categories[0];
+    let coffee = &food.categories[1];
     assert_eq!(coffee.spent, dec("6"));
     assert_eq!(coffee.split, vec![("BRL".to_string(), dec("30"))]);
 
-    let groceries = &food.categories[1];
+    let groceries = &food.categories[0];
     assert_eq!(groceries.spent, dec("100"));
     assert_eq!(groceries.avg, Some(dec("30")));
     assert_eq!(groceries.status, Some(Status::Over));
 
-    let games = &view.groups[1].categories[0];
+    let games = &view.groups[0].categories[0];
     assert_eq!(games.spent, dec("90"));
     assert_eq!(games.avg, Some(dec("100")));
     assert_eq!(games.ratio, Some(dec("0.9")));
