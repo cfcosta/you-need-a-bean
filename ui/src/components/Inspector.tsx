@@ -46,7 +46,7 @@ function Chart({
         <>
           <div className="avg-line" style={{ bottom: `${avgBottom}px` }} />
           <div className="avg-tag num" style={{ bottom: `${avgBottom}px` }}>
-            avg {fmt(view.avg, cur, 0)}
+            typical {fmt(view.avg, cur, 0)}
           </div>
         </>
       )}
@@ -285,15 +285,15 @@ function InspectorBody({
       </div>
 
       <div className="card">
-        <h3>Target — spend average</h3>
+        <h3>Target — typical month</h3>
         <div className="target-val num">
           {view.avg != null ? fmt(view.avg, cur) : "—"}
           <span className="target-sub"> / month</span>
         </div>
         <div className="target-sub">
           {view.window != null
-            ? `avg of active months in ${windowLabel(view.window)} (${basis} mo) · spikes capped`
-            : "no earlier spending to average yet"}
+            ? `median month with payments in ${windowLabel(view.window)} (${basis} mo)`
+            : "no earlier months with payments yet"}
         </div>
         <div className={`target-meter meter ${st}`}>
           <span className="fill" style={{ width: `${meterPct}%` }} />

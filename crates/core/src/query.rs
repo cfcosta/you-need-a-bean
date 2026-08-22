@@ -12,11 +12,7 @@ use crate::model::{
     AccountInfo, AccountKind, Day, Ledger, MonthKey, Txn, add_sum,
 };
 
-/// A month counting more than this multiple of the median month is an
-/// outlier: it contributes the cap to the average instead of itself.
-const SPIKE_CAP: u32 = 3;
-
-/// Spend vs the trailing average, with the mockup's thresholds.
+/// Spend vs the typical month, with the mockup's thresholds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     Good,
@@ -40,11 +36,11 @@ pub struct CategoryRow {
     pub label: String,
     /// This month's spend in the display currency (convertible part only).
     pub spent: Decimal,
-    /// Trailing average ("typical") over the window months that saw
-    /// spending, one-off spikes capped; `None` when there is no window
-    /// or none of them did.
+    /// The typical month: the median of the window months that saw
+    /// real payments; `None` when there is no window or none of them
+    /// did.
     pub avg: Option<Decimal>,
-    /// spent / avg; `None` when there is no positive average.
+    /// spent / avg; `None` when there is no positive typical.
     pub ratio: Option<Decimal>,
     pub status: Option<Status>,
     /// Native per-currency spend, display currency first.
@@ -131,13 +127,12 @@ impl Ledger {
         (from <= to && to < month).then_some((from, to))
     }
 
-    /// Mean monthly spend over the window, skipping months without any
-    /// spend so sporadic categories aren't diluted toward zero; each
-    /// month converts at its own end date. Months far above the median
-    /// count as [`SPIKE_CAP`] × the median, so a one-off emergency
-    /// leans on the typical without owning it. `None` when there is no
-    /// window or no month in it saw spending.
-    pub fn average(
+    /// The typical month: the median of the window months with real
+    /// payments, each converted at its own end date. Months where
+    /// nothing was paid — zero or a net refund — don't count at all,
+    /// and a median can't be dragged by a one-off emergency. `None`
+    /// when there is no window or no month in it saw payments.
+    pub fn typical(
         &self,
         account: &str,
         month: MonthKey,
@@ -149,17 +144,32 @@ impl Ledger {
         let mut m = from;
         while m <= to {
             let spent = self.spent_converted(account, m, cur);
-            if !spent.is_zero() {
+            if spent > Decimal::ZERO {
                 spends.push(spent);
             }
             m = m.next();
         }
-        if spends.is_empty() {
-            return None;
+        (!spends.is_empty()).then(|| median(&mut spends))
+    }
+
+    /// Total converted spend over the trailing twelve months — the
+    /// sort weight behind the table. Amortizing what the year really
+    /// cost, empty months and refunds included, ranks a big quarterly
+    /// bill above daily noise. `None` when the month has no window.
+    fn year_spend(
+        &self,
+        account: &str,
+        month: MonthKey,
+        cur: &str,
+    ) -> Option<Decimal> {
+        let (from, to) = self.window(month, 12)?;
+        let mut total = Decimal::ZERO;
+        let mut m = from;
+        while m <= to {
+            total += self.spent_converted(account, m, cur);
+            m = m.next();
         }
-        let cap = median(&mut spends) * Decimal::from(SPIKE_CAP);
-        let total: Decimal = spends.iter().map(|s| (*s).min(cap)).sum();
-        Some(total / Decimal::from(spends.len() as u64))
+        Some(total)
     }
 
     /// The whole monthly page: stat tiles, grouped category table, and
@@ -215,18 +225,20 @@ impl Ledger {
             }
         }
 
-        // Biggest typical spend first, so the table leads with the
-        // categories that matter month after month. The order always
-        // runs on the 12-month average — not the displayed basis — so
-        // switching the target window never reshuffles the table; rows
-        // the last year knows nothing about sink to the bottom, ordered
-        // by this month's spend, then name. `None < Some` makes the
-        // descending Option compare do exactly that.
+        // Biggest yearly cost first, so the table leads with the
+        // categories that really spend the money. The order runs on
+        // the trailing-year total — not the displayed basis — so
+        // switching the target window never reshuffles the table, and
+        // a quarterly tax bill outranks a monthly coffee even though
+        // its typical month reads lower. Rows the last year knows
+        // nothing about sink to the bottom, ordered by this month's
+        // spend, then name. `None < Some` makes the descending Option
+        // compare do exactly that.
         let weight_of: HashMap<String, Option<Decimal>> = groups
             .iter()
             .flat_map(|g| &g.categories)
             .map(|c| {
-                (c.account.clone(), self.average(&c.account, month, 12, cur))
+                (c.account.clone(), self.year_spend(&c.account, month, cur))
             })
             .collect();
         for group in &mut groups {
@@ -270,7 +282,7 @@ impl Ledger {
     ) -> Option<CategoryView<'_>> {
         let info = self.account(account)?;
         let spent = cents(self.spent_converted(account, month, cur));
-        let avg = self.average(account, month, basis, cur).map(cents);
+        let avg = self.typical(account, month, basis, cur).map(cents);
         let (ratio, status) = ratio_status(spent, avg);
         let history = (0..6)
             .rev()
@@ -327,7 +339,7 @@ impl Ledger {
         cur: &str,
     ) -> CategoryRow {
         let spent = cents(self.spent_converted(&info.account, month, cur));
-        let avg = self.average(&info.account, month, basis, cur).map(cents);
+        let avg = self.typical(&info.account, month, basis, cur).map(cents);
         let (ratio, status) = ratio_status(spent, avg);
         CategoryRow {
             account: info.account.clone(),

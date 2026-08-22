@@ -43,7 +43,9 @@ export function StatStrip({
         <div className="val num">
           {view.typical != null ? fmt(view.typical, cur) : "—"}
         </div>
-        <div className="sub">avg of active months, {windowLabel(window)}</div>
+        <div className="sub">
+          category medians summed, {windowLabel(window)}
+        </div>
       </div>
       <div className="tile">
         <div className="lbl">Net{sofar}</div>
