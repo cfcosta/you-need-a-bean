@@ -507,6 +507,14 @@ a:focus-visible {
 .cat-row:hover {
   background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
 }
+/* A group with a single category collapses into one selectable row; it
+   keeps the group-band background so the one-band-per-group rhythm holds. */
+.cat-row.solo {
+  background: var(--surface-2);
+}
+.cat-row.solo:hover:not(.sel) {
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--surface));
+}
 .cat-row.sel {
   background: var(--accent-wash);
   box-shadow: inset 2px 0 0 var(--accent);
@@ -560,6 +568,9 @@ a:focus-visible {
 .cell.dim {
   color: color-mix(in srgb, var(--muted) 65%, var(--surface));
   font-size: 11.5px;
+}
+.cat-row.solo .cell.dim {
+  color: color-mix(in srgb, var(--muted) 65%, var(--surface-2));
 }
 .cat-row:hover .cell.dim,
 .cat-row.sel .cell.dim {

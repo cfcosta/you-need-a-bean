@@ -58,6 +58,66 @@ function VsBar({
   );
 }
 
+function Row({
+  c,
+  label,
+  solo,
+  selected,
+  cur,
+  basis,
+  pacePos,
+  day,
+  daysIn,
+  onSelect,
+}: {
+  c: CategoryRow;
+  label: string;
+  solo: boolean;
+  selected: boolean;
+  cur: string;
+  basis: number;
+  pacePos: number | null;
+  day: number;
+  daysIn: number;
+  onSelect: (account: string) => void;
+}) {
+  const mixed = Object.keys(c.split).filter((k) => k !== cur);
+  const fxTip = Object.entries(c.split)
+    .map(([k, v]) => fmtCode(v, k))
+    .join("  +  ");
+  return (
+    <button
+      className={`cat-row${solo ? " solo" : ""}${selected ? " sel" : ""}`}
+      aria-selected={selected}
+      title={c.account}
+      onClick={() => onSelect(c.account)}
+    >
+      <span className="cat-name">
+        <span className="p">{label}</span>
+      </span>
+      <span className="cell num dim">
+        {c.avg != null ? fmt(c.avg, cur) : "—"}
+      </span>
+      <span className="cell num">
+        {fmt(c.spent, cur)}
+        {mixed.length > 0 && (
+          <span className="fx" title={`Native amounts: ${fxTip}`}>
+            +{mixed.join("+")}
+          </span>
+        )}
+      </span>
+      <VsBar
+        row={c}
+        cur={cur}
+        basis={basis}
+        pacePos={pacePos}
+        day={day}
+        daysIn={daysIn}
+      />
+    </button>
+  );
+}
+
 export function BudgetTable({
   view,
   cur,
@@ -110,6 +170,27 @@ export function BudgetTable({
           </div>
         )}
         {view.groups.map((g) => {
+          // A group with a single category collapses into one row.
+          const solo = g.categories.length === 1 ? g.categories[0] : null;
+          if (solo != null) {
+            return (
+              <Row
+                key={g.name}
+                c={solo}
+                label={
+                  solo.label === g.name ? g.name : `${g.name} · ${solo.label}`
+                }
+                solo
+                selected={selected === solo.account}
+                cur={cur}
+                basis={basis}
+                pacePos={pacePos}
+                day={view.day}
+                daysIn={view.days_in_month}
+                onSelect={onSelect}
+              />
+            );
+          }
           const closed = closedGroups.has(g.name);
           return (
             <div key={g.name}>
@@ -143,47 +224,21 @@ export function BudgetTable({
                 </span>
               </button>
               {!closed &&
-                g.categories.map((c) => {
-                  const mixed = Object.keys(c.split).filter((k) => k !== cur);
-                  const fxTip = Object.entries(c.split)
-                    .map(([k, v]) => fmtCode(v, k))
-                    .join("  +  ");
-                  return (
-                    <button
-                      key={c.account}
-                      className={`cat-row${selected === c.account ? " sel" : ""}`}
-                      aria-selected={selected === c.account}
-                      title={c.account}
-                      onClick={() => onSelect(c.account)}
-                    >
-                      <span className="cat-name">
-                        <span className="p">{c.label}</span>
-                      </span>
-                      <span className="cell num dim">
-                        {c.avg != null ? fmt(c.avg, cur) : "—"}
-                      </span>
-                      <span className="cell num">
-                        {fmt(c.spent, cur)}
-                        {mixed.length > 0 && (
-                          <span
-                            className="fx"
-                            title={`Native amounts: ${fxTip}`}
-                          >
-                            +{mixed.join("+")}
-                          </span>
-                        )}
-                      </span>
-                      <VsBar
-                        row={c}
-                        cur={cur}
-                        basis={basis}
-                        pacePos={pacePos}
-                        day={view.day}
-                        daysIn={view.days_in_month}
-                      />
-                    </button>
-                  );
-                })}
+                g.categories.map((c) => (
+                  <Row
+                    key={c.account}
+                    c={c}
+                    label={c.label}
+                    solo={false}
+                    selected={selected === c.account}
+                    cur={cur}
+                    basis={basis}
+                    pacePos={pacePos}
+                    day={view.day}
+                    daysIn={view.days_in_month}
+                    onSelect={onSelect}
+                  />
+                ))}
             </div>
           );
         })}
