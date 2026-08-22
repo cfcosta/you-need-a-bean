@@ -4,3 +4,4 @@
 pub mod api;
 pub mod args;
 pub mod ui;
+pub mod watch;

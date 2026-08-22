@@ -5,7 +5,7 @@
 //! `/api/category/{account}/{month}` (the inspector drill-down).
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::extract::{Path, Query, State};
@@ -21,10 +21,29 @@ use serde_json::{Map, Value, json};
 
 use crate::ui::UiSource;
 
-/// Everything a request handler needs, built once at startup.
-pub struct AppState {
+/// One reading of the ledger from disk. Reloading builds a whole new
+/// snapshot and swaps it in, so a request answers entirely from the
+/// ledger it started with even if the files change underneath it.
+pub struct Snapshot {
     pub ledger: Ledger,
     pub parse_ms: u64,
+    /// Counts loads, starting at zero for the one the server booted with.
+    /// The UI watches it to know when what it is showing went stale.
+    pub revision: u64,
+}
+
+/// What the API answers from right now.
+struct Current {
+    snapshot: Arc<Snapshot>,
+    /// Why the last reload attempt failed, if it did — the snapshot above
+    /// is still the last ledger that loaded cleanly.
+    error: Option<String>,
+}
+
+/// Everything a request handler needs. The ledger inside can be replaced
+/// while the server runs; everything else is fixed at startup.
+pub struct AppState {
+    current: RwLock<Current>,
     /// Fixed "today" for deterministic tests; `None` means the real clock.
     pub today_override: Option<Day>,
     pub ui: UiSource,
@@ -33,8 +52,14 @@ pub struct AppState {
 impl AppState {
     pub fn new(ledger: Ledger, parse_ms: u64) -> Self {
         Self {
-            ledger,
-            parse_ms,
+            current: RwLock::new(Current {
+                snapshot: Arc::new(Snapshot {
+                    ledger,
+                    parse_ms,
+                    revision: 0,
+                }),
+                error: None,
+            }),
             today_override: None,
             ui: UiSource::Embedded,
         }
@@ -52,6 +77,45 @@ impl AppState {
 
     pub fn today(&self) -> Day {
         self.today_override.unwrap_or_else(today_utc)
+    }
+
+    /// The ledger to answer one request from.
+    pub fn snapshot(&self) -> Arc<Snapshot> {
+        self.read().snapshot.clone()
+    }
+
+    pub fn reload_error(&self) -> Option<String> {
+        self.read().error.clone()
+    }
+
+    /// Answer from this ledger from now on, and forget any earlier
+    /// failure.
+    pub fn install(&self, ledger: Ledger, parse_ms: u64) -> Arc<Snapshot> {
+        let mut current = self.write();
+        let snapshot = Arc::new(Snapshot {
+            ledger,
+            parse_ms,
+            revision: current.snapshot.revision + 1,
+        });
+        current.snapshot = Arc::clone(&snapshot);
+        current.error = None;
+        snapshot
+    }
+
+    /// Keep answering from the ledger we have, and remember why the last
+    /// attempt to replace it did not work.
+    pub fn reload_failed(&self, message: String) {
+        self.write().error = Some(message);
+    }
+
+    // A panic can only reach these while an `Arc` is being cloned or a
+    // field assigned, so a poisoned lock still holds a usable ledger.
+    fn read(&self) -> RwLockReadGuard<'_, Current> {
+        self.current.read().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn write(&self) -> RwLockWriteGuard<'_, Current> {
+        self.current.write().unwrap_or_else(PoisonError::into_inner)
     }
 }
 
@@ -81,7 +145,8 @@ async fn fallback(State(state): State<Arc<AppState>>, uri: Uri) -> Response {
 }
 
 async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {
-    let ledger = &state.ledger;
+    let snapshot = state.snapshot();
+    let ledger = &snapshot.ledger;
     let today = state.today();
     let months: Vec<String> = ledger
         .months_range(today)
@@ -98,11 +163,15 @@ async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {
         "root": root,
         "files": ledger.files.len(),
         "directives": ledger.directives,
-        "parse_ms": state.parse_ms,
+        "parse_ms": snapshot.parse_ms,
         "operating_currencies": ledger.operating_currencies,
         "months": months,
         "today": format_day(today),
         "default_month": ledger.default_month(today).to_string(),
+        // The server follows the files on disk: this counts the times it
+        // has reloaded, and holds the reason it last could not.
+        "revision": snapshot.revision,
+        "reload_error": state.reload_error(),
     }))
 }
 
@@ -112,8 +181,9 @@ async fn month_view(
     Query(query): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, ApiError> {
     let month = parse_month(&month)?;
-    let (basis, cur) = params(&state, &query)?;
-    let view = state.ledger.month_view(month, basis, &cur);
+    let snapshot = state.snapshot();
+    let (basis, cur) = params(&snapshot, &query)?;
+    let view = snapshot.ledger.month_view(month, basis, &cur);
 
     let today = state.today();
     let today_month = MonthKey::new(today.0, today.1);
@@ -151,8 +221,10 @@ async fn category_view(
     Query(query): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, ApiError> {
     let month = parse_month(&month)?;
-    let (basis, cur) = params(&state, &query)?;
-    let Some(view) = state.ledger.category_view(&account, month, basis, &cur)
+    let snapshot = state.snapshot();
+    let (basis, cur) = params(&snapshot, &query)?;
+    let Some(view) =
+        snapshot.ledger.category_view(&account, month, basis, &cur)
     else {
         return Err(err(StatusCode::NOT_FOUND, "unknown category"));
     };
@@ -166,7 +238,7 @@ async fn category_view(
     let txns: Vec<Value> = view
         .txns
         .iter()
-        .map(|t| txn_json(&state.ledger, t, &view.account, &cur, at))
+        .map(|t| txn_json(&snapshot.ledger, t, &view.account, &cur, at))
         .collect();
     Ok(Json(json!({
         "account": view.account,
@@ -188,8 +260,9 @@ async fn reports(
     State(state): State<Arc<AppState>>,
     Query(query): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, ApiError> {
-    let (basis, cur) = params(&state, &query)?;
-    let view = state.ledger.reports_view(state.today(), basis, &cur);
+    let snapshot = state.snapshot();
+    let (basis, cur) = params(&snapshot, &query)?;
+    let view = snapshot.ledger.reports_view(state.today(), basis, &cur);
 
     let net_worth: Vec<Value> = view
         .net_worth
@@ -370,7 +443,7 @@ fn parse_month(s: &str) -> Result<MonthKey, ApiError> {
 }
 
 fn params(
-    state: &AppState,
+    snapshot: &Snapshot,
     query: &HashMap<String, String>,
 ) -> Result<(u32, String), ApiError> {
     let basis = match query.get("basis").map(String::as_str) {
@@ -386,7 +459,7 @@ fn params(
         }
     };
     let cur = match query.get("cur") {
-        None => state
+        None => snapshot
             .ledger
             .operating_currencies
             .first()

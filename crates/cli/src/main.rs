@@ -5,6 +5,7 @@ use std::time::Instant;
 use bean_cli::api::{AppState, router};
 use bean_cli::args::Args;
 use bean_cli::ui::UiSource;
+use bean_cli::watch;
 use bean_core::loader::load;
 use bean_core::model::Ledger;
 
@@ -56,6 +57,11 @@ async fn serve(args: Args, state: Arc<AppState>) -> Result<(), String> {
                     args.host, args.port
                 )
             })?;
+    tokio::spawn(watch::follow(
+        args.ledger.clone(),
+        Arc::clone(&state),
+        watch::POLL,
+    ));
     axum::serve(listener, router(state))
         .await
         .map_err(|e| format!("error: server failed: {e}"))
