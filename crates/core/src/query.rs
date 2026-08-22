@@ -70,6 +70,8 @@ pub struct MonthView {
     pub month: MonthKey,
     pub income: Decimal,
     pub spent: Decimal,
+    /// What a normal whole month costs: the median of the window
+    /// months' total spend, months with real payments only.
     pub typical: Option<Decimal>,
     pub groups: Vec<Group>,
     pub budget_accounts: Vec<AccountRow>,
@@ -139,11 +141,25 @@ impl Ledger {
         basis: u32,
         cur: &str,
     ) -> Option<Decimal> {
+        self.median_active(month, basis, |m| {
+            self.spent_converted(account, m, cur)
+        })
+    }
+
+    /// The median of `spend_in` across the window months where it was
+    /// actually paid (> 0) — the one definition of "typical" shared by
+    /// the category rows and the whole-month tile.
+    fn median_active(
+        &self,
+        month: MonthKey,
+        basis: u32,
+        spend_in: impl Fn(MonthKey) -> Decimal,
+    ) -> Option<Decimal> {
         let (from, to) = self.window(month, basis)?;
         let mut spends = Vec::new();
         let mut m = from;
         while m <= to {
-            let spent = self.spent_converted(account, m, cur);
+            let spent = spend_in(m);
             if spent > Decimal::ZERO {
                 spends.push(spent);
             }
@@ -261,11 +277,25 @@ impl Ledger {
                 .then_with(|| a.name.cmp(&b.name))
         });
 
+        // The headline typical is the median real month — the median
+        // of the window months' total spend — not the sum of the
+        // category medians, which would bill every sporadic category
+        // every month and read far above any month that ever happened.
+        let typical = self
+            .median_active(month, basis, |m| {
+                groups
+                    .iter()
+                    .flat_map(|g| &g.categories)
+                    .map(|c| self.spent_converted(&c.account, m, cur))
+                    .sum()
+            })
+            .map(cents);
+
         MonthView {
             month,
             income: cents(income),
             spent: groups.iter().map(|g| g.spent).sum(),
-            typical: sum_present(groups.iter().map(|g| g.avg)),
+            typical,
             groups,
             budget_accounts,
             tracking_accounts,

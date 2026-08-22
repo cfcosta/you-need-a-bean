@@ -79,6 +79,13 @@ fn typical_is_the_median_month_with_real_payments() {
         ledger.typical("Expenses:Spiky:Gadgets", m("2026-03"), 3, "USD"),
         Some(dec("300"))
     );
+
+    // The headline typical is the median real month — the median of
+    // the window months' totals {1350, 1350, 150, 510, 910} — not the
+    // sum of every category's median (1,710), which would bill each
+    // sporadic category every month.
+    let view = ledger.month_view(m("2026-03"), 12, "USD");
+    assert_eq!(view.typical, Some(dec("910")));
 }
 
 #[test]
@@ -319,14 +326,16 @@ fn views_quantize_money_at_the_leaves_so_sums_add_up() {
     assert_eq!(view.spent, dec("9.99"));
     assert_eq!(view.income, dec("100.00"));
 
-    // Averages round at the leaf too, and skip no-spend months: only
+    // Typicals round at the leaf too, and skip no-spend months: only
     // January in the [Jan, Feb] window saw spending, so the typical is
-    // January itself — 3.333 → 3.33 per category, 9.99 in total.
+    // January itself — 3.333 → 3.33 per category. The headline typical
+    // medians the raw month totals instead of summing rounded leaves,
+    // so it reads 9.999 → 10.00.
     let march = ledger.month_view(m("2026-03"), 3, "USD");
     let food = &march.groups[0];
     assert_eq!(food.categories[0].avg, Some(dec("3.33")));
     assert_eq!(food.avg, Some(dec("6.66")));
-    assert_eq!(march.typical, Some(dec("9.99")));
+    assert_eq!(march.typical, Some(dec("10.00")));
 
     // The inspector shows the same cents as the table row.
     let cat = ledger

@@ -44,7 +44,7 @@ export function StatStrip({
           {view.typical != null ? fmt(view.typical, cur) : "—"}
         </div>
         <div className="sub">
-          category medians summed, {windowLabel(window)}
+          median month with payments, {windowLabel(window)}
         </div>
       </div>
       <div className="tile">
