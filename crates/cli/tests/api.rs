@@ -453,3 +453,48 @@ async fn reports_endpoint_names_what_it_is_unsure_of() {
     );
     assert_eq!(trust["warnings"], json!([]));
 }
+
+#[tokio::test]
+async fn reports_endpoint_carries_the_seasonal_shape() {
+    // Four months of ledger is not a shape, and the endpoint says so
+    // in the null rather than in twelve zeroes.
+    let (_, body) = get("/api/reports").await;
+    assert_eq!(body["season"]["years"], Value::Null);
+    assert_eq!(body["season"]["months"], json!([]));
+    assert_eq!(body["season"]["projected"], Value::Null);
+
+    let app = app_at("reports/season", (2026, 4, 15));
+    let (status, body) = get_at(app, "/api/reports").await;
+    assert_eq!(status, StatusCode::OK);
+    let season = &body["season"];
+    assert_eq!(season["years"], json!([2021, 2025]));
+    assert_eq!(season["typical"], json!(1600.0));
+    assert_eq!(season["year"], json!(2026));
+    assert_eq!(season["elapsed"], json!(3));
+    assert_eq!(season["ytd"], json!(450.0));
+    assert_eq!(season["pace"], json!(1.5));
+    assert_eq!(season["projected"], json!(2400.0));
+
+    let months = season["months"].as_array().unwrap();
+    assert_eq!(months.len(), 12);
+    assert_eq!(
+        months[0],
+        json!({
+            "month": 1,
+            "median": 100.0,
+            "share": 0.0625,
+            "samples": 5,
+            "actual": 150.0,
+        })
+    );
+    assert_eq!(
+        months[11],
+        json!({
+            "month": 12,
+            "median": 400.0,
+            "share": 0.25,
+            "samples": 5,
+            "actual": null,
+        })
+    );
+}

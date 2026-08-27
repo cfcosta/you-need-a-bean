@@ -12,6 +12,7 @@ mod income;
 mod movers;
 mod projects;
 mod recurring;
+mod season;
 mod trust;
 mod year;
 
@@ -24,6 +25,7 @@ pub use income::{IncomeSource, IncomeView};
 pub use movers::{Mover, MoversView};
 pub use projects::{Project, ProjectsView, Topic};
 pub use recurring::{Cadence, PriceChange, Recurring, RecurringView};
+pub use season::{SeasonPoint, SeasonView};
 pub use trust::{Flagged, FlaggedTxn, StalePrice, TrustView, Uncategorized};
 pub use year::{YearGroup, YearMonth, YearView};
 
@@ -83,6 +85,8 @@ pub struct ReportsView {
     pub projects: ProjectsView,
     /// Where income comes from, and how much of it is passive.
     pub income: IncomeView,
+    /// The shape a year of spending has, and where this one is going.
+    pub season: SeasonView,
     /// The reasons to doubt everything above.
     pub trust: TrustView,
 }
@@ -207,6 +211,7 @@ impl Ledger {
             growth_window,
             unpriced.clone(),
         );
+        let season = season::season_view(&cashflow, current);
 
         ReportsView {
             month: current,
@@ -221,6 +226,7 @@ impl Ledger {
             movers: self.movers_view(current, cur),
             projects,
             income: self.income_view(current, cur),
+            season,
             trust: self.trust_view(today, current, cur),
         }
     }

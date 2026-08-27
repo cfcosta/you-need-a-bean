@@ -769,3 +769,77 @@ fn a_ledger_with_nothing_to_hide_reports_nothing() {
     assert_eq!(stale[0].days, 45);
     assert_eq!(stale[0].value, dec("2200.00"));
 }
+
+#[test]
+fn the_season_report_reads_the_shape_out_of_the_years() {
+    let ledger = fixture("season");
+    let view = ledger.reports_view((2026, 4, 15), 3, "USD");
+    let season = &view.season;
+
+    // Eight whole years of history, and the shape comes from the last
+    // five: 2018 through 2022 ran an order of magnitude cheaper, and a
+    // median that reached back that far would be a baseline for a life
+    // this ledger stopped living.
+    assert_eq!(season.years, Some((2021, 2025)));
+    assert_eq!(season.months.len(), 12);
+    assert!(season.months.iter().all(|p| p.samples == 5));
+    let medians: Vec<Decimal> =
+        season.months.iter().map(|p| p.median).collect();
+    assert_eq!(
+        medians,
+        vec![
+            dec("100.00"),
+            dec("100.00"),
+            dec("100.00"),
+            dec("100.00"),
+            dec("100.00"),
+            dec("100.00"),
+            dec("200.00"),
+            dec("100.00"),
+            dec("100.00"),
+            dec("100.00"),
+            dec("100.00"),
+            dec("400.00"),
+        ]
+    );
+
+    // The shape with the level divided out: December is a quarter of
+    // an ordinary year on its own.
+    assert_eq!(season.typical, dec("1600.00"));
+    assert_eq!(season.months[11].share, dec("0.25"));
+    assert_eq!(season.months[0].share, dec("0.0625"));
+
+    // January through March are over and cost 150 each. April is still
+    // running, so its 999 is nowhere in these numbers.
+    assert_eq!(season.year, 2026);
+    assert_eq!(season.elapsed, 3);
+    assert_eq!(season.ytd, dec("450.00"));
+    let actual: Vec<Option<Decimal>> =
+        season.months.iter().map(|p| p.actual).collect();
+    assert_eq!(actual[0], Some(dec("150.00")));
+    assert_eq!(actual[2], Some(dec("150.00")));
+    assert_eq!(actual[3], None);
+
+    // 450 against the 300 those three months usually cost, and the
+    // remaining 1,300 of a typical year priced at that same pace.
+    assert_eq!(season.pace, Some(dec("1.5")));
+    assert_eq!(season.projected, Some(dec("2400.00")));
+}
+
+#[test]
+fn a_ledger_too_short_to_have_a_shape_refuses_to_guess_one() {
+    let view = ledger().reports_view((2026, 4, 15), 3, "USD");
+    let season = &view.season;
+
+    // Four months is not a year, and eight empty calendar slots would
+    // read as eight months that cost nothing.
+    assert_eq!(season.years, None);
+    assert!(season.months.is_empty());
+    assert_eq!(season.typical, Decimal::ZERO);
+    assert_eq!(season.pace, None);
+    assert_eq!(season.projected, None);
+
+    // What this year has spent is still a fact, and still reported.
+    assert_eq!(season.year, 2026);
+    assert_eq!(season.elapsed, 2);
+}

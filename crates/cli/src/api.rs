@@ -396,6 +396,22 @@ async fn reports(
             })
         })
         .collect();
+    let season: Vec<Value> = view
+        .season
+        .months
+        .iter()
+        .map(|p| {
+            json!({
+                "month": p.month,
+                "median": num(p.median),
+                // A share of a year at cents precision: 6.25% of it
+                // and 6% of it are different months.
+                "share": ratio_json(Some(p.share)),
+                "samples": p.samples,
+                "actual": opt_num(p.actual),
+            })
+        })
+        .collect();
     let stale: Vec<Value> = view
         .trust
         .stale
@@ -497,6 +513,18 @@ async fn reports(
             "recent_total": num(view.movers.recent_total),
             "prior_total": num(view.movers.prior_total),
             "items": movers,
+        },
+        "season": {
+            "years": view.season.years.map_or(Value::Null, |(from, to)| {
+                json!([from, to])
+            }),
+            "months": season,
+            "typical": num(view.season.typical),
+            "year": view.season.year,
+            "elapsed": view.season.elapsed,
+            "ytd": num(view.season.ytd),
+            "pace": ratio_json(view.season.pace),
+            "projected": opt_num(view.season.projected),
         },
         "trust": {
             "window": window_json(view.trust.window),
