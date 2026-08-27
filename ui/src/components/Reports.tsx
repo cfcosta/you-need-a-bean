@@ -6,7 +6,6 @@ import type {
   Movers,
   NetWorthPoint,
   Projects,
-  RecurringView,
   ReportsView,
 } from "../api";
 import { fmt, fmtCompact, monthName, monthShort, windowLabel } from "../format";
@@ -618,81 +617,6 @@ function GrowthCard({ growth, cur }: { growth: Growth; cur: string }) {
   );
 }
 
-function RecurringCard({
-  data,
-  cur,
-}: {
-  data: RecurringView;
-  cur: string;
-}) {
-  const active = data.items.filter((i) => i.active);
-  const stopped = data.items.filter((i) => !i.active);
-  const share =
-    data.coverage != null
-      ? `${data.coverage < 0.005 ? "<1" : Math.round(data.coverage * 100)}% of what you spend`
-      : null;
-
-  const row = (i: RecurringView["items"][number]) => (
-    <div
-      key={`${i.account}|${i.payee}`}
-      className={`rc-row${i.active ? "" : " off"}`}
-      title={`${i.count} charges, ${i.first} to ${i.last}`}
-    >
-      <span className="rc-payee">{i.payee}</span>
-      <span className="rc-meta">
-        <span className="rc-where">{i.label}</span>
-        <span>{i.cadence}</span>
-        {i.change && (
-          <b
-            className={i.change.to > i.change.from ? "up" : "down"}
-            title={`${fmt(i.change.from, cur)} → ${fmt(i.change.to, cur)} on ${i.change.since}`}
-          >
-            {i.change.to > i.change.from ? "↑" : "↓"}{" "}
-            {fmt(Math.abs(i.change.annual), cur, 0)}/yr
-          </b>
-        )}
-      </span>
-      <span className="rc-amt num">{fmt(i.monthly, cur)}</span>
-    </div>
-  );
-
-  return (
-    <div className="report-card">
-      <h2>What comes back</h2>
-      <div className="sub2">
-        charges on a steady cadence for a steady amount,{" "}
-        {windowLabel(data.window)}
-      </div>
-      {data.items.length === 0 ? (
-        <div className="empty">nothing repeats predictably enough to spot</div>
-      ) : (
-        <>
-          <div className="rc-total">
-            <span className="num">{fmt(data.monthly_fixed, cur, 0)}</span>
-            <span> / month · {fmt(data.annual_fixed, cur, 0)} a year</span>
-          </div>
-          <div className="rc-rows">{active.map(row)}</div>
-          {stopped.length > 0 && (
-            <>
-              <div className="rc-head">stopped charging</div>
-              <div className="rc-rows">{stopped.map(row)}</div>
-            </>
-          )}
-        </>
-      )}
-      <div className="fine">
-        A charge counts when its gaps settle on one cadence and its amount
-        stops moving — so a supermarket you visit every month is not one.
-        {share
-          ? ` What is found here covers ${share}; the rest varies too much to
-             plan around, or is billed by a payee this misses. Treat the total
-             as a floor.`
-          : ""}
-      </div>
-    </div>
-  );
-}
-
 function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
   const groups = data.year.groups;
   const total = groups.reduce((s, g) => s + g.total, 0);
@@ -1211,8 +1135,6 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
           <YearCard data={data} cur={cur} />
 
           <MoversCard data={data.movers} cur={cur} />
-
-          <RecurringCard data={data.recurring} cur={cur} />
         </div>
       </div>
     </section>

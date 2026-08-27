@@ -149,32 +149,9 @@ export interface Growth {
   points: GrowthPoint[];
 }
 
-/** A charge whose amount stepped and stayed there. */
-export interface PriceChange {
-  from: number;
-  to: number;
-  /** What the step costs over a year at this cadence. */
-  annual: number;
-  since: string;
-}
-
-export interface Recurring {
-  account: string;
-  label: string;
-  payee: string;
-  /** "monthly", "yearly", … */
-  cadence: string;
-  amount: number;
-  /** `amount` spread over a month. */
-  monthly: number;
-  count: number;
-  first: string;
-  last: string;
-  /** Still charging, so still part of what next month costs. */
-  active: boolean;
-  change: PriceChange | null;
-}
-
+/** What the charges on a steady cadence add up to. Not a report of
+ * its own — it sizes the lean FIRE target and the lean runway, which
+ * is why only the totals travel. */
 export interface RecurringView {
   window: [string, string] | null;
   /** What the still-charging series cost each month. A floor, not a
@@ -183,7 +160,6 @@ export interface RecurringView {
   annual_fixed: number;
   /** `monthly_fixed` over the monthly spend. */
   coverage: number | null;
-  items: Recurring[];
 }
 
 export interface Fire {
