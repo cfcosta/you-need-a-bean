@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use bean_core::loader::load;
-use bean_core::model::{Ledger, MonthKey};
-use bean_core::reports::months_to_fire;
+use bean_core::model::{Day, Ledger, MonthKey};
+use bean_core::reports::{YearGroup, YearView, months_to_fire};
 use rust_decimal::Decimal;
 
 fn dec(s: &str) -> Decimal {
@@ -21,6 +21,13 @@ fn fixture(name: &str) -> Ledger {
 
 fn m(s: &str) -> MonthKey {
     MonthKey::parse(s).unwrap()
+}
+
+fn at_group<'a>(y: &'a YearView, name: &str) -> &'a YearGroup {
+    y.groups
+        .iter()
+        .find(|g| g.name == name)
+        .unwrap_or_else(|| panic!("{name} is missing"))
 }
 
 #[test]
@@ -116,6 +123,126 @@ fn the_year_card_carries_the_year_before_it() {
             ("Education", dec("0.00"), Some(dec("2400.00"))),
         ]
     );
+}
+
+#[test]
+fn the_year_card_lays_each_group_out_month_by_month() {
+    let view = fixture("movers").reports_view((2026, 4, 15), 3, "USD");
+    let y = &view.year;
+
+    // The window's months are the axis every group is indexed by, so
+    // a cell always knows which month it belongs to.
+    let months: Vec<String> =
+        y.months.iter().map(|m| m.month.to_string()).collect();
+    assert_eq!(months.len(), 12);
+    assert_eq!(months[0], "2025-04");
+    assert_eq!(months[11], "2026-03");
+
+    let group = |name: &str| {
+        y.groups
+            .iter()
+            .find(|g| g.name == name)
+            .unwrap_or_else(|| panic!("{name} is missing"))
+    };
+
+    // Rent is the same 2,000 every month, so every cell matches and
+    // the typical month is that number.
+    let housing = group("Housing");
+    assert_eq!(housing.monthly, vec![dec("2000.00"); 12]);
+    assert_eq!(housing.typical, Some(dec("2000.00")));
+
+    // Travel is one 3,000 flight in November and nothing else. Its
+    // year and its biggest month are the same number, which is the
+    // whole reason to show the months: 3,000 a year reads like a
+    // habit, 3,000 once reads like a trip.
+    let travel = group("Travel");
+    assert_eq!(travel.total, dec("3000.00"));
+    assert_eq!(travel.monthly[7], dec("3000.00"));
+    assert_eq!(
+        travel
+            .monthly
+            .iter()
+            .filter(|v| **v > Decimal::ZERO)
+            .count(),
+        1
+    );
+
+    // Groceries stepped 500 to 900 in January, so the last three
+    // months stand apart from the nine before them — and the median
+    // month is still the 510 it sat at for most of the year.
+    let food = group("Food");
+    assert_eq!(food.monthly[0], dec("510.00"));
+    assert_eq!(food.monthly[11], dec("910.00"));
+    assert_eq!(food.typical, Some(dec("510.00")));
+
+    // A group that spent nothing this year keeps a full row of zeroes
+    // rather than a short one, so the cells stay under their months.
+    let edu = group("Education");
+    assert_eq!(edu.monthly, vec![Decimal::ZERO; 12]);
+    assert_eq!(edu.typical, None);
+}
+
+#[test]
+fn the_year_card_measures_a_month_against_the_others_and_the_last_one() {
+    let view = fixture("movers").reports_view((2026, 4, 15), 3, "USD");
+    let y = &view.year;
+    let at = |key: &str| {
+        y.months
+            .iter()
+            .find(|x| x.month == m(key))
+            .unwrap_or_else(|| panic!("{key} is missing"))
+    };
+
+    // Rent, groceries and coffee are what an ordinary month costs.
+    assert_eq!(at("2025-04").total, dec("2510.00"));
+    // November carries the flight on top, and is the year's biggest.
+    assert_eq!(at("2025-11").total, dec("5510.00"));
+    // March has the grocery step and the gym instead.
+    assert_eq!(at("2026-03").total, dec("3110.00"));
+
+    // Each month also carries the same calendar month a year earlier,
+    // so a spike can be read against whether that month always spikes.
+    // November's did not; July's was the year-earlier flight.
+    assert_eq!(at("2025-11").prior, Some(dec("2510.00")));
+    assert_eq!(at("2025-07").prior, Some(dec("7510.00")));
+
+    // The typical month is the median of the twelve, which neither the
+    // flight nor the step can drag.
+    assert_eq!(y.typical, Some(dec("2510.00")));
+
+    // And the two ways of adding the year up agree, because both are
+    // summed from the same per-month cents.
+    for g in &y.groups {
+        assert_eq!(g.monthly.iter().sum::<Decimal>(), g.total);
+    }
+    let by_month: Decimal = y.months.iter().map(|x| x.total).sum();
+    let by_group: Decimal = y.groups.iter().map(|g| g.total).sum();
+    assert_eq!(by_month, by_group);
+}
+
+#[test]
+fn a_year_with_nothing_before_it_compares_only_its_own_months() {
+    let view = ledger().reports_view((2026, 4, 15), 3, "USD");
+    let y = &view.year;
+
+    // Three months of history: the axis is as long as the window, not
+    // a padded twelve.
+    let months: Vec<String> =
+        y.months.iter().map(|x| x.month.to_string()).collect();
+    assert_eq!(months, vec!["2026-01", "2026-02", "2026-03"]);
+    assert!(y.groups.iter().all(|g| g.monthly.len() == 3));
+
+    // Rent 2,000 a month; food 1,000, 1,000, then 2,000.
+    assert_eq!(
+        at_group(y, "Food").monthly,
+        vec![dec("1000.00"), dec("1000.00"), dec("2000.00")]
+    );
+    assert_eq!(at_group(y, "Food").typical, Some(dec("1000.00")));
+
+    // Months still compare against each other — that never needed a
+    // year before them — but never against a year that isn't there.
+    assert_eq!(y.typical, Some(dec("3000.00")));
+    assert!(y.months.iter().all(|x| x.prior.is_none()));
 }
 
 #[test]
@@ -563,4 +690,82 @@ fn income_splits_by_source_and_measures_what_arrives_on_its_own() {
 
     assert_eq!(income.declared, 1);
     assert_eq!(income.inferred, 2);
+}
+
+#[test]
+fn the_trust_report_names_what_the_page_is_resting_on() {
+    let ledger = fixture("trust");
+    let view = ledger.reports_view((2026, 4, 15), 3, "USD");
+    let trust = &view.trust;
+    assert_eq!(trust.window, Some((m("2025-04"), m("2026-03"))));
+
+    // GOLD hasn't been priced since January last year, and 20,000 of
+    // net worth is standing on that price. VTI was priced a fortnight
+    // ago, so it isn't a doubt; ADA was never priced at all, which is
+    // a different problem the page reports separately.
+    assert_eq!(view.unpriced, vec!["ADA".to_string()]);
+    let stale: Vec<&str> =
+        trust.stale.iter().map(|s| s.commodity.as_str()).collect();
+    assert_eq!(stale, vec!["GOLD"]);
+    let gold = &trust.stale[0];
+    assert_eq!(gold.last, (2025, 1, 15));
+    assert_eq!(gold.days, 455);
+    assert_eq!(gold.value, dec("20000.00"));
+
+    // Three transactions the ledger won't vouch for, but only the two
+    // inside the window are behind the numbers on this page.
+    assert_eq!(trust.flagged.total, 3);
+    assert_eq!(trust.flagged.window, 2);
+    assert_eq!(trust.flagged.amount, dec("1500.00"));
+    let recent: Vec<(Day, &str)> = trust
+        .flagged
+        .recent
+        .iter()
+        .map(|t| (t.date, t.payee.as_deref().unwrap_or("")))
+        .collect();
+    assert_eq!(
+        recent,
+        vec![
+            ((2026, 1, 15), "Diner"),
+            ((2025, 12, 5), "Someone"),
+            ((2025, 2, 10), "Nobody"),
+        ]
+    );
+
+    // 500 of the window's 10,000 went somewhere unnamed. `Expenses:Misc`
+    // is not a gap — miscellaneous is a decision.
+    assert_eq!(trust.uncategorized.total, dec("500.00"));
+    assert_eq!(trust.uncategorized.share, Some(dec("0.05")));
+    assert_eq!(
+        trust.uncategorized.accounts,
+        vec!["Expenses:Uncategorized".to_string()]
+    );
+
+    assert!(trust.warnings.is_empty());
+}
+
+#[test]
+fn a_ledger_with_nothing_to_hide_reports_nothing() {
+    let ledger = ledger();
+    let view = ledger.reports_view((2026, 4, 10), 3, "USD");
+    let trust = &view.trust;
+    assert!(trust.stale.is_empty());
+    assert_eq!(trust.flagged.total, 0);
+    assert_eq!(trust.flagged.amount, Decimal::ZERO);
+    assert!(trust.flagged.recent.is_empty());
+    assert_eq!(trust.uncategorized.total, Decimal::ZERO);
+    // Nothing uncategorized, but the page can still say what share of
+    // spend that is, because there was spend.
+    assert_eq!(trust.uncategorized.share, Some(Decimal::ZERO));
+    assert!(trust.warnings.is_empty());
+
+    // VTI was last priced on 2026-03-01, so the same ledger crosses
+    // into stale five days later — the point being that staleness is a
+    // fact about today, not about the ledger.
+    let later = ledger.reports_view((2026, 4, 15), 3, "USD");
+    let stale = &later.trust.stale;
+    assert_eq!(stale.len(), 1);
+    assert_eq!(stale[0].commodity, "VTI");
+    assert_eq!(stale[0].days, 45);
+    assert_eq!(stale[0].value, dec("2200.00"));
 }

@@ -499,7 +499,7 @@ fn ratio_status(
 }
 
 /// Median of a nonempty slice; sorts it in place.
-fn median(xs: &mut [Decimal]) -> Decimal {
+pub(crate) fn median(xs: &mut [Decimal]) -> Decimal {
     xs.sort_unstable();
     let mid = xs.len() / 2;
     if xs.len() % 2 == 1 {
