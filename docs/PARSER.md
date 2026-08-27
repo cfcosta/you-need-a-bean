@@ -222,6 +222,25 @@ written on the directive itself beats anything pushed.
   fine. → `structure/no-trailing-newline`,
   `structure/comment-at-eof-without-newline`
 
+**Enough location to point at**
+
+The dump contract stops at `error line=N`, but the application needs more than
+a line. `crates/core` draws the offending source with the failure underlined,
+and a line number alone cannot say which part of the line to underline, or
+which `include` in a large include graph asked for a file that is not there. Two
+pieces of API carry that, and a rewrite that drops them turns every diagnostic
+back into a sentence:
+
+- `Error::offset()` — the byte the parse stopped at. The loader underlines
+  from there to the end of the line, which is a presentation decision the
+  parser has no answer to.
+- `Include { path, line_number, offset, length }` on `Entry::Include` — where
+  the directive was *written*, not just where it points.
+
+Neither is observable in the dump, so neither is pinned by a corpus case;
+`crates/core/tests/loader.rs` pins them instead, by asserting on the text each
+diagnostic underlines.
+
 **Limits**
 
 - Nesting recurses one stack frame per level with no depth limit, so deep

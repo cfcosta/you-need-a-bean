@@ -52,7 +52,7 @@ use nom::{
     bytes::complete::{tag, take_while},
     character::complete::{char, line_ending, not_line_ending, one_of, space0, space1},
     combinator::{all_consuming, cut, eof, iterator, map, not, opt, value},
-    sequence::{delimited, preceded, terminated},
+    sequence::{preceded, terminated},
     Finish, Parser,
 };
 use nom_locate::position;
@@ -195,22 +195,25 @@ pub fn read_files_v2<D: Decimal, F: FnMut(Entry<D>)>(
                 Err(err) => return Err(ReadFileErrorV2::from_syntax(path, err)),
             };
             match entry {
-                Entry::Include(include) => {
-                    let path = if include.is_relative() {
+                Entry::Include(mut include) => {
+                    let resolved = if include.path.is_relative() {
                         let Some(parent) = path.parent() else {
                             unreachable!("there must be a parent if the file was valid")
                         };
-                        parent.join(&include)
+                        parent.join(&include.path)
                     } else {
-                        include
+                        include.path.clone()
                     };
-                    let path = path
+                    let resolved = resolved
                         .canonicalize()
-                        .map_err(|err| ReadFileErrorV2::from_io(path, err))?;
-                    if !loaded.contains(&path) {
-                        pending.push(path.clone());
+                        .map_err(|err| ReadFileErrorV2::from_io(resolved, err))?;
+                    if !loaded.contains(&resolved) {
+                        pending.push(resolved.clone());
                     }
-                    on_entry(Entry::Include(path));
+                    // The emitted include reports the resolved path; where it
+                    // was written stays as it was.
+                    include.path = resolved;
+                    on_entry(Entry::Include(include));
                 }
                 entry => on_entry(entry),
             }
@@ -305,7 +308,7 @@ impl<D> Extend<Entry<D>> for BeancountFile<D> {
             match entry {
                 Entry::Directive(d) => self.directives.push(d),
                 Entry::Option(o) => self.options.push(o),
-                Entry::Include(p) => self.includes.push(p),
+                Entry::Include(i) => self.includes.push(i.path),
                 Entry::Plugin(p) => self.plugins.push(p),
             }
         }
@@ -500,6 +503,36 @@ impl<D> DirectiveContent<D> {
 type Span<'a> = nom_locate::LocatedSpan<&'a str>;
 type IResult<'a, O> = nom::IResult<Span<'a>, O>;
 
+/// An `include` directive, and where in the source it was written
+///
+/// Local addition vs upstream 2.6.0, which modelled an include as a bare
+/// `PathBuf`. See VENDOR.md.
+///
+/// # Example
+///
+/// ```
+/// # use beancount_parser::{Entry, parse_iter};
+/// let input = "include \"other.beancount\"\n";
+/// let entry = parse_iter::<f64>(input).next().unwrap().unwrap();
+/// let Entry::Include(include) = entry else { unreachable!() };
+/// assert_eq!(include.path.to_str(), Some("other.beancount"));
+/// assert_eq!(include.line_number, 1);
+/// // The span covers the quoted path, quotes included.
+/// assert_eq!(&input[include.offset..include.offset + include.length], "\"other.beancount\"");
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct Include {
+    /// Path as written, before any resolution against the including file
+    pub path: PathBuf,
+    /// Line the `include` keyword sits on, one-based
+    pub line_number: u32,
+    /// Byte offset of the quoted path, zero-based
+    pub offset: usize,
+    /// Length of the quoted path in bytes, quotes included
+    pub length: usize,
+}
+
 /// Entry in the beancount syntax
 ///
 /// It is more general than `Directive` as an entry can also be option or an include.
@@ -509,7 +542,7 @@ type IResult<'a, O> = nom::IResult<Span<'a>, O>;
 pub enum Entry<D> {
     Directive(Directive<D>),
     Option(BeanOption),
-    Include(PathBuf),
+    Include(Include),
     Plugin(Plugin),
 }
 impl<D> Entry<D> {
@@ -532,7 +565,7 @@ impl<D> Entry<D> {
     /// Returns `Some` if the entry is an include
     pub fn as_include(&self) -> Option<&Path> {
         match self {
-            Entry::Include(include) => Some(include),
+            Entry::Include(include) => Some(&include.path),
             _ => None,
         }
     }
@@ -549,7 +582,7 @@ impl<D> Entry<D> {
 enum RawEntry<D> {
     Directive(Directive<D>),
     Option(BeanOption),
-    Include(PathBuf),
+    Include(Include),
     Plugin(Plugin),
     PushTag(Tag),
     PopTag(Tag),
@@ -674,10 +707,29 @@ fn option(input: Span<'_>) -> IResult<'_, (String, String)> {
     Ok((input, (key, value)))
 }
 
-fn include(input: Span<'_>) -> IResult<'_, PathBuf> {
+// Local patch vs upstream 2.6.0: returns where the directive was written, not
+// just where it points. A ledger can have hundreds of includes, and "cannot
+// read /some/abs/path" is not much help without the line that asked for it.
+// See VENDOR.md.
+fn include(input: Span<'_>) -> IResult<'_, Include> {
+    let line_number = input.location_line();
     let (input, _) = tag("include")(input)?;
-    let (input, path) = cut(delimited(space1, string, end_of_line)).parse(input)?;
-    Ok((input, path.into()))
+    let (input, _) = cut(space1).parse(input)?;
+    let offset = input.location_offset();
+    let (rest, path) = cut(string).parse(input)?;
+    // Measured before `end_of_line`, so the span covers the quoted path and
+    // stops there rather than swallowing the newline.
+    let length = rest.location_offset() - offset;
+    let (rest, ()) = cut(end_of_line).parse(rest)?;
+    Ok((
+        rest,
+        Include {
+            path: path.into(),
+            line_number,
+            offset,
+            length,
+        },
+    ))
 }
 
 fn tag_stack_operation<D>(input: Span<'_>) -> IResult<'_, RawEntry<D>> {

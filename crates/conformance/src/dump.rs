@@ -73,9 +73,12 @@ pub fn dump(input: &str) -> String {
                     quote(&option.value)
                 );
             }
-            Ok(Entry::Include(path)) => {
-                let _ =
-                    writeln!(out, "include {}", quote(&path.to_string_lossy()));
+            Ok(Entry::Include(include)) => {
+                let _ = writeln!(
+                    out,
+                    "include {}",
+                    quote(&include.path.to_string_lossy())
+                );
             }
             Ok(Entry::Plugin(plugin)) => {
                 let _ = write!(out, "plugin {}", quote(&plugin.name));

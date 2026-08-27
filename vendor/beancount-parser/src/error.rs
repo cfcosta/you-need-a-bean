@@ -33,6 +33,13 @@ pub struct Error {
     #[label]
     span: SourceSpan,
     line_number: u32,
+    // Local addition vs upstream 2.6.0: the byte offset the parse stopped at,
+    // unconditionally. Upstream keeps it only under the `miette` feature, and
+    // only as a `SourceSpan` inside a `Diagnostic` this crate derives itself.
+    // Exposing the raw offset lets the caller build whatever diagnostic it
+    // likes -- and decide how far past the offset to underline, which is a
+    // question the parser has no answer to. See VENDOR.md.
+    offset: usize,
 }
 
 impl Debug for Error {
@@ -56,6 +63,7 @@ impl Error {
     pub(crate) fn new(_: impl Into<String>, span: Span<'_>) -> Self {
         Self {
             line_number: span.location_line(),
+            offset: span.location_offset(),
         }
     }
 
@@ -65,6 +73,7 @@ impl Error {
             src: src.into(),
             span: span.location_offset().into(),
             line_number: span.location_line(),
+            offset: span.location_offset(),
         }
     }
 
@@ -72,6 +81,16 @@ impl Error {
     #[must_use]
     pub fn line_number(&self) -> u32 {
         self.line_number
+    }
+
+    /// Byte offset at which the error was found in the input
+    ///
+    /// Zero-based, and counted in bytes rather than characters, so it can index
+    /// the input directly. Pair it with [`Error::line_number`] to point at the
+    /// failure: the offset says where, the line number says where to say it.
+    #[must_use]
+    pub fn offset(&self) -> usize {
+        self.offset
     }
 }
 

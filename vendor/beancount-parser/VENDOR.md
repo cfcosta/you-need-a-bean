@@ -115,3 +115,26 @@ for downstream readers.
 Both were the original reason for vendoring: every `+123.45 USD`-style
 or `{{ … }}`-cost posting used to vanish along with the postings after it
 in the same transaction.
+
+## Where the error is
+
+The two patches here are not about silence but about location: upstream
+says *that* a parse failed and roughly where, but not precisely enough
+for a caller to point at it.
+
+`src/error.rs`: `Error` carries a byte `offset` unconditionally, read
+back through `Error::offset()`. Upstream keeps that offset only under the
+`miette` feature, folded into a `SourceSpan` inside a `Diagnostic` it
+derives itself — which fixes the presentation (miette 5, a zero-length
+span, no code, no help) and makes the error's *shape* depend on a feature
+flag. The raw offset instead lets `crates/core` build whatever diagnostic
+it likes, and decide how far past the offset to underline: the parser
+knows where it stopped, not how much is wrong.
+
+`src/lib.rs`: `Entry::Include` and `RawEntry::Include` carry an `Include`
+struct — the path as written, the line the directive sits on, and the
+byte span of the quoted path — where upstream had a bare `PathBuf`. A
+ledger can be hundreds of includes deep, and `cannot read /some/abs/path`
+says nothing about which of them asked for it. The include emitted by the
+file-following reader reports the *resolved* path; where it was written
+stays as written. `BeancountFile::includes` is still a `Vec<PathBuf>`.

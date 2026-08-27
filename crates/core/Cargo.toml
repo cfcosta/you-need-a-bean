@@ -12,9 +12,11 @@ bench = false
 [dependencies]
 beancount-parser = "2.6.0"
 glob = "0.3.4"
+miette = "7.6.0"
 rust_decimal = "1.42.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+thiserror = "2.0.20"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = [

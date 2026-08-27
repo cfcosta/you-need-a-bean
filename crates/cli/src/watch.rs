@@ -84,8 +84,12 @@ async fn reload(root: &Path, state: &AppState) {
             eprintln!(
                 "error: reload failed, still serving the last good ledger"
             );
-            eprintln!("  {error}");
-            state.reload_failed(error.to_string());
+            // The terminal gets the diagnostic, with the offending line drawn
+            // under it. The browser has no way to draw one, so it gets the
+            // same error as a line of text with the location still in it.
+            let summary = error.summary();
+            eprintln!("{:?}", miette::Report::new(error));
+            state.reload_failed(summary);
         }
         Err(error) => {
             eprintln!("error: reload did not finish: {error}");

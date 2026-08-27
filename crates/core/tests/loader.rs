@@ -1,6 +1,22 @@
 use std::path::PathBuf;
 
 use bean_core::loader::{LoadError, load};
+use miette::Diagnostic;
+
+/// The text an error actually points at, which is what a reader sees
+/// underlined. Every assertion below goes through this rather than through the
+/// message, because the span is the part that has to be right.
+fn underlined(err: &dyn Diagnostic) -> String {
+    let src = err
+        .source_code()
+        .expect("a located error carries its source");
+    let span = err.labels().expect("a located error is labelled").next();
+    let span = *span.expect("at least one label").inner();
+    let contents = src
+        .read_span(&span, 0, 0)
+        .expect("the span is inside the source");
+    String::from_utf8(contents.data().to_vec()).expect("utf-8 source")
+}
 
 fn fixture(rel: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -64,13 +80,13 @@ fn unparseable_posting_is_an_error() {
     // loader could only detect after the fact; it is a syntax error now, and
     // the error names the line.
     let err = load(&fixture("unparseable/main.beancount")).unwrap_err();
-    match err {
-        LoadError::Syntax { path, message } => {
-            assert!(path.to_string_lossy().contains("main.beancount"));
-            assert!(message.contains('7'), "{message}");
-        }
-        other => panic!("expected Syntax error, got {other:?}"),
-    }
+    let LoadError::Syntax { .. } = err else {
+        panic!("expected Syntax error, got {err:?}");
+    };
+    assert!(err.path().ends_with("main.beancount"), "{}", err.path());
+    // Line 7 is `  Expenses:Stuff  10..0 USD`, and the underline covers the
+    // whole of it: the parser knows where it stopped, not how much is wrong.
+    assert_eq!(underlined(&err), "Expenses:Stuff  10..0 USD");
 }
 
 #[test]
@@ -84,16 +100,16 @@ fn clean_ledgers_load_without_warnings() {
 }
 
 #[test]
-fn missing_include_is_an_error() {
+fn missing_include_points_at_the_line_that_asked_for_it() {
+    // A ledger is hundreds of files deep. Naming the file that could not be
+    // read says nothing about which of them wanted it.
     let err = load(&fixture("broken/missing.beancount")).unwrap_err();
-    match err {
-        LoadError::Io { path, .. } => {
-            assert!(
-                path.to_string_lossy().contains("does-not-exist.beancount")
-            );
-        }
-        other => panic!("expected Io error, got {other:?}"),
-    }
+    let LoadError::UnreadableInclude { path, .. } = &err else {
+        panic!("expected UnreadableInclude, got {err:?}");
+    };
+    assert!(path.ends_with("does-not-exist.beancount"), "{path}");
+    assert!(err.path().ends_with("missing.beancount"), "{}", err.path());
+    assert_eq!(underlined(&err), "\"does-not-exist.beancount\"");
 }
 
 #[test]
