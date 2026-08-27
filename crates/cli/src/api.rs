@@ -378,6 +378,34 @@ async fn reports(
             })
         })
         .collect();
+    let stale: Vec<Value> = view
+        .trust
+        .stale
+        .iter()
+        .map(|s| {
+            json!({
+                "commodity": s.commodity,
+                "last": format_day(s.last),
+                "days": s.days,
+                "value": num(s.value),
+            })
+        })
+        .collect();
+    let flagged: Vec<Value> = view
+        .trust
+        .flagged
+        .recent
+        .iter()
+        .map(|t| {
+            json!({
+                "date": format_day(t.date),
+                "payee": t.payee,
+                "narration": t.narration,
+                "amount": num(t.amount),
+            })
+        })
+        .collect();
+
     Ok(Json(json!({
         "month": view.month.to_string(),
         "net_worth": net_worth,
@@ -449,6 +477,22 @@ async fn reports(
             "recent_total": num(view.movers.recent_total),
             "prior_total": num(view.movers.prior_total),
             "items": movers,
+        },
+        "trust": {
+            "window": window_json(view.trust.window),
+            "stale": stale,
+            "flagged": {
+                "total": view.trust.flagged.total,
+                "window": view.trust.flagged.window,
+                "amount": num(view.trust.flagged.amount),
+                "recent": flagged,
+            },
+            "uncategorized": {
+                "total": num(view.trust.uncategorized.total),
+                "share": ratio_json(view.trust.uncategorized.share),
+                "accounts": view.trust.uncategorized.accounts,
+            },
+            "warnings": view.trust.warnings,
         },
     })))
 }

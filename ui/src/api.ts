@@ -267,6 +267,50 @@ export interface Movers {
   items: Mover[];
 }
 
+/** A commodity still held, valued at a price from a while ago. */
+export interface StalePrice {
+  commodity: string;
+  /** The price date the current valuation actually used. */
+  last: string;
+  days: number;
+  /** What that price is holding up, in the display currency. */
+  value: number;
+}
+
+/** One transaction the ledger marks `!`. */
+export interface FlaggedTxn {
+  date: string;
+  payee: string | null;
+  narration: string | null;
+  /** What it moved: the sum of its positive postings. */
+  amount: number;
+}
+
+export interface Trust {
+  /** The trailing year the money figures cover. */
+  window: [string, string] | null;
+  /** Held commodities priced more than six weeks ago, most money
+   * first. */
+  stale: StalePrice[];
+  flagged: {
+    /** Every `!` in the ledger, however old. */
+    total: number;
+    /** The ones inside the window, which the page is built from. */
+    window: number;
+    amount: number;
+    /** Newest first. */
+    recent: FlaggedTxn[];
+  };
+  uncategorized: {
+    total: number;
+    /** `total` over all window spend. */
+    share: number | null;
+    accounts: string[];
+  };
+  /** What the loader said while reading the files. */
+  warnings: string[];
+}
+
 export interface ReportsView {
   month: string;
   net_worth: NetWorthPoint[];
@@ -286,6 +330,7 @@ export interface ReportsView {
   movers: Movers;
   projects: Projects;
   income: Income;
+  trust: Trust;
 }
 
 async function get<T>(url: string): Promise<T> {

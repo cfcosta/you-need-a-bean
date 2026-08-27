@@ -80,15 +80,27 @@ Each line is one task: core computation (with tests) → API shape → card.
       guessed, so the card never presents a heuristic as a fact.
       Cashback and referral commission are deliberately not passive — a
       rebate stops the month the spending does.
-- [~] **7 · What's missing from these numbers** — commodities with no
+- [x] **7 · What's missing from these numbers** — commodities with no
       price (silently excluded from net worth), stale price directives,
       `!`-flagged transactions, uncategorized spend, loader warnings.
       Every number on this page is one conversion away from wrong.
-      Unpriced commodities are already named, on the page and in the
+      Unpriced commodities were already named, on the page and in the
       growth card, because task 2 could not be honest without them: a
       sale of something unpriced reads as a market gain nothing caused,
-      so the implied return is withheld while any price is missing. The
-      rest of the list is still open.
+      so the implied return is withheld while any price is missing.
+      The rest now sits in one card, where each row is a count and an
+      amount — the count says how much work is outstanding, the amount
+      says how much of the page is standing on it. Nothing priced is
+      drawn louder than priced-long-ago, because the first is money
+      missing from the totals and the second is money present at a
+      price that old, which is worse: it still looks like a number.
+      Staleness is measured against today rather than the ledger, six
+      weeks being long enough that a monthly price never trips it, and
+      only against commodities still held — a three-year-old price on
+      a closed position holds nothing up. Dust is dropped for the same
+      reason. `Expenses:Misc` is not a gap: miscellaneous is a
+      decision, and only the segments that mean "I haven't decided
+      yet" count as uncategorized.
 - [x] **8 · FIRE variants** — Coast FIRE (stop saving today, still get
       there in N years), lean FIRE off fixed costs, and what saving more
       per month buys. All three have shipped: task 3 prices the fixed

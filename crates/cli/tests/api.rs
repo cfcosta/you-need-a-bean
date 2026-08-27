@@ -6,20 +6,30 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use bean_cli::api::{AppState, router};
 use bean_core::loader::load;
-use bean_core::model::Ledger;
+use bean_core::model::{Day, Ledger};
 use serde_json::{Value, json};
 use tower::ServiceExt;
 
 fn app() -> Router {
+    app_at("model/main", (2026, 8, 21))
+}
+
+/// A server over one of the test fixtures, with today pinned so the
+/// trailing windows never move.
+fn app_at(fixture: &str, today: Day) -> Router {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../core/tests/fixtures/model/main.beancount");
+        .join(format!("../core/tests/fixtures/{fixture}.beancount"));
     let ledger = Ledger::build(load(&path).unwrap());
-    let state = AppState::new(ledger, 7).with_today((2026, 8, 21));
+    let state = AppState::new(ledger, 7).with_today(today);
     router(Arc::new(state))
 }
 
 async fn get(uri: &str) -> (StatusCode, Value) {
-    let response = app()
+    get_at(app(), uri).await
+}
+
+async fn get_at(app: Router, uri: &str) -> (StatusCode, Value) {
+    let response = app
         .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
         .await
         .unwrap();
@@ -343,4 +353,66 @@ async fn bad_params_and_unknown_routes_error_as_json() {
     let (status, body) = get("/api/definitely-not-a-route").await;
     assert_eq!(status, StatusCode::NOT_FOUND);
     assert!(body["error"].is_string());
+}
+
+#[tokio::test]
+async fn reports_endpoint_names_what_it_is_unsure_of() {
+    // The default fixture holds nothing it can price badly: what it
+    // holds beyond dollars has no price at all, which the page reports
+    // as missing rather than as out of date.
+    let (_, body) = get("/api/reports").await;
+    assert_eq!(body["trust"]["stale"], json!([]));
+    assert_eq!(body["unpriced"], json!(["VACHR", "VEA"]));
+
+    let app = app_at("reports/trust", (2026, 4, 15));
+    let (status, body) = get_at(app, "/api/reports").await;
+    assert_eq!(status, StatusCode::OK);
+    let trust = &body["trust"];
+    assert_eq!(trust["window"], json!(["2025-04", "2026-03"]));
+    assert_eq!(
+        trust["stale"],
+        json!([{
+            "commodity": "GOLD",
+            "last": "2025-01-15",
+            "days": 455,
+            "value": 20000.0,
+        }])
+    );
+    assert_eq!(
+        trust["flagged"],
+        json!({
+            "total": 3,
+            "window": 2,
+            "amount": 1500.0,
+            "recent": [
+                {
+                    "date": "2026-01-15",
+                    "payee": "Diner",
+                    "narration": "Is this the same place?",
+                    "amount": 1000.0,
+                },
+                {
+                    "date": "2025-12-05",
+                    "payee": "Someone",
+                    "narration": "Card charge, unidentified",
+                    "amount": 500.0,
+                },
+                {
+                    "date": "2025-02-10",
+                    "payee": "Nobody",
+                    "narration": "Left over from the old importer",
+                    "amount": 250.0,
+                },
+            ],
+        })
+    );
+    assert_eq!(
+        trust["uncategorized"],
+        json!({
+            "total": 500.0,
+            "share": 0.05,
+            "accounts": ["Expenses:Uncategorized"],
+        })
+    );
+    assert_eq!(trust["warnings"], json!([]));
 }

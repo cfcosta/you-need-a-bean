@@ -7,6 +7,7 @@ import type {
   NetWorthPoint,
   Projects,
   ReportsView,
+  Trust,
 } from "../api";
 import { fmt, fmtCompact, monthName, monthShort, windowLabel } from "../format";
 
@@ -928,6 +929,140 @@ function IncomeCard({ data, cur }: { data: Income; cur: string }) {
   );
 }
 
+
+/** One reason to doubt the page, as the card draws it. */
+interface Doubt {
+  key: string;
+  label: string;
+  detail: string;
+  /** What rests on it, or null when the whole point is that the number
+   * is unknowable. */
+  amount: number | null;
+  /** `gone` is money missing from the totals outright; `soft` is money
+   * that is present but resting on something unconfirmed. */
+  tone: "gone" | "soft";
+  title?: string;
+}
+
+/** The page's own footnotes: everything above is a conversion, a flag
+ * or a category away from being wrong, and this says by how much. */
+function TrustCard({
+  data,
+  cur,
+}: {
+  data: ReportsView;
+  cur: string;
+}) {
+  const t: Trust = data.trust;
+  const doubts: Doubt[] = [];
+  const plural = (n: number, one: string, many = `${one}s`) =>
+    `${n} ${n === 1 ? one : many}`;
+
+  if (data.unpriced.length > 0) {
+    doubts.push({
+      key: "unpriced",
+      label: "No price",
+      detail: listOf(data.unpriced),
+      amount: null,
+      tone: "gone",
+      title: "Every amount in these is missing from every figure above.",
+    });
+  }
+  if (t.stale.length > 0) {
+    const head = t.stale[0]!;
+    const rest = t.stale.length - 1;
+    doubts.push({
+      key: "stale",
+      label: "Stale price",
+      detail: `${head.commodity} last priced ${head.days} days ago${
+        rest > 0 ? `, ${plural(rest, "other")}` : ""
+      }`,
+      amount: t.stale.reduce((sum, s) => sum + s.value, 0),
+      tone: "soft",
+      title: t.stale
+        .map((s) => `${s.commodity}: ${s.last} · ${fmt(s.value, cur)}`)
+        .join("\n"),
+    });
+  }
+  if (t.flagged.total > 0) {
+    doubts.push({
+      key: "flagged",
+      label: "Unconfirmed",
+      detail:
+        t.flagged.window > 0
+          ? `${t.flagged.window} of ${plural(t.flagged.total, "flagged transaction")} land in the window`
+          : `${plural(t.flagged.total, "flagged transaction")}, all older than the window`,
+      amount: t.flagged.window > 0 ? t.flagged.amount : null,
+      tone: "soft",
+      title: t.flagged.recent
+        .map(
+          (f) =>
+            `${f.date} · ${f.payee ?? f.narration ?? "—"} · ${fmt(f.amount, cur)}`,
+        )
+        .join("\n"),
+    });
+  }
+  if (t.uncategorized.total > 0) {
+    doubts.push({
+      key: "uncategorized",
+      label: "Uncategorized",
+      detail: `${listOf(t.uncategorized.accounts)} · ${
+        t.uncategorized.share != null
+          ? `${(t.uncategorized.share * 100).toFixed(1)}% of the year's spend`
+          : "of the year's spend"
+      }`,
+      amount: t.uncategorized.total,
+      tone: "soft",
+    });
+  }
+  if (t.warnings.length > 0) {
+    doubts.push({
+      key: "warnings",
+      label: "Loader",
+      detail: t.warnings[0]!,
+      amount: null,
+      tone: "gone",
+      title: t.warnings.join("\n"),
+    });
+  }
+
+  return (
+    <div className="report-card">
+      <h2>What these numbers rest on</h2>
+      <div className="sub2">
+        every figure above is one conversion away from wrong ·{" "}
+        {windowLabel(t.window)}
+      </div>
+
+      {doubts.length === 0 ? (
+        <div className="empty">
+          nothing priced late, nothing flagged, nothing uncategorized
+        </div>
+      ) : (
+        <div className="tr-rows">
+          {doubts.map((d) => (
+            <div key={d.key} className="tr-row" title={d.title}>
+              <span className={`tr-dot ${d.tone}`} />
+              <span className="tr-label">{d.label}</span>
+              <span className="tr-detail">{d.detail}</span>
+              <span className="tr-amt num">
+                {d.amount == null ? "\u2014" : fmtCompact(d.amount, cur)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="fine">
+        A commodity with no price is missing from the totals; one priced
+        long ago is present at a price that old, which is worse, because
+        it still looks like a number. The amounts say how much of the page
+        each doubt is holding up.
+      </div>
+    </div>
+  );
+}
+
 export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
   const f = data.fire;
   const hasTarget = f.fire_number > 0;
@@ -1135,6 +1270,8 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
           <YearCard data={data} cur={cur} />
 
           <MoversCard data={data.movers} cur={cur} />
+
+          <TrustCard data={data} cur={cur} />
         </div>
       </div>
     </section>

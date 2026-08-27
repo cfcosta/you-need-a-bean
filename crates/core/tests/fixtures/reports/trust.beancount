@@ -1,0 +1,86 @@
+; A ledger with every reason to doubt it: a commodity priced over a
+; year ago, one priced this month, one never priced at all, spend filed
+; under a catch-all, and transactions the ledger itself won't vouch
+; for — one of them older than the trailing year.
+option "title" "Trust"
+option "operating_currency" "USD"
+
+2025-01-01 open Assets:Checking        USD
+2025-01-01 open Assets:Broker          VTI
+2025-01-01 open Assets:Vault           GOLD
+2025-01-01 open Assets:Crypto          ADA
+2025-01-01 open Income:Salary          USD
+2025-01-01 open Income:Grant           ADA
+2025-01-01 open Expenses:Rent          USD
+2025-01-01 open Expenses:Food          USD
+2025-01-01 open Expenses:Uncategorized USD
+2025-01-01 open Expenses:Misc          USD
+2025-01-01 open Equity:Opening         USD
+
+; VTI keeps getting priced; GOLD stopped over a year ago; nothing ever
+; priced ADA.
+2025-04-01 price VTI  100.00 USD
+2026-04-01 price VTI  110.00 USD
+2025-01-15 price GOLD 2000.00 USD
+
+2025-01-02 * "Opening balance"
+  Assets:Checking  60000.00 USD
+  Equity:Opening
+
+; Older than the trailing year, so it counts against the ledger but
+; not against the figures on the page.
+2025-02-10 ! "Nobody" "Left over from the old importer"
+  Expenses:Food  250.00 USD
+  Assets:Checking
+
+2025-04-05 * "Buy VTI"
+  Assets:Broker  20 VTI {100.00 USD}
+  Assets:Checking
+
+2025-04-06 * "Buy gold"
+  Assets:Vault   10 GOLD {2000.00 USD}
+  Assets:Checking
+
+; Arrives in a commodity nothing prices, so it is missing from every
+; total on the page rather than merely out of date.
+2025-04-07 * "Grant"
+  Income:Grant  -60000 ADA
+  Assets:Crypto
+
+2025-05-10 * "Salary"
+  Income:Salary  -40000.00 USD
+  Assets:Checking
+
+2025-05-15 * "Rent"
+  Expenses:Rent  1600.00 USD
+  Assets:Checking
+
+2025-06-15 * "Rent"
+  Expenses:Rent  1600.00 USD
+  Assets:Checking
+
+2025-07-15 * "Rent"
+  Expenses:Rent  1600.00 USD
+  Assets:Checking
+
+2025-08-15 * "Rent"
+  Expenses:Rent  1600.00 USD
+  Assets:Checking
+
+2025-09-15 * "Rent"
+  Expenses:Rent  1600.00 USD
+  Assets:Checking
+
+; Miscellaneous is a decision, so this one is not a gap.
+2025-11-15 * "Odds and ends"
+  Expenses:Misc  500.00 USD
+  Assets:Checking
+
+; The importer gave up on this one twice over: no category, no flag.
+2025-12-05 ! "Someone" "Card charge, unidentified"
+  Expenses:Uncategorized  500.00 USD
+  Assets:Checking
+
+2026-01-15 ! "Diner" "Is this the same place?"
+  Expenses:Food  1000.00 USD
+  Assets:Checking

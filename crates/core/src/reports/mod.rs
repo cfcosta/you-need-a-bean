@@ -12,6 +12,7 @@ mod income;
 mod movers;
 mod projects;
 mod recurring;
+mod trust;
 mod year;
 
 pub use fire::{
@@ -23,7 +24,8 @@ pub use income::{IncomeSource, IncomeView};
 pub use movers::{Mover, MoversView};
 pub use projects::{Project, ProjectsView, Topic};
 pub use recurring::{Cadence, PriceChange, Recurring, RecurringView};
-pub use year::{YearGroup, YearView};
+pub use trust::{Flagged, FlaggedTxn, StalePrice, TrustView, Uncategorized};
+pub use year::{YearGroup, YearMonth, YearView};
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -81,6 +83,8 @@ pub struct ReportsView {
     pub projects: ProjectsView,
     /// Where income comes from, and how much of it is passive.
     pub income: IncomeView,
+    /// The reasons to doubt everything above.
+    pub trust: TrustView,
 }
 
 /// Per-month currency deltas for one root of the ledger.
@@ -217,6 +221,7 @@ impl Ledger {
             movers: self.movers_view(current, cur),
             projects,
             income: self.income_view(current, cur),
+            trust: self.trust_view(today, current, cur),
         }
     }
 

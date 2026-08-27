@@ -1270,6 +1270,48 @@ a:focus-visible {
   text-align: right;
   color: var(--muted);
 }
+/* The page's footnotes. Each row is one doubt: a dot for how bad it
+   is, what it is, and what rests on it. */
+.tr-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 12px;
+}
+.tr-row {
+  display: grid;
+  grid-template-columns: 8px 92px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  font-size: 11.5px;
+}
+.tr-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--warn);
+}
+/* Money missing from the totals outright reads louder than money
+   that is merely resting on something unconfirmed. */
+.tr-dot.gone {
+  background: var(--over);
+}
+.tr-label {
+  font-weight: 550;
+}
+.tr-detail {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tr-amt {
+  justify-self: end;
+  min-width: 56px;
+  text-align: right;
+  font-weight: 550;
+}
+
 .month-label.page-title {
   text-align: left;
   min-width: 148px;

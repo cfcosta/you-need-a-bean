@@ -274,6 +274,31 @@ impl Ledger {
         None
     }
 
+    /// The date of the price [`Self::convert`] would use, following the
+    /// same chain. A pivot is only as fresh as its stalest half, so it
+    /// reports the older of the two legs. `None` when `from == to`, or
+    /// when no chain exists at all — nothing priced is a different
+    /// problem from priced long ago.
+    pub fn priced_at(&self, from: &str, to: &str, at: Day) -> Option<Day> {
+        if from == to {
+            return None;
+        }
+        if let Some(day) = self.leg_at(from, to, at) {
+            return Some(day);
+        }
+        for pivot in &self.operating_currencies {
+            if pivot == from || pivot == to {
+                continue;
+            }
+            if let (Some(a), Some(b)) =
+                (self.leg_at(from, pivot, at), self.leg_at(pivot, to, at))
+            {
+                return Some(a.min(b));
+            }
+        }
+        None
+    }
+
     /// Direct (multiply) or inverse (divide, so exact) rate for one leg.
     fn leg(&self, from: &str, to: &str, at: Day) -> Option<Leg> {
         if let Some(rate) = self.rate_at(from, to, at) {
@@ -282,10 +307,27 @@ impl Ledger {
         self.rate_at(to, from, at).map(Leg::Div)
     }
 
+    /// The date behind [`Self::leg`], picked the same way round.
+    fn leg_at(&self, from: &str, to: &str, at: Day) -> Option<Day> {
+        self.point_at(from, to, at)
+            .or_else(|| self.point_at(to, from, at))
+            .map(|(day, _)| day)
+    }
+
     fn rate_at(&self, from: &str, to: &str, at: Day) -> Option<Decimal> {
+        self.point_at(from, to, at).map(|(_, rate)| rate)
+    }
+
+    /// The newest price point on or before `at` for one direction.
+    fn point_at(
+        &self,
+        from: &str,
+        to: &str,
+        at: Day,
+    ) -> Option<(Day, Decimal)> {
         let series = self.prices.get(&(from.to_string(), to.to_string()))?;
         let idx = series.partition_point(|(date, _)| *date <= at);
-        (idx > 0).then(|| series[idx - 1].1)
+        (idx > 0).then(|| series[idx - 1])
     }
 }
 
