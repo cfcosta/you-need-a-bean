@@ -2,11 +2,13 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import type {
+  AssetClass,
   CashflowPoint,
   Fire,
   Growth,
   GrowthPoint,
   Income,
+  Investments,
   Movers,
   Payees,
   NetWorthPoint,
@@ -970,19 +972,56 @@ const chartSpan = (points: { month: string }[]) => {
   return from && to ? spanLabel(from.month, to.month) : undefined;
 };
 
+/** The control under a list that was cut short: a click opens the rest, a
+ * click folds it back, and the caret says which way. The same shape the
+ * year card's fold uses, because they are the same gesture. */
+function Fold({
+  hidden,
+  open,
+  onToggle,
+}: {
+  hidden: number;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  if (hidden <= 0) return null;
+  return (
+    <button
+      type="button"
+      className={`pj-more${open ? " open" : ""}`}
+      aria-expanded={open}
+      onClick={onToggle}
+    >
+      {open ? `fold ${hidden} back in` : `${hidden} more`}
+    </button>
+  );
+}
+
+/** Why a tag or link isn't counted as a project. The count alone reads as
+ * an accusation the reader can't check, so each reason carries what the
+ * names it stands for actually look like. */
+function leftOut(data: Projects) {
+  return [
+    data.singletons > 0 && {
+      text: `${data.singletons} seen once`,
+      why: "A name on a single transaction labels that transaction, it does not span anything. Almost always a payment id an importer wrote down.",
+    },
+    data.markers > 0 && {
+      text: `${data.markers} moved no money`,
+      why: "A name whose transactions only shift money between accounts you already own — a bookkeeping mark rather than something spent.",
+    },
+  ].filter(Boolean) as { text: string; why: string }[];
+}
+
 function ProjectsCard({ data, cur }: { data: Projects; cur: string }) {
+  const CUT = 10;
+  const [open, setOpen] = useState(false);
   const count = data.items.length;
   const spent = data.items.reduce((sum, p) => sum + p.spent, 0);
   const back = data.items.reduce((sum, p) => sum + p.income, 0);
-  const top = data.items.slice(0, 10);
-  const rest = data.items.length - top.length;
-  // Two shapes can't be topics under any reading, and saying how many
-  // were set aside beats a card that looks like the whole story.
-  const left = [
-    data.singletons > 0 &&
-      `${data.singletons} name${data.singletons === 1 ? "" : "s"} on one transaction`,
-    data.markers > 0 && `${data.markers} that moved no money`,
-  ].filter(Boolean) as string[];
+  const top = open ? data.items : data.items.slice(0, CUT);
+  const hidden = Math.max(0, data.items.length - CUT);
+  const left = leftOut(data);
 
   return (
     <div className="report-card">
@@ -1035,21 +1074,30 @@ function ProjectsCard({ data, cur }: { data: Projects; cur: string }) {
               <span className="pj-amt num">{fmt(p.net, cur, 0)}</span>
             </div>
           ))}
-          {rest > 0 && <div className="pj-note">{rest} more</div>}
+          <Fold hidden={hidden} open={open} onToggle={() => setOpen(!open)} />
         </div>
       )}
       {left.length > 0 && (
-        <div className="pj-note">left out: {left.join(", ")}</div>
+        <div className="pj-left">
+          <span className="pj-left-lead">not projects</span>
+          {left.map((l) => (
+            <span key={l.text} className="pj-left-item" title={l.why}>
+              {l.text}
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
 function IncomeCard({ data, cur }: { data: Income; cur: string }) {
+  const CUT = 8;
+  const [open, setOpen] = useState(false);
   const max = data.sources[0]?.total ?? 0;
   const width = (v: number) => (max > 0 ? `${(v / max) * 100}%` : "0%");
-  const top = data.sources.slice(0, 8);
-  const rest = data.sources.length - top.length;
+  const top = open ? data.sources : data.sources.slice(0, CUT);
+  const hidden = Math.max(0, data.sources.length - CUT);
 
   return (
     <div className="report-card">
@@ -1117,7 +1165,7 @@ function IncomeCard({ data, cur }: { data: Income; cur: string }) {
               <span className="ic-pct num">{ratio(s.share)}</span>
             </div>
           ))}
-          {rest > 0 && <div className="pj-note">{rest} more</div>}
+          <Fold hidden={hidden} open={open} onToggle={() => setOpen(!open)} />
         </div>
       )}
 
@@ -1248,6 +1296,222 @@ function SeasonCard({ data, cur }: { data: Season; cur: string }) {
   );
 }
 
+
+/** A quantity of something that is not money: as many decimals as it
+ * takes and no more. A ten-thousandth of a bitcoin is a real holding,
+ * and money's two decimals would round it to owning nothing. */
+const units = (n: number) =>
+  n.toLocaleString("en-US", { maximumFractionDigits: 8 });
+
+/** A return as a percentage, always carrying its sign. `null` is a
+ * position with no cost recorded — a return nobody can compute rather
+ * than one that came out at zero. */
+const retPct = (r: number | null) =>
+  r == null ? "—" : `${r > 0 ? "+" : ""}${ratio(r)}`;
+
+/** What the money is actually in.
+ *
+ * Allocation leads and the list follows, because "am I concentrated"
+ * is the question a portfolio answers first and a table sorted by
+ * value only implies it.
+ *
+ * The gain is drawn beside the value it cannot speak for rather than
+ * across the whole portfolio. A holding that arrived as staking
+ * interest, a rebate or a swap carries no cost anywhere in the
+ * ledger, and reading that absence as zero would print a return of
+ * +100% on money nobody can say was made. */
+function InvestmentsCard({
+  data,
+  month,
+  cur,
+}: {
+  data: Investments;
+  month: string;
+  cur: string;
+}) {
+  if (data.total <= 0) {
+    return (
+      <div className="report-card">
+        <CardHead title="Portfolio" span={monthName(month)} />
+        <div className="empty">
+          no account holds anything but the currencies you spend
+        </div>
+      </div>
+    );
+  }
+
+  // A slice this thin is a colour in the legend for something nobody
+  // can point at. It keeps its width in the bar — the bar has to add
+  // up — and gets named as a tail underneath instead.
+  const THIN = 0.02;
+  const cut = data.classes.findIndex((c) => c.share < THIN);
+  const wide = cut < 0 ? data.classes : data.classes.slice(0, cut);
+  const thin = cut < 0 ? [] : data.classes.slice(cut);
+  const label = (c: AssetClass) => c.name ?? "unclassified";
+  // Asset classes are categories, so the bar needs colours that get
+  // told apart rather than a ramp of one hue: a shade lighter reads as
+  // "less of this", which is what the width already says. Past the
+  // fifth they share the muted one — by then they are the tail.
+  const shade = (i: number) => ({
+    background: `var(--alloc-${Math.min(i + 1, 5)})`,
+  });
+  const held = data.items.length + data.dust;
+
+  return (
+    <div className="report-card">
+      <CardHead
+        title="Portfolio"
+        span={monthName(month)}
+        figure={fmtCompact(data.total, cur)}
+        note={
+          data.effective == null ? (
+            `in ${held} position${held === 1 ? "" : "s"}`
+          ) : (
+            <span title="1 / the sum of each position's squared share: how many equally-sized holdings this spread is worth. Six positions where one is most of the money is worth about two.">
+              across {data.effective.toFixed(1)} effective positions
+            </span>
+          )
+        }
+      />
+
+      <div className="inv-alloc">
+        {data.classes.map((c, i) => (
+          <span
+            key={label(c)}
+            style={{ width: `${c.share * 100}%`, ...shade(i) }}
+            title={`${label(c)} · ${fmt(c.value, cur)} · ${ratio(c.share)} · ${c.positions} position${c.positions === 1 ? "" : "s"}`}
+          />
+        ))}
+      </div>
+      <div className="inv-legend">
+        {wide.map((c, i) => (
+          <span key={label(c)}>
+            <i className="inv-dot" style={shade(i)} />
+            {label(c)} {ratio(c.share)}
+          </span>
+        ))}
+        {thin.length > 0 && (
+          <span
+            className="inv-thin"
+            title={thin
+              .map((c) => `${label(c)} · ${fmt(c.value, cur)} · ${ratio(c.share)}`)
+              .join("\n")}
+          >
+            {listOf(thin.map(label))} under {ratio(THIN)}
+          </span>
+        )}
+      </div>
+
+      {/* The two halves of the same portfolio, side by side: what the
+          ledger can price against a cost, and what it can only price.
+          Putting the second beside the first turns the gap from an
+          apology in a footnote into a number worth reading. */}
+      {(data.basis > 0 || data.unbased > 0) && (
+        <div className="inv-split">
+          {data.basis > 0 && (
+            <div className="inv-box">
+              <h4>Up against cost</h4>
+              <div
+                className={`inv-big num ${data.gain >= 0 ? "ok" : "bad"}`}
+              >
+                {data.gain > 0 ? "+" : ""}
+                {fmt(data.gain, cur, 0)}
+              </div>
+              <div className="inv-sub">
+                {retPct(data.ret)} on {fmt(data.basis, cur, 0)} put in
+                {data.coverage != null && (
+                  <> · {ratio(data.coverage)} of the portfolio</>
+                )}
+              </div>
+            </div>
+          )}
+          {data.unbased > 0 && (
+            <div className="inv-box">
+              <h4>No cost recorded</h4>
+              <div className="inv-big num">{fmt(data.unbased, cur, 0)}</div>
+              <div className="inv-sub">
+                {ratio(data.unbased / data.total)} of value, in{" "}
+                {data.unbased_count} position
+                {data.unbased_count === 1 ? "" : "s"} that arrived without a
+                lot — interest, rebates, swaps — so there is nothing to
+                measure them against.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="inv-rows">
+        {data.items.map((p) => (
+          <div
+            key={p.currency}
+            className="inv-row"
+            title={
+              `${units(p.units)} ${p.currency} at ${fmt(p.price, cur)} = ${fmt(p.value, cur)}` +
+              (p.basis != null
+                ? `\ncost ${fmt(p.basis, cur)} · ${(p.gain ?? 0) > 0 ? "+" : ""}${fmt(p.gain ?? 0, cur)} (${retPct(p.ret)})`
+                : "\nno cost recorded — every unit held arrived without one") +
+              `\n${p.accounts} account${p.accounts === 1 ? "" : "s"}, ` +
+              `${p.postings} posting${p.postings === 1 ? "" : "s"}` +
+              ` · ${spanLabel(p.first, p.last)}`
+            }
+          >
+            <span className="inv-name">
+              <b>{p.currency}</b>
+              {p.label !== p.currency && <i>{p.label}</i>}
+            </span>
+            <span className="inv-cls">{p.class ?? ""}</span>
+            <span className="inv-amt num">{fmt(p.value, cur, 0)}</span>
+            <span className="inv-pct num">{ratio(p.share)}</span>
+            <span
+              className={`inv-ret num ${p.ret == null ? "none" : p.ret >= 0 ? "ok" : "bad"}`}
+            >
+              {retPct(p.ret)}
+            </span>
+          </div>
+        ))}
+
+        {data.dust > 0 && (
+          <div
+            className="inv-row inv-dust"
+            title="Too small to rank against the rest. They are still in the total above and in their asset class — this line only keeps them out of the ranking."
+          >
+            <span className="inv-name">
+              <b>
+                {data.dust} smaller position{data.dust === 1 ? "" : "s"}
+              </b>
+            </span>
+            <span className="inv-cls" />
+            <span className="inv-amt num">
+              {fmt(data.dust_value, cur, 0)}
+            </span>
+            <span className="inv-pct num">
+              {ratio(data.dust_value / data.total)}
+            </span>
+            <span className="inv-ret num none">{"—"}</span>
+          </div>
+        )}
+      </div>
+
+      <div
+        className="pj-note"
+        title={
+          "A disposal written {} takes units out of whichever lot is open, so what it leaves behind is the average of what that account paid — per account, because that is where beancount keeps an inventory. Tax rules generally want a specific lot instead: FIFO, or the one you named at the sale. This is an accounting figure, not a tax basis."
+        }
+      >
+        average cost, per account — not a tax basis
+      </div>
+
+      {data.unpriced.length > 0 && (
+        <div className="pj-note">
+          {listOf(data.unpriced)} {data.unpriced.length === 1 ? "is" : "are"}{" "}
+          held and unpriced, so {data.unpriced.length === 1 ? "it is" : "they are"}{" "}
+          missing from every figure above
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Who the money actually went to. The year card says groceries; this
  * says which supermarket, how often, and how much a visit costs — the
@@ -1720,6 +1984,12 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
         </div>
 
         <div className="report-col">
+          <InvestmentsCard
+            data={data.investments}
+            month={data.month}
+            cur={cur}
+          />
+
           <div className="report-card">
             <CardHead title="Savings rate" span={chartSpan(savings)} />
             <SavingsRateChart points={savings} cur={cur} />
