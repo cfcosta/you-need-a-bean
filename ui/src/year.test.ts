@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import type { YearGroup, YearMonth } from "./api";
-import { foldGroups, yearRibbon, yearStrip } from "./year";
+import { foldGroups, yearRibbon, yearRows, yearStrip } from "./year";
 
 const AXIS = ["2025-11", "2025-12", "2026-01", "2026-02"];
 
@@ -143,5 +143,49 @@ describe("foldGroups", () => {
     const withPrior = [group("a", [10], 10, 4), group("b", [2], 2, 6)];
     expect(foldGroups("x", withPrior, 1).prior).toBe(10);
     expect(foldGroups("x", [group("a", [10], 10)], 1).prior).toBeNull();
+  });
+});
+
+describe("yearRows", () => {
+  const many = Array.from({ length: 12 }, (_, i) =>
+    group(`g${i}`, [i + 1, 0, 0, 0], i + 1),
+  );
+
+  test("folds everything past the cut into one row", () => {
+    const rows = yearRows(many, 4, false, 9);
+    expect(rows.length).toBe(10);
+    expect(rows.slice(0, 9).map((r) => r.group.name)).toEqual(
+      many.slice(0, 9).map((g) => g.name),
+    );
+    expect(rows[9]!.folded).toBe(true);
+    expect(rows[9]!.group.name).toBe("3 more groups");
+    expect(rows[9]!.group.total).toBe(10 + 11 + 12);
+  });
+
+  test("opens out to every group, with nothing left folded", () => {
+    const rows = yearRows(many, 4, true, 9);
+    expect(rows.length).toBe(12);
+    expect(rows.map((r) => r.folded)).toEqual(many.map(() => false));
+    expect(rows.map((r) => r.group.name)).toEqual(many.map((g) => g.name));
+  });
+
+  // Nothing is hidden, so there is nothing to open: the row would be a
+  // control that does nothing, which is worse than no control.
+  test("has no folded row when everything already fits", () => {
+    const few = many.slice(0, 9);
+    expect(yearRows(few, 4, false, 9).map((r) => r.folded)).toEqual(
+      few.map(() => false),
+    );
+    expect(yearRows(few, 4, true, 9).length).toBe(9);
+  });
+
+  // One group over the cut folds into a row standing for itself, which
+  // hides a name behind a count for nothing.
+  test("keeps a single leftover group rather than folding it alone", () => {
+    const ten = many.slice(0, 10);
+    const rows = yearRows(ten, 4, false, 9);
+    expect(rows.length).toBe(10);
+    expect(rows[9]!.folded).toBe(false);
+    expect(rows[9]!.group.name).toBe("g9");
   });
 });

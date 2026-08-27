@@ -132,3 +132,34 @@ export function foldGroups(
       : null,
   };
 }
+
+export interface YearRow {
+  group: YearGroup;
+  /** Stands in for everything past the cut rather than for itself. */
+  folded: boolean;
+}
+
+/** The rows the card draws, folded or opened out.
+ *
+ * The fold is a cut, not a summary: the groups behind it are still
+ * there, so the row that hides them is the control that brings them
+ * back. One group over the cut is never folded — a row reading "1 more
+ * group" hides a name behind a count and saves nothing.
+ */
+export function yearRows(
+  groups: YearGroup[],
+  span: number,
+  expanded: boolean,
+  cut = 9,
+): YearRow[] {
+  const plain = (group: YearGroup): YearRow => ({ group, folded: false });
+  if (expanded || groups.length <= cut + 1) return groups.map(plain);
+  const rest = groups.slice(cut);
+  return [
+    ...groups.slice(0, cut).map(plain),
+    {
+      group: foldGroups(`${rest.length} more groups`, rest, span),
+      folded: true,
+    },
+  ];
+}
