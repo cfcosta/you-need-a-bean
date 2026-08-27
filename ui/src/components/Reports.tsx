@@ -1595,11 +1595,6 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
                   ? `${data.runway.months.toFixed(1)} mo`
                   : "—"}
               </div>
-              {data.runway.lean_months != null && (
-                <div className="hint">
-                  {data.runway.lean_months.toFixed(1)} on fixed costs alone
-                </div>
-              )}
             </div>
             <div className="fire-stat">
               <div className="lbl">4% pays today</div>
