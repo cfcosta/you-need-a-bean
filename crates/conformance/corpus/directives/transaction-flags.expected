@@ -1,0 +1,30 @@
+directive line=3 2026-01-01 txn
+  flag *
+  narration "star"
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=5 2026-01-02 txn
+  flag !
+  narration "bang"
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=7 2026-01-03 txn
+  flag #
+  narration "hash"
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=9 2026-01-04 txn
+  flag P
+  narration "letter P"
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=11 2026-01-05 txn
+  flag %
+  narration "percent"
+  posting
+    account Assets:Cash
+    amount 1 USD

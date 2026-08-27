@@ -1,0 +1,3 @@
+directive line=1 2026-01-01 pad
+  account Assets:Cash
+  source Equity:Opening-Balances

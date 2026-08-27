@@ -1,0 +1,400 @@
+;; -*- mode: org; mode: beancount; -*-
+;; Birth: 1980-05-12
+;; Dates: 2013-01-01 - 2015-12-21
+;; THIS FILE HAS BEEN AUTO-GENERATED.
+* Options
+
+option "title" "Example Beancount file"
+option "operating_currency" "USD"
+
+
+
+* Commodities
+
+
+1792-01-01 commodity USD
+  export: "CASH"
+  name: "US Dollar"
+
+1900-01-01 commodity VMMXX
+  export: "MUTF:VMMXX (MONEY:USD)"
+
+1980-05-12 commodity VACHR
+  export: "IGNORE"
+  name: "Employer Vacation Hours"
+
+1980-05-12 commodity IRAUSD
+  export: "IGNORE"
+  name: "US 401k and IRA Contributions"
+
+1995-09-18 commodity VBMPX
+  export: "MUTF:VBMPX"
+  name: "Vanguard Total Bond Market Index Fund Institutional Plus Shares"
+  price: "USD:google/MUTF:VBMPX"
+
+2004-01-20 commodity ITOT
+  export: "NYSEARCA:ITOT"
+  name: "iShares Core S&P Total U.S. Stock Market ETF"
+  price: "USD:google/NYSEARCA:ITOT"
+
+2004-01-26 commodity VHT
+  export: "NYSEARCA:VHT"
+  name: "Vanguard Health Care ETF"
+  price: "USD:google/NYSEARCA:VHT"
+
+2004-11-01 commodity GLD
+  export: "NYSEARCA:GLD"
+  name: "SPDR Gold Trust (ETF)"
+  price: "USD:google/NYSEARCA:GLD"
+
+2007-07-20 commodity VEA
+  export: "NYSEARCA:VEA"
+  name: "Vanguard FTSE Developed Markets ETF"
+  price: "USD:google/NYSEARCA:VEA"
+
+2009-05-01 commodity RGAGX
+  export: "MUTF:RGAGX"
+  name: "American Funds The Growth Fund of America Class R-6"
+  price: "USD:google/MUTF:RGAGX"
+
+
+
+* Equity Accounts
+
+1980-05-12 open Equity:Opening-Balances
+1980-05-12 open Liabilities:AccountsPayable
+
+
+
+* Banking
+
+2013-01-01 open Assets:US:BofA
+  address: "123 America Street, LargeTown, USA"
+  institution: "Bank of America"
+  phone: "+1.012.345.6789"
+2013-01-01 open Assets:US:BofA:Checking                        USD
+  account: "00234-48574897"
+
+2013-01-01 * "Opening Balance for checking account"
+  Assets:US:BofA:Checking                         3219.17 USD
+  Equity:Opening-Balances                        -3219.17 USD
+
+2013-01-02 balance Assets:US:BofA:Checking        3219.17 USD
+
+2013-01-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-01-06 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-01-09 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-01-20 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -69.82 USD
+  Expenses:Home:Phone                               69.82 USD
+
+2013-01-22 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -79.85 USD
+  Expenses:Home:Internet                            79.85 USD
+
+2013-01-23 balance Assets:US:BofA:Checking        3202.49 USD
+
+2013-02-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-02-05 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-02-09 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-02-20 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -46.32 USD
+  Expenses:Home:Phone                               46.32 USD
+
+2013-02-21 balance Assets:US:BofA:Checking        2737.40 USD
+
+2013-02-22 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -79.97 USD
+  Expenses:Home:Internet                            79.97 USD
+
+2013-03-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-03-04 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-03-08 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-03-15 balance Assets:US:BofA:Checking        2305.81 USD
+
+2013-03-19 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -76.81 USD
+  Expenses:Home:Phone                               76.81 USD
+
+2013-03-22 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -80.00 USD
+  Expenses:Home:Internet                            80.00 USD
+
+2013-04-03 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-04-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-04-08 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-04-09 balance Assets:US:BofA:Checking        1030.60 USD
+
+2013-04-18 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -63.51 USD
+  Expenses:Home:Phone                               63.51 USD
+
+2013-04-22 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -80.19 USD
+  Expenses:Home:Internet                            80.19 USD
+
+2013-05-01 balance Assets:US:BofA:Checking        2840.94 USD
+
+2013-05-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-05-04 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-05-09 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-05-19 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -56.07 USD
+  Expenses:Home:Phone                               56.07 USD
+
+2013-05-22 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -79.93 USD
+  Expenses:Home:Internet                            79.93 USD
+
+2013-05-25 balance Assets:US:BofA:Checking        2404.00 USD
+
+2013-06-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-06-05 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-06-09 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-06-19 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -59.21 USD
+  Expenses:Home:Phone                               59.21 USD
+
+2013-06-22 balance Assets:US:BofA:Checking        1947.12 USD
+
+2013-06-22 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -79.86 USD
+  Expenses:Home:Internet                            79.86 USD
+
+2013-07-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-07-06 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-07-09 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-07-18 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -50.68 USD
+  Expenses:Home:Phone                               50.68 USD
+
+2013-07-19 balance Assets:US:BofA:Checking        2366.21 USD
+
+2013-07-23 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -80.17 USD
+  Expenses:Home:Internet                            80.17 USD
+
+2013-08-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-08-04 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-08-08 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-08-16 * "Transfering accumulated savings to other account"
+  Assets:US:BofA:Checking                           -3000 USD
+  Assets:US:ETrade:Cash                              3000 USD
+
+2013-08-18 balance Assets:US:BofA:Checking        1383.71 USD
+
+2013-08-20 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -61.29 USD
+  Expenses:Home:Phone                               61.29 USD
+
+2013-08-21 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -79.98 USD
+  Expenses:Home:Internet                            79.98 USD
+
+2013-09-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-09-05 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-09-09 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-09-11 balance Assets:US:BofA:Checking        1324.04 USD
+
+2013-09-19 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -81.85 USD
+  Expenses:Home:Phone                               81.85 USD
+
+2013-09-22 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -80.02 USD
+  Expenses:Home:Internet                            80.02 USD
+
+2013-10-03 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-10-04 balance Assets:US:BofA:Checking        3106.52 USD
+
+2013-10-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-10-09 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-10-11 * "Transfering accumulated savings to other account"
+  Assets:US:BofA:Checking                           -4500 USD
+  Assets:US:ETrade:Cash                              4500 USD
+
+2013-10-18 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -76.78 USD
+  Expenses:Home:Phone                               76.78 USD
+
+2013-10-21 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -79.97 USD
+  Expenses:Home:Internet                            79.97 USD
+
+2013-11-01 balance Assets:US:BofA:Checking        2870.43 USD
+
+2013-11-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-11-05 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-11-08 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-11-19 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -89.68 USD
+  Expenses:Home:Phone                               89.68 USD
+
+2013-11-21 balance Assets:US:BofA:Checking        2277.98 USD
+
+2013-11-23 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -79.83 USD
+  Expenses:Home:Internet                            79.83 USD
+
+2013-12-03 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2013-12-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2013-12-09 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2013-12-15 balance Assets:US:BofA:Checking        4126.07 USD
+
+2013-12-20 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -39.70 USD
+  Expenses:Home:Phone                               39.70 USD
+
+2013-12-23 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -79.90 USD
+  Expenses:Home:Internet                            79.90 USD
+
+2014-01-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2014-01-04 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2014-01-07 balance Assets:US:BofA:Checking        5785.21 USD
+
+2014-01-08 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2014-01-20 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -36.85 USD
+  Expenses:Home:Phone                               36.85 USD
+
+2014-01-22 * "Wine-Tarner Cable" ""
+  Assets:US:BofA:Checking                          -80.10 USD
+  Expenses:Home:Internet                            80.10 USD
+
+2014-02-01 balance Assets:US:BofA:Checking        7667.82 USD
+
+2014-02-04 * "BANK FEES" "Monthly bank fee"
+  Assets:US:BofA:Checking                           -4.00 USD
+  Expenses:Financial:Fees                            4.00 USD
+
+2014-02-06 * "RiverBank Properties" "Paying the rent"
+  Assets:US:BofA:Checking                        -2400.00 USD
+  Expenses:Home:Rent                              2400.00 USD
+
+2014-02-09 * "EDISON POWER" ""
+  Assets:US:BofA:Checking                          -65.00 USD
+  Expenses:Home:Electricity                         65.00 USD
+
+2014-02-19 * "Verizon Wireless" ""
+  Assets:US:BofA:Checking                          -80.03 USD
+  Expenses:Home:Phone                               80.03 USD
+
+2014-02-21 * "Wine-Tarner Cable" ""

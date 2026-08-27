@@ -1,0 +1,6 @@
+option "title" "My Ledger"
+option "operating_currency" "USD"
+option "operating_currency" "EUR"
+include "months/2026-01.beancount"
+include "accounts/*.beancount"
+include "/absolute/path.beancount"

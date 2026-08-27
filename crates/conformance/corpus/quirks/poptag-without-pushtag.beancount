@@ -1,0 +1,8 @@
+; Popping a tag that was never pushed is silently ignored rather than an
+; error, and popping twice does not underflow.
+poptag #never-pushed
+pushtag #trip
+poptag #trip
+poptag #trip
+2026-01-01 * "no tags"
+  Assets:Cash 1 USD

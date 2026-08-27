@@ -1,0 +1,6 @@
+; The pushed-tag stack is a set: pushing twice and popping once removes it.
+pushtag #trip
+pushtag #trip
+poptag #trip
+2026-01-01 * "the tag is gone after a single pop"
+  Assets:Cash 1 USD

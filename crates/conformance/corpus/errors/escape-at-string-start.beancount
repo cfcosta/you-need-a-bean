@@ -1,0 +1,3 @@
+; See quirks/escapes-need-a-literal-prefix.beancount. An escape with no
+; ordinary character in front of it is a syntax error.
+2026-01-01 event "k" "\"quoted\""

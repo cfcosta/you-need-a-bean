@@ -1,0 +1,737 @@
+option "title" "Beancount Example Ledger"
+option "operating_currency" "USD"
+option "operating_currency" "CAD"
+directive line=53 1970-01-01 open
+  account Assets:UTrade:Account
+  currency USD
+directive line=54 1970-01-01 open
+  account Assets:UTrade:Account:AAPL
+  currency AAPL
+directive line=55 1970-01-01 open
+  account Assets:UTrade:Account:EWJ
+  currency EWJ
+directive line=57 1970-01-01 open
+  account Assets:AccountsReceivable
+directive line=60 1970-01-01 open
+  account Liabilities:BestBank:Mortgage:Loan
+  currency USD
+directive line=61 1970-01-01 open
+  account Liabilities:Credit-Card:VISA
+  currency USD
+directive line=62 1970-01-01 open
+  account Liabilities:Condo-Management
+  currency USD
+directive line=64 1970-01-01 open
+  account Equity:Opening-Balances
+directive line=66 1970-01-01 open
+  account Income:Interest:Checking
+directive line=67 1970-01-01 open
+  account Income:Interest:Savings
+directive line=68 1970-01-01 open
+  account Income:Dividends
+directive line=69 1970-01-01 open
+  account Income:Capital-Gains
+directive line=70 1970-01-01 open
+  account Income:Salary:AcmeCo
+directive line=72 1970-01-01 open
+  account Expenses:Financial:Fees
+directive line=73 1970-01-01 open
+  account Expenses:Financial:Commissions
+directive line=74 1970-01-01 open
+  account Expenses:Insurance:Life
+directive line=75 1970-01-01 open
+  account Expenses:Food:Restaurant
+directive line=76 1970-01-01 open
+  account Expenses:Food:Grocery
+directive line=77 1970-01-01 open
+  account Expenses:Food:Alcool
+directive line=78 1970-01-01 open
+  account Expenses:Communications:Phone
+directive line=79 1970-01-01 open
+  account Expenses:Communications:Mail
+directive line=81 1970-01-01 open
+  account Expenses:Transportation:Taxi
+directive line=85 1970-01-01 open
+  account Expenses:Taxes:US-Federal
+  currency USD
+directive line=86 1970-01-01 open
+  account Expenses:Govt-Services
+  currency USD
+directive line=87 1970-01-01 open
+  account Expenses:Clothes
+directive line=88 1970-01-01 open
+  account Expenses:Car:Gas
+directive line=89 1970-01-01 open
+  account Expenses:Sports
+directive line=90 1970-01-01 open
+  account Expenses:Sports:Gear
+directive line=91 1970-01-01 open
+  account Expenses:Fun:Movie
+directive line=93 1970-01-01 open
+  account Expenses:Books
+directive line=99 1970-01-01 open
+  account Expenses:Medical
+directive line=100 1970-01-01 open
+  account Expenses:Charity
+directive line=109 1970-01-01 open
+  account Expenses:Home:Monthly:Condo-Fees
+directive line=111 1970-01-01 open
+  account Expenses:Home:Monthly:Loan-Interest
+directive line=143 1970-01-01 open
+  account Assets:BestBank:Checking
+  currency USD
+directive line=150 2007-12-31 pad
+  account Assets:BestBank:Checking
+  source Equity:Opening-Balances
+directive line=155 2008-01-01 balance
+  account Assets:BestBank:Checking
+  amount 1412.24 USD
+directive line=159 2008-01-05 txn
+  flag *
+  payee "GST CANADA"
+  narration "Deposit from govt for consumer tax rebate"
+  posting
+    account Assets:BestBank:Checking
+    amount 77.76 USD
+  posting
+    account Expenses:Taxes:US-Federal
+directive line=172 2008-01-10 txn
+  flag *
+  payee "ACME"
+  narration "Salary paid from employer"
+  posting
+    account Assets:BestBank:Checking
+    amount 2000.00 USD
+  posting
+    account Income:Salary:AcmeCo
+    amount -2000 USD
+directive line=176 2008-01-25 txn
+  flag *
+  payee "ACME"
+  narration "Salary paid from employer"
+  posting
+    account Assets:BestBank:Checking
+    amount 2000.00 USD
+  posting
+    account Income:Salary:AcmeCo
+directive line=180 2008-02-10 txn
+  flag *
+  payee "ACME"
+  narration "Salary paid from employer"
+  posting
+    account Assets:BestBank:Checking
+    amount 2000.00 USD
+  posting
+    account Income:Salary:AcmeCo
+directive line=184 2008-02-25 txn
+  flag *
+  payee "ACME"
+  narration "Salary paid from employer"
+  posting
+    account Assets:BestBank:Checking
+    amount 2000.00 USD
+  posting
+    account Income:Salary:AcmeCo
+directive line=191 2008-01-12 txn
+  flag *
+  narration "ATM withdrawal - 00044242"
+  posting
+    account Assets:BestBank:Checking
+    amount -301.50 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 1.50 USD
+  posting
+    account Assets:Cash
+directive line=197 2008-01-30 txn
+  flag *
+  narration "ATM withdrawal"
+  posting
+    account Assets:BestBank:Checking
+    amount -800.00 USD
+  posting
+    account Assets:Cash
+directive line=201 2008-02-10 txn
+  flag *
+  narration "ATM withdrawal"
+  posting
+    account Assets:BestBank:Checking
+    amount -500.00 USD
+  posting
+    account Assets:Cash
+directive line=205 2008-02-24 txn
+  flag *
+  narration "ATM withdrawal"
+  posting
+    account Assets:BestBank:Checking
+    amount -500.00 USD
+  posting
+    account Assets:Cash
+directive line=211 2008-01-02 txn
+  flag *
+  narration "LIFE INSURANCE -- LONDON LIFE"
+  posting
+    account Assets:BestBank:Checking
+    amount -42.69 USD
+  posting
+    account Expenses:Insurance:Life
+directive line=215 2008-02-02 txn
+  flag *
+  narration "LIFE INSURANCE -- LONDON LIFE"
+  posting
+    account Assets:BestBank:Checking
+    amount -42.69 USD
+  posting
+    account Expenses:Insurance:Life
+directive line=221 2008-01-17 txn
+  flag *
+  narration "Interac Purchase - 1341 - ACCES SPORTS S"
+  posting
+    account Assets:BestBank:Checking
+    amount -89.00 USD
+  posting
+    account Expenses:Sports:Gear
+directive line=227 2008-01-10 txn
+  flag *
+  narration "MONTHLY FEE"
+  posting
+    account Assets:BestBank:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+directive line=233 2008-01-12 txn
+  flag *
+  narration "Deposit interest"
+  posting
+    account Assets:BestBank:Checking
+    amount 0.02 USD
+  posting
+    account Income:Interest:Checking
+directive line=245 2008-03-26 txn
+  flag *
+  narration "Bought an iPhone to Gilbert (had to use ATM)"
+  posting
+    account Assets:AccountsReceivable
+    amount 431.92 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 3.00 USD
+  posting
+    account Assets:Cash
+    amount -434.92 USD
+directive line=252 2008-04-02 txn
+  flag *
+  narration "Gilbert paid back for iPhone"
+  posting
+    account Assets:Cash
+    amount 440.00 CAD
+  posting
+    account Assets:AccountsReceivable
+    amount -431.92 USD
+  posting
+    account Assets:Cash
+directive line=262 2008-02-01 balance
+  account Assets:BestBank:Checking
+  amount 661.49 USD
+directive line=271 1970-01-01 open
+  account Assets:BestBank:Savings
+  currency USD
+directive line=272 2007-12-31 pad
+  account Assets:BestBank:Savings
+  source Equity:Opening-Balances
+directive line=274 2008-01-01 balance
+  account Assets:BestBank:Savings
+  amount 12000 USD
+directive line=277 2008-01-03 txn
+  flag *
+  narration "DEPOSIT INTEREST"
+  posting
+    account Assets:BestBank:Savings
+    amount 95.69 USD
+  posting
+    account Income:Interest:Savings
+directive line=284 2008-01-29 txn
+  flag *
+  narration "Transfer from checking to savings account"
+  posting
+    account Assets:BestBank:Savings
+    amount 2000.00 USD
+  posting
+    account Assets:BestBank:Checking
+directive line=288 2008-02-03 txn
+  flag *
+  narration "DEPOSIT INTEREST"
+  posting
+    account Assets:BestBank:Savings
+    amount 102.34 USD
+  posting
+    account Income:Interest:Savings
+directive line=292 2008-02-03 txn
+  flag *
+  narration "Transferring money to brokerage account for better investment."
+  posting
+    account Assets:BestBank:Savings
+    amount -10000.00 USD
+  posting
+    account Assets:UTrade:Account
+directive line=298 2008-03-01 balance
+  account Assets:BestBank:Savings
+  amount 2340.19 USD
+directive line=303 2008-01-12 txn
+  flag *
+  narration "MORTGAGE PAYMENT"
+  posting
+    account Assets:BestBank:Savings
+    amount -464.46 USD
+  posting
+    account Liabilities:BestBank:Mortgage:Loan
+    amount 171.01 USD
+  posting
+    account Expenses:Home:Monthly:Loan-Interest
+directive line=308 2008-01-27 txn
+  flag *
+  narration "MORTGAGE PAYMENT"
+  posting
+    account Assets:BestBank:Savings
+    amount -464.46 USD
+  posting
+    account Liabilities:BestBank:Mortgage:Loan
+    amount 171.01 USD
+  posting
+    account Expenses:Home:Monthly:Loan-Interest
+directive line=313 2008-02-12 txn
+  flag *
+  narration "MORTGAGE PAYMENT"
+  posting
+    account Assets:BestBank:Savings
+    amount -464.46 USD
+  posting
+    account Liabilities:BestBank:Mortgage:Loan
+    amount 171.01 USD
+  posting
+    account Expenses:Home:Monthly:Loan-Interest
+directive line=318 2008-02-27 txn
+  flag *
+  narration "MORTGAGE PAYMENT"
+  posting
+    account Assets:BestBank:Savings
+    amount -464.46 USD
+  posting
+    account Liabilities:BestBank:Mortgage:Loan
+    amount 171.01 USD
+  posting
+    account Expenses:Home:Monthly:Loan-Interest
+directive line=323 2008-03-12 txn
+  flag *
+  narration "MORTGAGE PAYMENT"
+  posting
+    account Assets:BestBank:Savings
+    amount -464.46 USD
+  posting
+    account Liabilities:BestBank:Mortgage:Loan
+    amount 171.01 USD
+  posting
+    account Expenses:Home:Monthly:Loan-Interest
+directive line=328 2008-03-27 txn
+  flag *
+  narration "MORTGAGE PAYMENT"
+  posting
+    account Assets:BestBank:Savings
+    amount -464.46 USD
+  posting
+    account Liabilities:BestBank:Mortgage:Loan
+    amount 171.01 USD
+  posting
+    account Expenses:Home:Monthly:Loan-Interest
+directive line=337 2007-12-31 pad
+  account Liabilities:Credit-Card:VISA
+  source Equity:Opening-Balances
+directive line=338 2008-01-01 balance
+  account Liabilities:Credit-Card:VISA
+  amount -791.34 USD
+directive line=341 2008-01-22 txn
+  flag *
+  narration "Online Banking payment - 5051 - VISA"
+  posting
+    account Assets:BestBank:Checking
+    amount -791.34 USD
+  posting
+    account Liabilities:Credit-Card:VISA
+directive line=347 2008-01-15 txn
+  flag *
+  payee "Cafe Imagination"
+  narration ""
+  posting
+    account Liabilities:Credit-Card:VISA
+  posting
+    account Expenses:Food:Restaurant
+    amount 47.00 USD
+directive line=351 2008-01-19 txn
+  flag *
+  payee "Soupe Bol"
+  narration ""
+  posting
+    account Liabilities:Credit-Card:VISA
+    amount -21.00 USD
+  posting
+    account Expenses:Food:Restaurant
+directive line=355 2008-01-27 txn
+  flag *
+  payee "Scola Pasta"
+  narration ""
+  posting
+    account Liabilities:Credit-Card:VISA
+  posting
+    account Expenses:Food:Restaurant
+    amount 51.17 USD
+directive line=361 2008-01-19 txn
+  flag *
+  payee "FIDO"
+  narration ""
+  posting
+    account Liabilities:Credit-Card:VISA
+  posting
+    account Expenses:Communications:Phone
+    amount 121.96 USD
+directive line=373 2007-12-31 pad
+  account Assets:UTrade:Account
+  source Equity:Opening-Balances
+directive line=375 2008-01-01 balance
+  account Assets:UTrade:Account
+  amount 31273.02 USD
+directive line=403 2008-01-08 txn
+  flag *
+  narration "Buy some Apple Computer"
+  posting
+    account Assets:UTrade:Account:AAPL
+    amount 30 AAPL
+    cost unit amount=185.40 USD
+  posting
+    account Assets:UTrade:Account
+  posting
+    account Expenses:Financial:Commissions
+    amount 9.95 USD
+directive line=409 2008-02-02 txn
+  flag *
+  narration "DIVIDEND from AAPL position"
+  posting
+    account Assets:UTrade:Account
+    amount 0.68 USD
+  posting
+    account Income:Dividends
+directive line=414 2008-02-28 txn
+  flag *
+  narration "Sell off my Apple"
+  posting
+    account Assets:UTrade:Account:AAPL
+    amount -30 AAPL
+    cost unit amount=185.40 USD
+    price unit 193.02 USD
+  posting
+    account Assets:UTrade:Account
+    amount 5780.65 USD
+  posting
+    account Expenses:Financial:Commissions
+    amount 9.95 USD
+  posting
+    account Income:Capital-Gains
+directive line=430 2008-02-10 txn
+  flag *
+  narration "Buy some japanese ETF from iShares"
+  posting
+    account Assets:UTrade:Account:EWJ
+    amount 100 EWJ
+    cost unit amount=13.34 USD
+  posting
+    account Assets:UTrade:Account
+  posting
+    account Expenses:Financial:Commissions
+    amount 9.95 USD
+directive line=438 2008-03-01 balance
+  account Assets:UTrade:Account
+  amount 40138.45 USD
+directive line=439 2008-03-01 balance
+  account Assets:UTrade:Account:AAPL
+  amount 0 AAPL
+directive line=440 2008-03-01 balance
+  account Assets:UTrade:Account:EWJ
+  amount 100 EWJ
+directive line=452 2008-01-01 txn
+  flag *
+  narration "Life insurance policy resale value"
+  posting
+    account Expenses:Insurance:Life
+    amount 4407.06 USD
+  posting
+    account Equity:Opening-Balances
+directive line=474 2007-12-31 pad
+  account Liabilities:Condo-Management
+  source Equity:Opening-Balances
+directive line=476 2008-01-01 balance
+  account Liabilities:Condo-Management
+  amount -41.11 USD
+directive line=478 2008-01-01 txn
+  flag *
+  payee "Propri-Manage"
+  narration ""
+  posting
+    account Expenses:Home:Monthly:Condo-Fees
+    amount 212.61 USD
+  posting
+    account Liabilities:Condo-Management
+directive line=482 2008-01-14 txn
+  flag *
+  payee "(998) Propri-Manage"
+  narration "cheque sent by snail mail"
+  posting
+    account Liabilities:Condo-Management
+    amount 800.00 USD
+  posting
+    account Assets:BestBank:Checking
+directive line=486 2008-02-01 txn
+  flag *
+  payee "Propri-Manage"
+  narration ""
+  posting
+    account Expenses:Home:Monthly:Condo-Fees
+    amount 212.61 USD
+  posting
+    account Liabilities:Condo-Management
+directive line=490 2008-03-01 txn
+  flag *
+  payee "Propri-Manage"
+  narration ""
+  posting
+    account Expenses:Home:Monthly:Condo-Fees
+    amount 212.61 USD
+  posting
+    account Liabilities:Condo-Management
+directive line=494 2008-03-10 txn
+  flag *
+  payee "Propri-Manage"
+  narration "special billing, spring works"
+  posting
+    account Expenses:Home:Monthly:Condo-Fees
+    amount 61.25 USD
+  posting
+    account Liabilities:Condo-Management
+directive line=498 2008-04-01 balance
+  account Liabilities:Condo-Management
+  amount 59.81 USD
+directive line=509 1970-01-01 open
+  account Assets:Cash
+directive line=511 2007-12-30 pad
+  account Assets:Cash
+  source Equity:Opening-Balances
+directive line=515 2007-12-31 balance
+  account Assets:Cash
+  amount 200 CAD
+directive line=516 2007-12-31 balance
+  account Assets:Cash
+  amount 300 USD
+directive line=525 2008-01-02 txn
+  flag *
+  narration "Distribution of cash expenses"
+  posting
+    account Expenses:Food:Restaurant
+    amount 300.00 USD
+  posting
+    account Expenses:Food:Alcool
+    amount 100.00 USD
+  posting
+    account Assets:Cash
+directive line=530 2008-01-16 txn
+  flag *
+  narration "Distribution of cash expenses"
+  posting
+    account Expenses:Food:Restaurant
+    amount 300.00 USD
+  posting
+    account Expenses:Food:Alcool
+    amount 100.00 USD
+  posting
+    account Assets:Cash
+directive line=535 2008-02-02 txn
+  flag *
+  narration "Distribution of cash expenses"
+  posting
+    account Expenses:Food:Restaurant
+    amount 300.00 USD
+  posting
+    account Expenses:Food:Alcool
+    amount 100.00 USD
+  posting
+    account Assets:Cash
+directive line=540 2008-02-16 txn
+  flag *
+  narration "Distribution of cash expenses"
+  posting
+    account Expenses:Food:Restaurant
+    amount 300.00 USD
+  posting
+    account Expenses:Food:Alcool
+    amount 100.00 USD
+  posting
+    account Assets:Cash
+directive line=545 2008-03-02 txn
+  flag *
+  narration "Distribution of cash expenses"
+  posting
+    account Expenses:Food:Restaurant
+    amount 300.00 USD
+  posting
+    account Expenses:Food:Alcool
+    amount 100.00 USD
+  posting
+    account Assets:Cash
+directive line=550 2008-03-16 txn
+  flag *
+  narration "Distribution of cash expenses"
+  posting
+    account Expenses:Food:Restaurant
+    amount 300.00 USD
+  posting
+    account Expenses:Food:Alcool
+    amount 100.00 USD
+  posting
+    account Assets:Cash
+directive line=561 2008-02-18 txn
+  flag *
+  payee "DMV"
+  narration "Renewal of driver's license."
+  posting
+    account Expenses:Govt-Services
+    amount 110.00 USD
+  posting
+    account Assets:Cash
+directive line=565 2008-01-21 txn
+  flag *
+  payee "WHOLE FOODS"
+  narration ""
+  posting
+    account Expenses:Food:Grocery
+    amount 54.03 USD
+  posting
+    account Assets:Cash
+directive line=569 2008-01-21 txn
+  flag *
+  payee "USPS"
+  narration "sent package to mom"
+  posting
+    account Expenses:Communications:Mail
+    amount 4.43 USD
+  posting
+    account Assets:Cash
+directive line=573 2008-02-04 txn
+  flag *
+  narration "taxi home from meeting"
+  posting
+    account Expenses:Transportation:Taxi
+    amount 12.00 USD
+  posting
+    account Assets:Cash
+directive line=589 2008-01-27 txn
+  flag *
+  payee "SUNONO"
+  narration "fill'er up"
+  tag ski-trip
+  posting
+    account Expenses:Car:Gas
+    amount 40 USD
+  posting
+    account Assets:Cash
+directive line=593 2008-01-27 txn
+  flag *
+  payee "SKII"
+  narration "Lift tickets"
+  tag ski-trip
+  posting
+    account Expenses:Sports
+    amount 120 USD
+  posting
+    account Assets:Cash
+directive line=597 2008-01-27 txn
+  flag *
+  narration "Dinner at chalet"
+  tag ski-trip
+  posting
+    account Expenses:Food:Restaurant
+    amount 35.33 USD
+  posting
+    account Assets:Cash
+directive line=601 2008-01-28 txn
+  flag *
+  narration "breakfast"
+  tag ski-trip
+  posting
+    account Expenses:Food:Restaurant
+    amount 17.23 USD
+  posting
+    account Assets:Cash
+directive line=605 2008-01-28 txn
+  flag *
+  narration "a new hat, it was cold"
+  tag ski-trip
+  posting
+    account Expenses:Clothes
+    amount 40.02 USD
+  posting
+    account Assets:Cash
+directive line=614 2008-03-03 txn
+  flag *
+  payee "ALDO"
+  narration "new shoes"
+  posting
+    account Expenses:Clothes
+    amount 121.20 USD
+  posting
+    account Assets:Cash
+directive line=618 2008-02-24 txn
+  flag *
+  payee "AMC"
+  narration "movies with girlfriend"
+  posting
+    account Expenses:Fun:Movie
+    amount 24 USD
+  posting
+    account Assets:Cash
+directive line=622 2008-03-06 txn
+  flag *
+  payee "Barnes & Noble"
+  narration "books on accounting"
+  posting
+    account Expenses:Books
+    amount 74.43 USD
+  posting
+    account Assets:Cash
+    amount -74.43 USD
+directive line=626 2008-02-03 txn
+  flag *
+  payee "ITHURTS MEDICAL CENT"
+  narration "x-ray for broken bones"
+  posting
+    account Expenses:Medical
+    amount 312.00 USD
+  posting
+    account Assets:Cash
+directive line=631 2008-03-02 txn
+  flag *
+  payee "ZEN CENTER"
+  narration "Donation to Zen center"
+  posting
+    account Expenses:Charity
+    amount 50 USD
+  posting
+    account Assets:Cash
+directive line=638 2008-03-01 balance
+  account Assets:Cash
+  amount 200.00 CAD
+directive line=639 2008-03-01 balance
+  account Assets:Cash
+  amount 30.96 USD
+directive line=641 2008-03-15 price
+  currency USD
+  amount 1.0934 CAD
+directive line=643 2013-07-03 event
+  name "location"
+  value "New York City"

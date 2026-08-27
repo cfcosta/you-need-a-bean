@@ -1,0 +1,10 @@
+2026-01-01 open Assets:A
+2026-01-01 open Liabilities:B
+2026-01-01 open Equity:C
+2026-01-01 open Income:D
+2026-01-01 open Expenses:E
+2026-01-01 open Assets:Deeply:Nested:Account:Name
+2026-01-01 open Assets:With-Dash
+2026-01-01 open Assets:With1Digit
+2026-01-01 open Assets:2026
+2026-01-01 open Assets:Ünïcödé

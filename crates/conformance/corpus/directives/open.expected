@@ -1,0 +1,22 @@
+directive line=1 2026-01-01 open
+  account Assets:Cash
+directive line=2 2026-01-01 open
+  account Assets:Bank:Checking
+  currency USD
+directive line=3 2026-01-01 open
+  account Assets:Investments:Broker
+  currency CHF
+  currency EUR
+  currency USD
+directive line=4 2026-01-01 open
+  account Liabilities:CreditCard
+  currency USD
+  booking "STRICT"
+directive line=5 2026-01-01 open
+  account Assets:Investments:Lots
+  currency VTSAX
+  booking "FIFO"
+directive line=6 2026-01-01 open
+  account Equity:Opening-Balances
+  currency USD
+  booking "NONE"

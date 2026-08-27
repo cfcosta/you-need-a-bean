@@ -1,0 +1,33 @@
+directive line=1 2026-01-15 txn
+  flag *
+  payee "Whole Foods"
+  narration "groceries"
+  posting
+    account Expenses:Groceries
+    amount 42.50 USD
+  posting
+    account Assets:Bank:Checking
+directive line=5 2026-01-16 txn
+  flag !
+  narration "pending"
+  posting
+    account Expenses:Fun:Books
+    amount 12.00 USD
+  posting
+    account Assets:Cash
+    amount -12.00 USD
+directive line=9 2026-01-17 txn
+  narration "no flag at all"
+  posting
+    account Expenses:Rent
+    amount 1200.00 USD
+  posting
+    account Assets:Bank:Checking
+directive line=13 2026-01-18 txn
+  flag *
+  narration "narration only"
+  posting
+    account Assets:Cash
+    amount 1.00 USD
+  posting
+    account Equity:Opening-Balances

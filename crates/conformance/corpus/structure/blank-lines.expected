@@ -1,0 +1,15 @@
+directive line=3 2026-01-15 txn
+  flag *
+  narration "blank lines above and inside"
+  posting
+    account Expenses:Groceries
+    amount 1 USD
+  posting
+    account Assets:Cash
+    amount -1 USD
+directive line=10 2026-01-16 txn
+  flag *
+  narration "and below"
+  posting
+    account Assets:Cash
+    amount 1 USD

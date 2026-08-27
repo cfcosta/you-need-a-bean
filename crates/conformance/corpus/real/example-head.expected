@@ -1,0 +1,832 @@
+option "title" "Example Beancount file"
+option "operating_currency" "USD"
+directive line=15 1792-01-01 commodity
+  currency USD
+  meta export string "CASH"
+  meta name string "US Dollar"
+directive line=19 1900-01-01 commodity
+  currency VMMXX
+  meta export string "MUTF:VMMXX (MONEY:USD)"
+directive line=22 1980-05-12 commodity
+  currency VACHR
+  meta export string "IGNORE"
+  meta name string "Employer Vacation Hours"
+directive line=26 1980-05-12 commodity
+  currency IRAUSD
+  meta export string "IGNORE"
+  meta name string "US 401k and IRA Contributions"
+directive line=30 1995-09-18 commodity
+  currency VBMPX
+  meta export string "MUTF:VBMPX"
+  meta name string "Vanguard Total Bond Market Index Fund Institutional Plus Shares"
+  meta price string "USD:google/MUTF:VBMPX"
+directive line=35 2004-01-20 commodity
+  currency ITOT
+  meta export string "NYSEARCA:ITOT"
+  meta name string "iShares Core S&P Total U.S. Stock Market ETF"
+  meta price string "USD:google/NYSEARCA:ITOT"
+directive line=40 2004-01-26 commodity
+  currency VHT
+  meta export string "NYSEARCA:VHT"
+  meta name string "Vanguard Health Care ETF"
+  meta price string "USD:google/NYSEARCA:VHT"
+directive line=45 2004-11-01 commodity
+  currency GLD
+  meta export string "NYSEARCA:GLD"
+  meta name string "SPDR Gold Trust (ETF)"
+  meta price string "USD:google/NYSEARCA:GLD"
+directive line=50 2007-07-20 commodity
+  currency VEA
+  meta export string "NYSEARCA:VEA"
+  meta name string "Vanguard FTSE Developed Markets ETF"
+  meta price string "USD:google/NYSEARCA:VEA"
+directive line=55 2009-05-01 commodity
+  currency RGAGX
+  meta export string "MUTF:RGAGX"
+  meta name string "American Funds The Growth Fund of America Class R-6"
+  meta price string "USD:google/MUTF:RGAGX"
+directive line=64 1980-05-12 open
+  account Equity:Opening-Balances
+directive line=65 1980-05-12 open
+  account Liabilities:AccountsPayable
+directive line=71 2013-01-01 open
+  account Assets:US:BofA
+  meta address string "123 America Street, LargeTown, USA"
+  meta institution string "Bank of America"
+  meta phone string "+1.012.345.6789"
+directive line=75 2013-01-01 open
+  account Assets:US:BofA:Checking
+  currency USD
+  meta account string "00234-48574897"
+directive line=78 2013-01-01 txn
+  flag *
+  narration "Opening Balance for checking account"
+  posting
+    account Assets:US:BofA:Checking
+    amount 3219.17 USD
+  posting
+    account Equity:Opening-Balances
+    amount -3219.17 USD
+directive line=82 2013-01-02 balance
+  account Assets:US:BofA:Checking
+  amount 3219.17 USD
+directive line=84 2013-01-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=88 2013-01-06 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=92 2013-01-09 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=96 2013-01-20 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -69.82 USD
+  posting
+    account Expenses:Home:Phone
+    amount 69.82 USD
+directive line=100 2013-01-22 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -79.85 USD
+  posting
+    account Expenses:Home:Internet
+    amount 79.85 USD
+directive line=104 2013-01-23 balance
+  account Assets:US:BofA:Checking
+  amount 3202.49 USD
+directive line=106 2013-02-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=110 2013-02-05 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=114 2013-02-09 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=118 2013-02-20 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -46.32 USD
+  posting
+    account Expenses:Home:Phone
+    amount 46.32 USD
+directive line=122 2013-02-21 balance
+  account Assets:US:BofA:Checking
+  amount 2737.40 USD
+directive line=124 2013-02-22 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -79.97 USD
+  posting
+    account Expenses:Home:Internet
+    amount 79.97 USD
+directive line=128 2013-03-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=132 2013-03-04 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=136 2013-03-08 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=140 2013-03-15 balance
+  account Assets:US:BofA:Checking
+  amount 2305.81 USD
+directive line=142 2013-03-19 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -76.81 USD
+  posting
+    account Expenses:Home:Phone
+    amount 76.81 USD
+directive line=146 2013-03-22 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -80.00 USD
+  posting
+    account Expenses:Home:Internet
+    amount 80.00 USD
+directive line=150 2013-04-03 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=154 2013-04-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=158 2013-04-08 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=162 2013-04-09 balance
+  account Assets:US:BofA:Checking
+  amount 1030.60 USD
+directive line=164 2013-04-18 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -63.51 USD
+  posting
+    account Expenses:Home:Phone
+    amount 63.51 USD
+directive line=168 2013-04-22 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -80.19 USD
+  posting
+    account Expenses:Home:Internet
+    amount 80.19 USD
+directive line=172 2013-05-01 balance
+  account Assets:US:BofA:Checking
+  amount 2840.94 USD
+directive line=174 2013-05-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=178 2013-05-04 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=182 2013-05-09 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=186 2013-05-19 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -56.07 USD
+  posting
+    account Expenses:Home:Phone
+    amount 56.07 USD
+directive line=190 2013-05-22 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -79.93 USD
+  posting
+    account Expenses:Home:Internet
+    amount 79.93 USD
+directive line=194 2013-05-25 balance
+  account Assets:US:BofA:Checking
+  amount 2404.00 USD
+directive line=196 2013-06-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=200 2013-06-05 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=204 2013-06-09 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=208 2013-06-19 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -59.21 USD
+  posting
+    account Expenses:Home:Phone
+    amount 59.21 USD
+directive line=212 2013-06-22 balance
+  account Assets:US:BofA:Checking
+  amount 1947.12 USD
+directive line=214 2013-06-22 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -79.86 USD
+  posting
+    account Expenses:Home:Internet
+    amount 79.86 USD
+directive line=218 2013-07-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=222 2013-07-06 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=226 2013-07-09 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=230 2013-07-18 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -50.68 USD
+  posting
+    account Expenses:Home:Phone
+    amount 50.68 USD
+directive line=234 2013-07-19 balance
+  account Assets:US:BofA:Checking
+  amount 2366.21 USD
+directive line=236 2013-07-23 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -80.17 USD
+  posting
+    account Expenses:Home:Internet
+    amount 80.17 USD
+directive line=240 2013-08-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=244 2013-08-04 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=248 2013-08-08 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=252 2013-08-16 txn
+  flag *
+  narration "Transfering accumulated savings to other account"
+  posting
+    account Assets:US:BofA:Checking
+    amount -3000 USD
+  posting
+    account Assets:US:ETrade:Cash
+    amount 3000 USD
+directive line=256 2013-08-18 balance
+  account Assets:US:BofA:Checking
+  amount 1383.71 USD
+directive line=258 2013-08-20 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -61.29 USD
+  posting
+    account Expenses:Home:Phone
+    amount 61.29 USD
+directive line=262 2013-08-21 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -79.98 USD
+  posting
+    account Expenses:Home:Internet
+    amount 79.98 USD
+directive line=266 2013-09-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=270 2013-09-05 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=274 2013-09-09 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=278 2013-09-11 balance
+  account Assets:US:BofA:Checking
+  amount 1324.04 USD
+directive line=280 2013-09-19 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -81.85 USD
+  posting
+    account Expenses:Home:Phone
+    amount 81.85 USD
+directive line=284 2013-09-22 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -80.02 USD
+  posting
+    account Expenses:Home:Internet
+    amount 80.02 USD
+directive line=288 2013-10-03 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=292 2013-10-04 balance
+  account Assets:US:BofA:Checking
+  amount 3106.52 USD
+directive line=294 2013-10-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=298 2013-10-09 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=302 2013-10-11 txn
+  flag *
+  narration "Transfering accumulated savings to other account"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4500 USD
+  posting
+    account Assets:US:ETrade:Cash
+    amount 4500 USD
+directive line=306 2013-10-18 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -76.78 USD
+  posting
+    account Expenses:Home:Phone
+    amount 76.78 USD
+directive line=310 2013-10-21 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -79.97 USD
+  posting
+    account Expenses:Home:Internet
+    amount 79.97 USD
+directive line=314 2013-11-01 balance
+  account Assets:US:BofA:Checking
+  amount 2870.43 USD
+directive line=316 2013-11-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=320 2013-11-05 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=324 2013-11-08 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=328 2013-11-19 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -89.68 USD
+  posting
+    account Expenses:Home:Phone
+    amount 89.68 USD
+directive line=332 2013-11-21 balance
+  account Assets:US:BofA:Checking
+  amount 2277.98 USD
+directive line=334 2013-11-23 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -79.83 USD
+  posting
+    account Expenses:Home:Internet
+    amount 79.83 USD
+directive line=338 2013-12-03 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=342 2013-12-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=346 2013-12-09 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=350 2013-12-15 balance
+  account Assets:US:BofA:Checking
+  amount 4126.07 USD
+directive line=352 2013-12-20 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -39.70 USD
+  posting
+    account Expenses:Home:Phone
+    amount 39.70 USD
+directive line=356 2013-12-23 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -79.90 USD
+  posting
+    account Expenses:Home:Internet
+    amount 79.90 USD
+directive line=360 2014-01-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=364 2014-01-04 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=368 2014-01-07 balance
+  account Assets:US:BofA:Checking
+  amount 5785.21 USD
+directive line=370 2014-01-08 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=374 2014-01-20 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -36.85 USD
+  posting
+    account Expenses:Home:Phone
+    amount 36.85 USD
+directive line=378 2014-01-22 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -80.10 USD
+  posting
+    account Expenses:Home:Internet
+    amount 80.10 USD
+directive line=382 2014-02-01 balance
+  account Assets:US:BofA:Checking
+  amount 7667.82 USD
+directive line=384 2014-02-04 txn
+  flag *
+  payee "BANK FEES"
+  narration "Monthly bank fee"
+  posting
+    account Assets:US:BofA:Checking
+    amount -4.00 USD
+  posting
+    account Expenses:Financial:Fees
+    amount 4.00 USD
+directive line=388 2014-02-06 txn
+  flag *
+  payee "RiverBank Properties"
+  narration "Paying the rent"
+  posting
+    account Assets:US:BofA:Checking
+    amount -2400.00 USD
+  posting
+    account Expenses:Home:Rent
+    amount 2400.00 USD
+directive line=392 2014-02-09 txn
+  flag *
+  payee "EDISON POWER"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -65.00 USD
+  posting
+    account Expenses:Home:Electricity
+    amount 65.00 USD
+directive line=396 2014-02-19 txn
+  flag *
+  payee "Verizon Wireless"
+  narration ""
+  posting
+    account Assets:US:BofA:Checking
+    amount -80.03 USD
+  posting
+    account Expenses:Home:Phone
+    amount 80.03 USD
+directive line=400 2014-02-21 txn
+  flag *
+  payee "Wine-Tarner Cable"
+  narration ""

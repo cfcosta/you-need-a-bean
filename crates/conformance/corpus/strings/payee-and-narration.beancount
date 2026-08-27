@@ -1,0 +1,11 @@
+; One string is a narration; two are payee then narration.
+2026-01-01 * "just the narration"
+  Assets:Cash 1 USD
+2026-01-02 * "The Payee" "the narration"
+  Assets:Cash 1 USD
+2026-01-03 * "The Payee" ""
+  Assets:Cash 1 USD
+2026-01-04 * ""
+  Assets:Cash 1 USD
+2026-01-05 *
+  Assets:Cash 1 USD

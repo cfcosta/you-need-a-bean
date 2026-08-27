@@ -1,0 +1,4 @@
+2026-01-01 balance Assets:Cash 100.00 USD
+2026-01-02 balance Assets:Bank:Checking 1,234.56 USD
+2026-01-03 balance Assets:Cash 100.00 ~ 0.05 USD
+2026-01-04 balance Assets:Cash -0.01 USD

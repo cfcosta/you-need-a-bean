@@ -1,0 +1,13 @@
+; a leading comment
+option "title" "T" ; trailing comment on an option
+
+; comment between directives
+2026-01-15 * "txn" ; trailing comment on the header
+  ; comment inside the transaction
+  Expenses:Groceries  1 USD ; trailing comment on a posting
+
+  ; comment after a blank line, still inside the transaction
+  Assets:Cash  -1 USD
+; comment at column zero right after the last posting
+2026-01-16 * "next"
+  Assets:Cash 1 USD

@@ -1,0 +1,5 @@
+; The literal rule allows whitespace between the sign and the digits, so
+; these are -5 and +5 rather than syntax errors.
+2026-01-01 price AAA - 5 USD
+2026-01-01 price AAB + 5 USD
+2026-01-01 price AAC -    5 USD

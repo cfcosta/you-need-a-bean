@@ -1,0 +1,6 @@
+2026-01-01 open Assets:Cash
+2026-01-01 open Assets:Bank:Checking USD
+2026-01-01 open Assets:Investments:Broker USD,EUR,CHF
+2026-01-01 open Liabilities:CreditCard USD "STRICT"
+2026-01-01 open Assets:Investments:Lots VTSAX "FIFO"
+2026-01-01 open Equity:Opening-Balances USD "NONE"

@@ -1,0 +1,4 @@
+directive line=1 2026-12-31 close
+  account Assets:Cash
+directive line=2 2026-12-31 close
+  account Liabilities:Loan:Car

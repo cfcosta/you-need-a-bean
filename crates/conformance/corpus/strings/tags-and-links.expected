@@ -1,0 +1,61 @@
+directive line=2 2026-01-01 txn
+  flag *
+  narration "one of each"
+  tag food
+  link inv-1
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=4 2026-01-02 txn
+  flag *
+  narration "several"
+  tag food
+  tag trip
+  tag trip-2026
+  link inv-1
+  link inv-2
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=6 2026-01-03 txn
+  flag *
+  narration "duplicates collapse"
+  tag food
+  link inv-1
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=8 2026-01-04 txn
+  flag *
+  narration "underscores and dots"
+  tag a-b
+  tag tax_2026
+  link ref.2
+  link ref_3
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=10 2026-01-05 txn
+  flag *
+  tag tag-without-narration
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=12 2026-01-06 txn
+  flag *
+  narration "unicode tag"
+  tag café
+  tag 北京
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=14 2026-01-07 txn
+  flag *
+  narration "interleaved"
+  tag a
+  tag c
+  link b
+  link d
+  posting
+    account Assets:Cash
+    amount 1 USD

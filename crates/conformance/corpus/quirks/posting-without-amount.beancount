@@ -1,0 +1,8 @@
+; A posting may omit the amount entirely (the implicit balancing leg), and
+; a cost or price written without an amount is not read at all.
+2026-01-15 * "bare legs"
+  Expenses:Groceries  1 USD
+  Assets:Cash
+2026-01-16 * "several bare legs"
+  Assets:Cash
+  Assets:Bank:Checking

@@ -1,0 +1,29 @@
+directive line=2 2026-01-01 txn
+  flag *
+  narration "inherits the pushed tag"
+  tag trip
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=5 2026-01-02 txn
+  flag *
+  narration "inherits both"
+  tag own
+  tag trip
+  tag work
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=8 2026-01-03 txn
+  flag *
+  narration "inherits only work"
+  tag work
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=11 2026-01-04 txn
+  flag *
+  narration "inherits nothing"
+  posting
+    account Assets:Cash
+    amount 1 USD

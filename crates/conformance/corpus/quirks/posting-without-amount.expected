@@ -1,0 +1,15 @@
+directive line=3 2026-01-15 txn
+  flag *
+  narration "bare legs"
+  posting
+    account Expenses:Groceries
+    amount 1 USD
+  posting
+    account Assets:Cash
+directive line=6 2026-01-16 txn
+  flag *
+  narration "several bare legs"
+  posting
+    account Assets:Cash
+  posting
+    account Assets:Bank:Checking

@@ -1,0 +1,12 @@
+pushtag #trip
+2026-01-01 * "inherits the pushed tag"
+  Assets:Cash 1 USD
+pushtag #work
+2026-01-02 * "inherits both" #own
+  Assets:Cash 1 USD
+poptag #trip
+2026-01-03 * "inherits only work"
+  Assets:Cash 1 USD
+poptag #work
+2026-01-04 * "inherits nothing"
+  Assets:Cash 1 USD

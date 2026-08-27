@@ -1,0 +1,20 @@
+directive line=1 2026-01-15 txn
+  flag *
+  narration "metadata everywhere"
+  meta currency-key currency CHF
+  meta rate number 4.55
+  meta statement string "2026-01.pdf"
+  posting
+    account Expenses:Groceries
+    amount 42.50 USD
+    meta lot string "A"
+    meta weight number 1.5
+  posting
+    account Assets:Bank:Checking
+directive line=10 2026-01-01 open
+  account Assets:Cash
+  meta description string "petty cash"
+directive line=13 2026-01-01 balance
+  account Assets:Cash
+  amount 0 USD
+  meta checked string "yes"

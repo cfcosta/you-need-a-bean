@@ -1,0 +1,16 @@
+option "title" "T"
+directive line=5 2026-01-15 txn
+  flag *
+  narration "txn"
+  posting
+    account Expenses:Groceries
+    amount 1 USD
+  posting
+    account Assets:Cash
+    amount -1 USD
+directive line=12 2026-01-16 txn
+  flag *
+  narration "next"
+  posting
+    account Assets:Cash
+    amount 1 USD

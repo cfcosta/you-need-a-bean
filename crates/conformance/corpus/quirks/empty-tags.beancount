@@ -1,0 +1,4 @@
+; The tag body is `take_while`, not `take_while1`, so a bare `#` or `^` is an
+; empty tag or link rather than a syntax error.
+2026-01-01 * "bare markers" # ^
+  Assets:Cash 1 USD

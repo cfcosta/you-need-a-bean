@@ -1,0 +1,6 @@
+; Commas are stripped from the literal before parsing, wherever they sit.
+2026-01-01 price AAA 1,0,0 USD
+2026-01-01 price AAB 1,,000 USD
+2026-01-01 price AAC ,100 USD
+2026-01-01 price AAD 100, USD
+2026-01-01 price AAE 1,00.5 USD

@@ -1,0 +1,6 @@
+directive line=1 2026-01-01 event
+  name "location"
+  value "Zürich"
+directive line=2 2026-06-01 event
+  name "employer"
+  value "Some Company AG"

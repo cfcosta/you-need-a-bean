@@ -1,0 +1,6 @@
+; Commas are stripped wherever they appear, and a leading `+` is dropped.
+2026-01-01 price AAA 1,000 USD
+2026-01-01 price AAB 1,234,567.89 USD
+2026-01-01 price AAC +1234.56 USD
+2026-01-01 price AAD +1,000.00 USD
+2026-01-01 price AAE -1,000.00 USD

@@ -1,0 +1,9 @@
+directive line=1 2026-01-15 txn
+  flag *
+  narration "windows line endings"
+  posting
+    account Expenses:Groceries
+    amount 1 USD
+  posting
+    account Assets:Cash
+    amount -1 USD

@@ -1,0 +1,11 @@
+directive line=1 2026-01-15 txn
+  flag *
+  narration "flagged postings"
+  posting
+    flag !
+    account Expenses:Groceries
+    amount 42.50 USD
+  posting
+    flag *
+    account Assets:Bank:Checking
+    amount -42.50 USD

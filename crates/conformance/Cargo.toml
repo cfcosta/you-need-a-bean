@@ -1,20 +1,21 @@
+# The contract the beancount parser must satisfy. Depends on the parser and
+# nothing else from this workspace, so a from-scratch replacement can be
+# developed against this crate in isolation. See docs/PARSER.md.
 [package]
-name = "you-need-a-bean-core"
+name = "you-need-a-bean-conformance"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
+publish = false
 
 [lib]
-name = "bean_core"
+name = "bean_conformance"
 # criterion owns the bench harness; libtest does not understand its flags.
 bench = false
 
 [dependencies]
 beancount-parser = "2.6.0"
-glob = "0.3.4"
 rust_decimal = "1.42.1"
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false, features = [
@@ -22,5 +23,5 @@ criterion = { version = "0.8", default-features = false, features = [
 ] }
 
 [[bench]]
-name = "pipeline"
+name = "parse"
 harness = false

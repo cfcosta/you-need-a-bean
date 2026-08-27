@@ -1,0 +1,8 @@
+directive line=2 2026-01-15 txn
+  flag *
+  narration "repeated keys"
+  meta note string "third"
+  posting
+    account Assets:Cash
+    amount 1 USD
+    meta lot string "b"

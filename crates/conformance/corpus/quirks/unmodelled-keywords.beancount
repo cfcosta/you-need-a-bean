@@ -1,0 +1,9 @@
+; The parser models eight directive kinds. Everything else beancount defines
+; — note, document, query, custom — matches no rule, so the line falls
+; through to the "skip it" fallback: no entry, no error, no warning. A real
+; ledger using them loses them silently.
+2026-01-01 note Assets:Cash "called the bank"
+2026-01-01 document Assets:Cash "/receipts/2026-01.pdf"
+2026-01-01 query "expenses" "SELECT account, sum(position)"
+2026-01-01 custom "budget" Expenses:Groceries "monthly" 400.00 USD
+2026-01-02 open Assets:Cash

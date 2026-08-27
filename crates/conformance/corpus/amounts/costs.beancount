@@ -1,0 +1,9 @@
+2026-01-15 * "cost basis in every shape"
+  Assets:Investments:Broker  10 VTSAX {}
+  Assets:Investments:Broker  10 VTSAX {400.00 USD}
+  Assets:Investments:Broker  10 VTSAX {{4000.00 USD}}
+  Assets:Investments:Broker  10 VTSAX {2026-01-01}
+  Assets:Investments:Broker  10 VTSAX {400.00 USD, 2026-01-01}
+  Assets:Investments:Broker  10 VTSAX {{4000.00 USD, 2026-01-01}}
+  Assets:Investments:Broker  10 VTSAX {2026-01-01, 400.00 USD}
+  Assets:Investments:Broker  10 VTSAX {  400.00 USD  ,  2026-01-01  }

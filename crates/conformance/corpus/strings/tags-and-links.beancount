@@ -1,0 +1,15 @@
+; Tags accept letters, digits, `-` and `_`. Links accept those plus `.`.
+2026-01-01 * "one of each" #food ^inv-1
+  Assets:Cash 1 USD
+2026-01-02 * "several" #food #trip #trip-2026 ^inv-1 ^inv-2
+  Assets:Cash 1 USD
+2026-01-03 * "duplicates collapse" #food #food ^inv-1 ^inv-1
+  Assets:Cash 1 USD
+2026-01-04 * "underscores and dots" #tax_2026 #a-b ^ref.2 ^ref_3
+  Assets:Cash 1 USD
+2026-01-05 * #tag-without-narration
+  Assets:Cash 1 USD
+2026-01-06 * "unicode tag" #café #北京
+  Assets:Cash 1 USD
+2026-01-07 * "interleaved" #a ^b #c ^d
+  Assets:Cash 1 USD

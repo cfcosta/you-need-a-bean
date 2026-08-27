@@ -1,0 +1,6 @@
+directive line=1 2026-01-15 txn
+  flag *
+  narration "no trailing newline"
+  posting
+    account Assets:Cash
+    amount 1 USD

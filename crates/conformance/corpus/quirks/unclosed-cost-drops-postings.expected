@@ -1,0 +1,3 @@
+directive line=4 2026-01-15 txn
+  flag *
+  narration "unclosed brace"

@@ -1,0 +1,14 @@
+; Strings understand exactly two escapes: \" and \\. Everything else — a
+; semicolon, a hash, a brace — is literal text. See
+; quirks/escapes-need-a-literal-prefix.beancount for where escapes stop
+; working.
+2026-01-01 event "empty" ""
+2026-01-01 event "spaces" "  leading and trailing  "
+2026-01-01 event "unicode" "Zürich · 北京 · 🫘"
+2026-01-01 event "semicolon" "not ; a comment"
+2026-01-01 event "hash" "not #a tag"
+2026-01-01 event "braces" "{not a cost}"
+2026-01-01 event "escaped-quote" "she said \"hi\""
+2026-01-01 event "escaped-backslash" "a\\b"
+2026-01-01 event "escape-at-the-end" "trailing \""
+2026-01-01 event "escape-before-the-end" "a\\"

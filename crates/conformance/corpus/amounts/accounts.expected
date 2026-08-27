@@ -1,0 +1,20 @@
+directive line=1 2026-01-01 open
+  account Assets:A
+directive line=2 2026-01-01 open
+  account Liabilities:B
+directive line=3 2026-01-01 open
+  account Equity:C
+directive line=4 2026-01-01 open
+  account Income:D
+directive line=5 2026-01-01 open
+  account Expenses:E
+directive line=6 2026-01-01 open
+  account Assets:Deeply:Nested:Account:Name
+directive line=7 2026-01-01 open
+  account Assets:With-Dash
+directive line=8 2026-01-01 open
+  account Assets:With1Digit
+directive line=9 2026-01-01 open
+  account Assets:2026
+directive line=10 2026-01-01 open
+  account Assets:Ünïcödé

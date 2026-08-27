@@ -1,0 +1,5 @@
+; Directive keywords are lowercase. A capitalised word after a date matches
+; the transaction-flag rule instead — a flag can be any non-lowercase
+; character — and the parser then commits to reading a transaction, so
+; `Assets:Cash` is a hard syntax error rather than a skipped line.
+2026-01-01 Open Assets:Cash

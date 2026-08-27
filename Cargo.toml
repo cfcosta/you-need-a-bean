@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/cli", "crates/core"]
+members = ["crates/cli", "crates/conformance", "crates/core"]
 exclude = ["vendor/beancount-parser"]
 resolver = "3"
 

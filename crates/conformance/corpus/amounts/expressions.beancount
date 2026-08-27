@@ -1,0 +1,13 @@
+2026-01-01 price AAA 2 + 3 USD
+2026-01-01 price AAB 10 - 4 USD
+2026-01-01 price AAC 3 * 4 USD
+2026-01-01 price AAD 10 / 4 USD
+2026-01-01 price AAE 2 + 3 * 4 USD
+2026-01-01 price AAF (2 + 3) * 4 USD
+2026-01-01 price AAG 10 - 2 - 3 USD
+2026-01-01 price AAH 100 / 5 / 2 USD
+2026-01-01 price AAI -(2 + 3) USD
+2026-01-01 price AAJ +(2 + 3) USD
+2026-01-01 price AAK ((((1)))) USD
+2026-01-01 price AAL 1+2*3-4/2 USD
+2026-01-01 price AAM 2*(3+(4-1))/3 USD

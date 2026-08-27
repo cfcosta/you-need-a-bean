@@ -1,0 +1,4 @@
+2026-01-01 commodity USD
+2026-01-01 commodity VTSAX
+  name: "Vanguard Total Stock Market Index"
+  asset-class: "stock"

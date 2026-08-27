@@ -1,0 +1,7 @@
+; A metadata value that looks like a date is parsed as an expression, so
+; `2026-01-01` is 2026 minus 1 minus 1 = 2024. Anyone writing a date in
+; metadata gets a number instead, silently.
+2026-01-15 * "dates in metadata"
+  settled: 2026-01-01
+  ratio: 2026-01-01
+  Assets:Cash 1 USD

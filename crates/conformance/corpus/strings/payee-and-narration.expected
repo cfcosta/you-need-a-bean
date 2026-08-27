@@ -1,0 +1,31 @@
+directive line=2 2026-01-01 txn
+  flag *
+  narration "just the narration"
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=4 2026-01-02 txn
+  flag *
+  payee "The Payee"
+  narration "the narration"
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=6 2026-01-03 txn
+  flag *
+  payee "The Payee"
+  narration ""
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=8 2026-01-04 txn
+  flag *
+  narration ""
+  posting
+    account Assets:Cash
+    amount 1 USD
+directive line=10 2026-01-05 txn
+  flag *
+  posting
+    account Assets:Cash
+    amount 1 USD

@@ -1,0 +1,9 @@
+directive line=14 2026-01-01 event
+  name "one escape after text"
+  value "a\"b"
+directive line=15 2026-01-01 event
+  name "escape at the end"
+  value "a\""
+directive line=16 2026-01-01 event
+  name "two escapes with text between"
+  value "a\"b\"c"

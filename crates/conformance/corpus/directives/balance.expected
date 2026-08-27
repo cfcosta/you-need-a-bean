@@ -1,0 +1,13 @@
+directive line=1 2026-01-01 balance
+  account Assets:Cash
+  amount 100.00 USD
+directive line=2 2026-01-02 balance
+  account Assets:Bank:Checking
+  amount 1234.56 USD
+directive line=3 2026-01-03 balance
+  account Assets:Cash
+  amount 100.00 USD
+  tolerance 0.05
+directive line=4 2026-01-04 balance
+  account Assets:Cash
+  amount -0.01 USD

@@ -1,0 +1,30 @@
+directive line=5 2026-01-01 event
+  name "empty"
+  value ""
+directive line=6 2026-01-01 event
+  name "spaces"
+  value "  leading and trailing  "
+directive line=7 2026-01-01 event
+  name "unicode"
+  value "Zürich · 北京 · 🫘"
+directive line=8 2026-01-01 event
+  name "semicolon"
+  value "not ; a comment"
+directive line=9 2026-01-01 event
+  name "hash"
+  value "not #a tag"
+directive line=10 2026-01-01 event
+  name "braces"
+  value "{not a cost}"
+directive line=11 2026-01-01 event
+  name "escaped-quote"
+  value "she said \"hi\""
+directive line=12 2026-01-01 event
+  name "escaped-backslash"
+  value "a\\b"
+directive line=13 2026-01-01 event
+  name "escape-at-the-end"
+  value "trailing \""
+directive line=14 2026-01-01 event
+  name "escape-before-the-end"
+  value "a\\"

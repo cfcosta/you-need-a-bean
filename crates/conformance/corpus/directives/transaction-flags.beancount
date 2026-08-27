@@ -1,0 +1,12 @@
+; Any non-lowercase character is a flag. These are the ones beancount
+; documents, plus a few that merely happen to be accepted.
+2026-01-01 * "star"
+  Assets:Cash  1 USD
+2026-01-02 ! "bang"
+  Assets:Cash  1 USD
+2026-01-03 # "hash"
+  Assets:Cash  1 USD
+2026-01-04 P "letter P"
+  Assets:Cash  1 USD
+2026-01-05 % "percent"
+  Assets:Cash  1 USD

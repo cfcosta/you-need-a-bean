@@ -1,0 +1,12 @@
+directive line=3 2026-02-30 open
+  account Assets:Cash
+directive line=4 2025-02-29 open
+  account Assets:Cash
+directive line=5 2026-01-31 open
+  account Assets:Cash
+directive line=6 2026-12-31 open
+  account Assets:Cash
+directive line=7 0001-01-01 open
+  account Assets:Cash
+directive line=8 9999-12-31 open
+  account Assets:Cash

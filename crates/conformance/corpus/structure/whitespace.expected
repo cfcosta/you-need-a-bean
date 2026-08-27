@@ -1,0 +1,18 @@
+directive line=1 2026-01-15 txn
+  flag *
+  payee "Payee"
+  narration "narration"
+  tag tag
+  link link
+  posting
+    account Expenses:Groceries
+    amount 42.50 USD
+  posting
+    account Assets:Bank:Checking
+    amount -42.50 USD
+directive line=4 2026-01-16 txn
+  flag *
+  narration "one space indent"
+  posting
+    account Assets:Cash
+    amount 1 USD

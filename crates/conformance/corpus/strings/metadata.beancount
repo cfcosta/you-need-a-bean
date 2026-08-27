@@ -1,0 +1,14 @@
+2026-01-15 * "metadata everywhere"
+  statement: "2026-01.pdf"
+  rate: 4.55
+  currency-key: CHF
+  Expenses:Groceries  42.50 USD
+    lot: "A"
+    weight: 1.5
+  Assets:Bank:Checking
+
+2026-01-01 open Assets:Cash
+  description: "petty cash"
+
+2026-01-01 balance Assets:Cash 0 USD
+  checked: "yes"

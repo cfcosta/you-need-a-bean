@@ -1,0 +1,12 @@
+directive line=1 2026-01-15 txn
+  flag *
+  narration "split three ways"
+  posting
+    account Expenses:Groceries
+    amount 30.00 USD
+  posting
+    account Expenses:Fun:Books
+    amount 25.00 USD
+  posting
+    account Assets:Bank:Checking
+    amount -55.00 USD

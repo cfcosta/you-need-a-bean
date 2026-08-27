@@ -1,0 +1,5 @@
+2026-01-15 * "unit and total prices"
+  Assets:Investments:Broker  10 VTSAX @ 400.00 USD
+  Assets:Investments:Broker  10 VTSAX @@ 4000.00 USD
+  Assets:Investments:Broker  10 VTSAX {400.00 USD} @ 410.00 USD
+  Assets:Bank:Checking       -4000.00 USD

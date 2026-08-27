@@ -1,0 +1,4 @@
+; \n is not an escape: the parser only knows \" and \\. The backslash ends
+; the run of literal characters, nothing matches it, and the closing quote is
+; never found — so this is a syntax error rather than a literal backslash-n.
+2026-01-01 event "newline-escape" "a\nb"

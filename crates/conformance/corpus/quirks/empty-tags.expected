@@ -1,0 +1,8 @@
+directive line=3 2026-01-01 txn
+  flag *
+  narration "bare markers"
+  tag 
+  link 
+  posting
+    account Assets:Cash
+    amount 1 USD

@@ -1,0 +1,33 @@
+directive line=1 2026-01-01 price
+  currency AAA
+  amount 0 USD
+directive line=2 2026-01-01 price
+  currency AAB
+  amount 1 USD
+directive line=3 2026-01-01 price
+  currency AAC
+  amount -1 USD
+directive line=4 2026-01-01 price
+  currency AAD
+  amount 1.5 USD
+directive line=5 2026-01-01 price
+  currency AAE
+  amount 0.00 USD
+directive line=6 2026-01-01 price
+  currency AAF
+  amount 0.00 USD
+directive line=7 2026-01-01 price
+  currency AAG
+  amount 1.000 USD
+directive line=8 2026-01-01 price
+  currency AAH
+  amount 100.10 USD
+directive line=9 2026-01-01 price
+  currency AAI
+  amount 0.5 USD
+directive line=10 2026-01-01 price
+  currency AAJ
+  amount 5 USD
+directive line=11 2026-01-01 price
+  currency AAK
+  amount 79228162514264337593543950335 USD

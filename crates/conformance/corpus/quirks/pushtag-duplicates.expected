@@ -1,0 +1,6 @@
+directive line=5 2026-01-01 txn
+  flag *
+  narration "the tag is gone after a single pop"
+  posting
+    account Assets:Cash
+    amount 1 USD

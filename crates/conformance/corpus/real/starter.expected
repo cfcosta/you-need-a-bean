@@ -1,0 +1,158 @@
+option "title" "Starter Kit Beancount Ledger"
+option "operating_currency" "USD"
+directive line=69 1982-04-01 open
+  account Equity:Opening-Balances
+directive line=75 2008-07-01 event
+  name "address"
+  value "12345 Brick Lane, New York City, NY 10011, USD"
+directive line=78 2011-02-15 event
+  name "employer"
+  value "Boogle Tech Inc."
+directive line=86 2013-12-22 event
+  name "location"
+  value "New York City, USA"
+directive line=107 2004-08-01 open
+  account Assets:US:BofABank:Checking
+  currency USD
+directive line=113 2004-08-01 pad
+  account Assets:US:BofABank:Checking
+  source Equity:Opening-Balances
+directive line=118 2013-12-22 balance
+  account Assets:US:BofABank:Checking
+  amount 973.03 USD
+directive line=130 2004-08-01 open
+  account Assets:US:BofABank:Savings
+  currency USD
+directive line=131 2004-08-01 pad
+  account Assets:US:BofABank:Savings
+  source Equity:Opening-Balances
+directive line=132 2013-12-22 balance
+  account Assets:US:BofABank:Savings
+  amount 2402.81 USD
+directive line=141 2010-03-20 open
+  account Liabilities:US:BofABank:Mortgage
+  currency USD
+directive line=144 2010-03-20 pad
+  account Liabilities:US:BofABank:Mortgage
+  source Equity:Opening-Balances
+directive line=147 2013-12-22 balance
+  account Liabilities:US:BofABank:Mortgage
+  amount -101832.34 USD
+directive line=155 2009-08-01 open
+  account Liabilities:US:Amex:BlueCash
+  currency USD
+directive line=156 2009-08-01 pad
+  account Liabilities:US:Amex:BlueCash
+  source Equity:Opening-Balances
+directive line=157 2013-12-22 balance
+  account Liabilities:US:Amex:BlueCash
+  amount -1121.26 USD
+directive line=173 2009-08-01 open
+  account Assets:US:Fidelity:Boogle401k:RGAGX
+  currency RGAGX
+directive line=174 2009-08-01 open
+  account Assets:US:Fidelity:Boogle401k:VBMPX
+  currency VBMPX
+directive line=176 2009-08-01 pad
+  account Assets:US:Fidelity:Boogle401k:RGAGX
+  source Equity:Opening-Balances
+directive line=177 2009-08-01 pad
+  account Assets:US:Fidelity:Boogle401k:VBMPX
+  source Equity:Opening-Balances
+directive line=186 2013-12-22 balance
+  account Assets:US:Fidelity:Boogle401k:RGAGX
+  amount 201.02 RGAGX
+directive line=187 2013-12-22 balance
+  account Assets:US:Fidelity:Boogle401k:VBMPX
+  amount 743.82 VBMPX
+directive line=189 2013-12-22 price
+  currency RGAGX
+  amount 40.93 USD
+directive line=190 2013-12-22 price
+  currency VBMPX
+  amount 10.02 USD
+directive line=203 2011-03-15 open
+  account Assets:US:ETrade:Investment:Cash
+  currency USD
+directive line=204 2011-03-15 pad
+  account Assets:US:ETrade:Investment:Cash
+  source Equity:Opening-Balances
+directive line=205 2013-12-22 balance
+  account Assets:US:ETrade:Investment:Cash
+  amount 102.10 USD
+directive line=212 2011-03-15 open
+  account Assets:US:ETrade:Investment:HOOL
+  currency HOOL
+directive line=213 2011-03-15 open
+  account Assets:US:ETrade:Investment:AAPL
+  currency AAPL
+directive line=220 2013-02-03 txn
+  flag *
+  narration "Bought some stock"
+  posting
+    account Assets:US:ETrade:Investment:HOOL
+    amount 8 HOOL
+    cost unit amount=701.20 USD
+  posting
+    account Expenses:Financial:Commissions
+    amount 7.95 USD
+  posting
+    account Assets:US:ETrade:Investment:Cash
+directive line=225 2013-09-03 txn
+  flag *
+  narration "Bought some stock"
+  posting
+    account Assets:US:ETrade:Investment:HOOL
+    amount 4 HOOL
+    cost unit amount=850.08 USD
+  posting
+    account Expenses:Financial:Commissions
+    amount 7.95 USD
+  posting
+    account Assets:US:ETrade:Investment:Cash
+directive line=230 2013-12-22 balance
+  account Assets:US:ETrade:Investment:HOOL
+  amount 12 HOOL
+directive line=231 2013-12-22 price
+  currency HOOL
+  amount 1101.02 USD
+directive line=236 2013-06-02 txn
+  flag *
+  narration "Bought some Apple stock"
+  posting
+    account Assets:US:ETrade:Investment:AAPL
+    amount 10 AAPL
+    cost unit amount=450.72 USD
+  posting
+    account Expenses:Financial:Commissions
+    amount 7.95 USD
+  posting
+    account Assets:US:ETrade:Investment:Cash
+directive line=241 2013-12-22 balance
+  account Assets:US:ETrade:Investment:AAPL
+  amount 10 AAPL
+directive line=242 2013-12-22 price
+  currency AAPL
+  amount 549.02 USD
+directive line=253 2010-03-20 open
+  account Assets:US:RealEstate:BrickHome
+  currency BRICKHOME
+directive line=255 2010-03-20 txn
+  flag *
+  narration "Bought the beautiful Brick Lane house from Joe Oldowner"
+  posting
+    account Assets:US:RealEstate:BrickHome
+    amount 1 BRICKHOME
+    cost unit amount=175000 USD
+  posting
+    account Assets:US:BofABank:Checking
+    amount -50000 USD
+  posting
+    account Liabilities:US:BofABank:Mortgage
+    amount -125000 USD
+directive line=265 2013-06-15 price
+  currency BRICKHOME
+  amount 210000 USD
+directive line=281 1982-04-01 open
+  account Expenses:Financial:Commissions
+  currency USD

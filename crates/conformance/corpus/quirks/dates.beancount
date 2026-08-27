@@ -1,0 +1,8 @@
+; Month and day are range-checked, not calendar-checked: February 30th and
+; a leap day in a non-leap year both parse.
+2026-02-30 open Assets:Cash
+2025-02-29 open Assets:Cash
+2026-01-31 open Assets:Cash
+2026-12-31 open Assets:Cash
+0001-01-01 open Assets:Cash
+9999-12-31 open Assets:Cash

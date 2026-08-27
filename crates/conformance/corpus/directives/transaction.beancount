@@ -1,0 +1,15 @@
+2026-01-15 * "Whole Foods" "groceries"
+  Expenses:Groceries   42.50 USD
+  Assets:Bank:Checking
+
+2026-01-16 ! "pending"
+  Expenses:Fun:Books  12.00 USD
+  Assets:Cash        -12.00 USD
+
+2026-01-17 txn "no flag at all"
+  Expenses:Rent  1200.00 USD
+  Assets:Bank:Checking
+
+2026-01-18 * "narration only"
+  Assets:Cash  1.00 USD
+  Equity:Opening-Balances

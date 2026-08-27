@@ -1,0 +1,15 @@
+directive line=2 2026-01-01 price
+  currency AAA
+  amount 100 USD
+directive line=3 2026-01-01 price
+  currency AAB
+  amount 1000 USD
+directive line=4 2026-01-01 price
+  currency AAC
+  amount 100 USD
+directive line=5 2026-01-01 price
+  currency AAD
+  amount 100 USD
+directive line=6 2026-01-01 price
+  currency AAE
+  amount 100.5 USD

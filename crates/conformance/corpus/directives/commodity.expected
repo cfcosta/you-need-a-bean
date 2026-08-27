@@ -1,0 +1,6 @@
+directive line=1 2026-01-01 commodity
+  currency USD
+directive line=2 2026-01-01 commodity
+  currency VTSAX
+  meta asset-class string "stock"
+  meta name string "Vanguard Total Stock Market Index"

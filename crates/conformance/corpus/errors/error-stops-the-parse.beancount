@@ -1,0 +1,5 @@
+; Parsing stops at the first error; nothing after it is reported.
+2026-01-01 open Assets:Cash
+2026-01-02 open Assets:Bank:Checking
+2026-13-01 open Assets:Broken
+2026-01-03 open Assets:NeverSeen

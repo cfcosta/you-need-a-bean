@@ -1,0 +1,4 @@
+; `/` is not a link character, so the link ends at `ref` and the leftover
+; `/1` has nothing to match — a syntax error, not a truncated link.
+2026-01-04 * "punctuation" ^ref/1
+  Assets:Cash 1 USD

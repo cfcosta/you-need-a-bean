@@ -1,0 +1,172 @@
+directive line=4 1990-12-02 commodity
+  currency HOOL
+  meta name string "Hooli Common shares."
+directive line=7 2013-01-28 commodity
+  currency HOOL.UNVEST
+  meta name string "Unvested award of Hooli Common shares."
+directive line=11 2013-01-28 open
+  account Income:US:Hooli:Awards
+  currency HOOL.UNVEST
+directive line=12 2014-01-28 open
+  account Expenses:Hooli:Vested
+  currency HOOL.UNVEST
+directive line=15 2014-04-02 txn
+  flag *
+  narration "Award S0012345"
+  posting
+    account Income:US:Hooli:Awards
+    amount -1680 HOOL.UNVEST
+  posting
+    account Assets:US:Hooli:Unvested:S0012345
+    amount 1680 HOOL.UNVEST
+directive line=19 2014-04-02 open
+  account Assets:US:Hooli:Unvested:S0012345
+directive line=22 2014-07-02 txn
+  flag *
+  narration "Award C123456"
+  posting
+    account Assets:US:Hooli:Unvested:C123456
+    amount 720 HOOL.UNVEST
+  posting
+    account Income:US:Hooli:Awards
+    amount -720 HOOL.UNVEST
+directive line=26 2014-07-02 open
+  account Assets:US:Hooli:Unvested:C123456
+directive line=34 2013-04-04 open
+  account Income:US:Hooli:RSU
+directive line=36 2015-01-01 open
+  account Expenses:Taxes:TY2015:US:StateNY
+directive line=37 2015-01-01 open
+  account Expenses:Taxes:TY2015:US:Federal
+directive line=38 2015-01-01 open
+  account Expenses:Taxes:TY2015:US:SocSec
+directive line=39 2015-01-01 open
+  account Expenses:Taxes:TY2015:US:SDI
+directive line=40 2015-01-01 open
+  account Expenses:Taxes:TY2015:US:Medicare
+directive line=41 2015-01-01 open
+  account Expenses:Taxes:TY2015:US:CityNYC
+directive line=44 2013-01-28 open
+  account Assets:US:Hooli:RSURefund
+directive line=46 2013-04-04 open
+  account Assets:US:Schwab:HOOL
+directive line=48 2001-01-01 open
+  account Assets:US:BofA:Checking
+directive line=55 2015-05-27 txn
+  flag *
+  narration "Vesting Event - S0012345 - HOOL"
+  tag award-S0012345
+  link 392f97dd62d0
+  meta doc string "2015-02-13.hooli.38745783.pdf"
+  posting
+    account Income:US:Hooli:RSU
+    amount -4597.95 USD
+  posting
+    account Assets:US:Hooli:RSURefund
+    amount 2458.97 USD
+  posting
+    account Expenses:Taxes:TY2015:US:Medicare
+    amount 66.68 USD
+  posting
+    account Expenses:Taxes:TY2015:US:Federal
+    amount 1149.48 USD
+  posting
+    account Expenses:Taxes:TY2015:US:CityNYC
+    amount 195.42 USD
+  posting
+    account Expenses:Taxes:TY2015:US:SDI
+    amount 0.00 USD
+  posting
+    account Expenses:Taxes:TY2015:US:StateNY
+    amount 442.32 USD
+  posting
+    account Expenses:Taxes:TY2015:US:SocSec
+    amount 285.08 USD
+directive line=66 2015-05-27 txn
+  flag *
+  narration "Vesting Event - C123456 - HOOL"
+  tag award-C123456
+  link 392f97dd62d0
+  meta doc string "2015-02-13.hooli.38745783.pdf"
+  posting
+    account Income:US:Hooli:RSU
+    amount -1970.55 USD
+  posting
+    account Assets:US:Hooli:RSURefund
+    amount 1053.84 USD
+  posting
+    account Expenses:Taxes:TY2015:US:Medicare
+    amount 28.58 USD
+  posting
+    account Expenses:Taxes:TY2015:US:Federal
+    amount 492.63 USD
+  posting
+    account Expenses:Taxes:TY2015:US:CityNYC
+    amount 83.75 USD
+  posting
+    account Expenses:Taxes:TY2015:US:SDI
+    amount 0.00 USD
+  posting
+    account Expenses:Taxes:TY2015:US:StateNY
+    amount 189.57 USD
+  posting
+    account Expenses:Taxes:TY2015:US:SocSec
+    amount 122.18 USD
+directive line=77 2015-05-25 txn
+  flag *
+  narration "Conversion into shares"
+  link 392f97dd62d0
+  posting
+    account Assets:US:Schwab:HOOL
+    amount 18 HOOL
+    cost unit amount=131.3700 USD
+  posting
+    account Assets:US:Hooli:RSURefund
+  posting
+    account Assets:US:Hooli:Unvested:S0012345
+    amount -35 HOOL.UNVEST
+  posting
+    account Expenses:Hooli:Vested
+    amount 35 HOOL.UNVEST
+directive line=83 2015-05-25 txn
+  flag *
+  narration "Conversion into shares"
+  link 392f97dd62d0
+  posting
+    account Assets:US:Schwab:HOOL
+    amount 8 HOOL
+    cost unit amount=131.3700 USD
+  posting
+    account Assets:US:Hooli:RSURefund
+  posting
+    account Assets:US:Hooli:Unvested:C123456
+    amount -15 HOOL.UNVEST
+  posting
+    account Expenses:Hooli:Vested
+    amount 15 HOOL.UNVEST
+directive line=90 2015-06-13 txn
+  flag *
+  narration "HOOLI INC       PAYROLL"
+  link 392f97dd62d0
+  meta doc string "2015-02-13.hooli.38745783.pdf"
+  posting
+    account Assets:US:Hooli:RSURefund
+    amount -94.31 USD
+  posting
+    account Assets:US:Hooli:RSURefund
+    amount -2.88 USD
+  posting
+    account Assets:US:BofA:Checking
+    amount 97.19 USD
+directive line=96 2015-06-14 balance
+  account Assets:US:Hooli:RSURefund
+  amount 0 USD
+directive line=102 2015-06-04 balance
+  account Assets:US:Hooli:Unvested:S0012345
+  amount 1645 HOOL.UNVEST
+directive line=103 2015-06-04 balance
+  account Assets:US:Hooli:Unvested:C123456
+  amount 705 HOOL.UNVEST
+directive line=109 2015-06-02 price
+  currency HOOL.UNVEST
+  amount 132.4300 USD.UNVEST

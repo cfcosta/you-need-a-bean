@@ -1,0 +1,5 @@
+2026-01-15    *    "Payee"    "narration"    #tag    ^link
+	Expenses:Groceries	42.50	USD
+        Assets:Bank:Checking          -42.50          USD
+2026-01-16 * "one space indent"
+ Assets:Cash 1 USD

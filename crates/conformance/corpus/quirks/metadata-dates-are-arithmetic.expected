@@ -1,0 +1,8 @@
+directive line=4 2026-01-15 txn
+  flag *
+  narration "dates in metadata"
+  meta ratio number 2024
+  meta settled number 2024
+  posting
+    account Assets:Cash
+    amount 1 USD
