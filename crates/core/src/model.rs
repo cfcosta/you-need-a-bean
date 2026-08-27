@@ -10,7 +10,7 @@ use beancount_parser::metadata::Value;
 use beancount_parser::{DirectiveContent, PostingPrice};
 use rust_decimal::Decimal;
 
-use crate::loader::LoadedLedger;
+use crate::loader::{Document, LoadedLedger};
 
 /// A concrete calendar date as `(year, month, day)`.
 pub type Day = (u16, u8, u8);
@@ -149,12 +149,39 @@ struct OpenMeta {
     income: Option<String>,
 }
 
+/// What a posting's `{...}` lot annotation named, resolved to a total.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PostingCost {
+    /// Cost of the whole posting, signed the way its units are. A
+    /// per-unit `{100.00 USD}` on 20 units and a total `{{2000.00 USD}}`
+    /// are the same lot written two ways, and both land here as 2000.00.
+    pub total: Decimal,
+    pub currency: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct TxnPosting {
     pub account: String,
     /// Resolved amounts; an elided posting carries the balancing residual,
     /// which can span several currencies.
     pub amounts: Vec<(Decimal, String)>,
+    /// The lot this posting was acquired or released at, when it named
+    /// one. `{}` names no cost — it defers to whatever lot is open —
+    /// and reads the same here as no annotation at all.
+    pub cost: Option<PostingCost>,
+}
+
+/// What a `commodity` directive declared about a ticker.
+#[derive(Debug, Clone)]
+pub struct Commodity {
+    pub currency: String,
+    /// `name:` metadata: "Example Index Fund" rather than MOCK.
+    pub name: Option<String>,
+    /// `asset-class:` metadata. Taken as the ledger writes it, never
+    /// inferred from the ticker.
+    pub asset_class: Option<String>,
+    /// `quote-currency:` metadata.
+    pub quote_currency: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -190,11 +217,56 @@ pub struct Ledger {
     txn_index: HashMap<String, BTreeMap<MonthKey, Vec<usize>>>,
     /// (from, to) → price points sorted by date; "1 from = rate to"
     prices: HashMap<(String, String), PriceSeries>,
+    /// Every commodity a `commodity` directive declared, by ticker.
+    commodities: BTreeMap<String, Commodity>,
+    /// Every `document` directive, in the order the files declared them.
+    documents: Vec<Document>,
+    /// account → day → indexes into `documents`
+    document_index: HashMap<String, BTreeMap<Day, Vec<usize>>>,
 }
 
 impl Ledger {
     pub fn build(loaded: LoadedLedger) -> Self {
         Builder::default().build(loaded)
+    }
+
+    /// One document by the id [`Ledger::documents_on`] hands out.
+    pub fn document(&self, id: usize) -> Option<&Document> {
+        self.documents.get(id)
+    }
+
+    /// How many documents the ledger declared, for diagnostics.
+    pub fn document_count(&self) -> usize {
+        self.documents.len()
+    }
+
+    /// Documents attached to `account` on `date`, in declaration order.
+    pub fn documents_on(&self, account: &str, date: Day) -> &[usize] {
+        self.document_index
+            .get(account)
+            .and_then(|days| days.get(&date))
+            .map_or([].as_slice(), Vec::as_slice)
+    }
+
+    /// The paperwork one transaction produced.
+    ///
+    /// Beancount attaches a document to an account and a day, never to a
+    /// transaction, so this is as close to a link as the data comes: every
+    /// document on an account the transaction posts to, dated the same day.
+    /// Matching only the account being inspected would show half of what a
+    /// single purchase generated — the invoice hangs off the expense, the
+    /// statement off the card that paid it — so this walks every posting,
+    /// in the order they were written.
+    pub fn documents_of(&self, txn: &Txn) -> Vec<usize> {
+        let mut ids: Vec<usize> = Vec::new();
+        for posting in &txn.postings {
+            for &id in self.documents_on(&posting.account, txn.date) {
+                if !ids.contains(&id) {
+                    ids.push(id);
+                }
+            }
+        }
+        ids
     }
 
     pub fn account(&self, name: &str) -> Option<&AccountInfo> {
@@ -299,6 +371,18 @@ impl Ledger {
         None
     }
 
+    /// What the ledger declared about one commodity, if it declared it.
+    /// A commodity nobody wrote a directive for is still perfectly
+    /// tradeable — it just has no name and no class to go on.
+    pub fn commodity(&self, currency: &str) -> Option<&Commodity> {
+        self.commodities.get(currency)
+    }
+
+    /// Every declared commodity, by ticker.
+    pub fn commodities(&self) -> impl Iterator<Item = &Commodity> {
+        self.commodities.values()
+    }
+
     /// Direct (multiply) or inverse (divide, so exact) rate for one leg.
     fn leg(&self, from: &str, to: &str, at: Day) -> Option<Leg> {
         if let Some(rate) = self.rate_at(from, to, at) {
@@ -353,6 +437,7 @@ struct Builder {
     monthly: HashMap<String, BTreeMap<MonthKey, CurrencySums>>,
     txn_index: HashMap<String, BTreeMap<MonthKey, Vec<usize>>>,
     prices: HashMap<(String, String), PriceSeries>,
+    commodities: BTreeMap<String, Commodity>,
     first_month: Option<MonthKey>,
     last_month: Option<MonthKey>,
 }
@@ -388,6 +473,23 @@ impl Builder {
                             .push((date, price.amount.value));
                     }
                 }
+                DirectiveContent::Commodity(currency) => {
+                    self.commodities.insert(
+                        currency.to_string(),
+                        Commodity {
+                            currency: currency.to_string(),
+                            name: meta_string(&directive.metadata, "name"),
+                            asset_class: meta_string(
+                                &directive.metadata,
+                                "asset-class",
+                            ),
+                            quote_currency: meta_string(
+                                &directive.metadata,
+                                "quote-currency",
+                            ),
+                        },
+                    );
+                }
                 DirectiveContent::Open(open) => {
                     self.opens.insert(
                         open.account.to_string(),
@@ -413,6 +515,17 @@ impl Builder {
 
         let accounts = self.label_accounts(&operating);
 
+        let mut document_index: HashMap<String, BTreeMap<Day, Vec<usize>>> =
+            HashMap::new();
+        for (id, doc) in loaded.documents.iter().enumerate() {
+            document_index
+                .entry(doc.account.clone())
+                .or_default()
+                .entry(doc.date)
+                .or_default()
+                .push(id);
+        }
+
         Ledger {
             title,
             operating_currencies: operating,
@@ -426,6 +539,9 @@ impl Builder {
             monthly: self.monthly,
             txn_index: self.txn_index,
             prices: self.prices,
+            commodities: self.commodities,
+            documents: loaded.documents,
+            document_index,
         }
     }
 
@@ -458,6 +574,9 @@ impl Builder {
                             amount.value,
                             amount.currency.to_string(),
                         )],
+                        cost: lot_cost(amount, posting).map(
+                            |(total, currency)| PostingCost { total, currency },
+                        ),
                     });
                 }
                 None => {
@@ -465,6 +584,7 @@ impl Builder {
                     postings.push(TxnPosting {
                         account,
                         amounts: Vec::new(),
+                        cost: None,
                     });
                 }
             }
@@ -594,25 +714,34 @@ impl Builder {
 
 /// The weight a posting contributes to transaction balancing: the cost or
 /// price converts it into the settlement currency.
+/// The total cost a posting's `{...}` names, if it names one. A
+/// per-unit cost is multiplied out; a `{{total}}` takes the units' sign,
+/// so a lot leaves at the magnitude it arrived at.
+fn lot_cost(
+    amount: &beancount_parser::Amount<Decimal>,
+    posting: &beancount_parser::Posting<Decimal>,
+) -> Option<(Decimal, String)> {
+    let basis = posting.cost.as_ref()?.amount.as_ref()?;
+    let value = if posting.cost.as_ref()?.total {
+        if amount.value.is_sign_negative() {
+            -basis.value
+        } else {
+            basis.value
+        }
+    } else {
+        amount.value * basis.value
+    };
+    Some((value, basis.currency.to_string()))
+}
+
 fn weight(
     amount: &beancount_parser::Amount<Decimal>,
     posting: &beancount_parser::Posting<Decimal>,
 ) -> (Decimal, String) {
     // When both a cost and a price are present, the cost wins (beancount
     // semantics); an empty cost (`{}`) falls through to the price.
-    if let Some(cost) = &posting.cost
-        && let Some(basis) = &cost.amount
-    {
-        let value = if cost.total {
-            if amount.value.is_sign_negative() {
-                -basis.value
-            } else {
-                basis.value
-            }
-        } else {
-            amount.value * basis.value
-        };
-        return (value, basis.currency.to_string());
+    if let Some(cost) = lot_cost(amount, posting) {
+        return cost;
     }
     if let Some(price) = &posting.price {
         return match price {

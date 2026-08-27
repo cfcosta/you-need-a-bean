@@ -1,4 +1,4 @@
-import type { CategoryView, Txn } from "../api";
+import type { CategoryView, Doc, Txn } from "../api";
 import { fmt, fmtCode, monthName, monthShort, windowLabel } from "../format";
 import { postingFlow } from "../postings";
 import { displayStatus } from "./BudgetTable";
@@ -105,7 +105,68 @@ function CurrencyCard({
   );
 }
 
-function TxnChips({ txn }: { txn: Txn }) {
+function Clip() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
+/** `2030-01-05.example.statement.pdf` → `PDF`. */
+function docKind(name: string): string {
+  const dot = name.lastIndexOf(".");
+  const ext = dot > 0 ? name.slice(dot + 1) : "";
+  return (ext || "file").slice(0, 4).toUpperCase();
+}
+
+/** The paperwork, opened in its own tab. Beancount attaches a document to
+ * an account and a day rather than to a transaction, so one purchase can
+ * turn up both an invoice on the expense and a statement on the card that
+ * paid — the account is named whenever it is not the one being read. */
+function Documents({ docs, account }: { docs: Doc[]; account: string }) {
+  if (docs.length === 0) return null;
+  return (
+    <div>
+      <div className="detail-label">Documents</div>
+      <div className="docs">
+        {docs.map((d) => (
+          <a
+            key={d.id}
+            className="doc-row"
+            href={`/api/document/${d.id}`}
+            target="_blank"
+            rel="noreferrer"
+            title={d.path}
+          >
+            <span className="doc-kind">{docKind(d.name)}</span>
+            <span className="doc-name">{d.name}</span>
+            {d.account !== account && (
+              <span className="doc-acct mono">
+                {d.account.split(":").pop()}
+              </span>
+            )}
+            <span className="doc-go" aria-hidden="true">
+              ↗
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function TxnChips({ txn }: { txn: Txn }) {
   return (
     <>
       {txn.flag === "!" && (
@@ -123,6 +184,17 @@ function TxnChips({ txn }: { txn: Txn }) {
           ^{l}
         </span>
       ))}
+      {txn.documents.length > 0 && (
+        <span
+          className="badge doc"
+          title={`${txn.documents.length} document${
+            txn.documents.length === 1 ? "" : "s"
+          } — open the transaction to read them`}
+        >
+          <Clip />
+          {txn.documents.length > 1 && txn.documents.length}
+        </span>
+      )}
     </>
   );
 }
@@ -185,7 +257,7 @@ function PostingFlow({ txn, account }: { txn: Txn; account: string }) {
   );
 }
 
-function TxnDetail({
+export function TxnDetail({
   txn,
   account,
   cur,
@@ -206,6 +278,7 @@ function TxnDetail({
       : null;
   return (
     <div className="txn-detail">
+      <Documents docs={txn.documents} account={account} />
       <PostingFlow txn={txn} account={account} />
       {hasMeta && (
         <div>

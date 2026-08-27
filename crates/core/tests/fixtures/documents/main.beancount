@@ -1,0 +1,18 @@
+option "title" "Documents"
+option "operating_currency" "USD"
+
+2025-12-01 open Assets:Bank        USD
+2025-12-01 open Liabilities:Card   USD
+2025-12-01 open Expenses:Software  USD
+2025-12-01 open Expenses:Coffee    USD
+
+include "sub/2026-01.beancount"
+
+; The invoice, attached to the account the money went to.
+2026-01-05 document Expenses:Software "files/invoice.pdf"
+; The statement, attached to the card that paid, on the same day.
+2026-01-05 document Liabilities:Card "files/statement.csv"
+; A path that names a file nobody put there.
+2026-01-05 document Expenses:Software "files/gone.pdf"
+; A day with a document and no transaction to hang it on.
+2026-01-09 document Expenses:Software "files/invoice.pdf"

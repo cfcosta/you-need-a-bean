@@ -60,6 +60,17 @@ export interface Posting {
   currency: string | null;
 }
 
+/** A file a `document` directive attached to an account on a day. */
+export interface Doc {
+  id: number;
+  /** File name, which is what a person recognises it by. */
+  name: string;
+  /** Where it sits on disk, for whoever wants to go and find it. */
+  path: string;
+  /** The account the directive hung it off — not always this one. */
+  account: string;
+}
+
 export interface Txn {
   date: string;
   flag: string;
@@ -72,6 +83,7 @@ export interface Txn {
   currency: string | null;
   converted: number | null;
   postings: Posting[];
+  documents: Doc[];
 }
 
 export interface CategoryView {
@@ -85,6 +97,40 @@ export interface CategoryView {
   history: { month: string; spent: number }[];
   split: Record<string, number>;
   txns: Txn[];
+}
+
+/** One month of an account's register, for the little chart. */
+export interface AccountPoint {
+  month: string;
+  inflow: number;
+  outflow: number;
+  /** What it closed on; null when something it holds has no price. */
+  balance: number | null;
+}
+
+/** A register line: the transaction, and where it left the account. */
+export interface RegisterTxn extends Txn {
+  /** What it did to this account. Null when a leg has no price. */
+  delta: number | null;
+  /** The balance it left behind, null from the first hole onwards. */
+  balance: number | null;
+}
+
+export interface AccountView {
+  account: string;
+  label: string;
+  kind: "budget" | "tracking" | "hidden";
+  /** The balance the month opened on. */
+  opening: number | null;
+  inflow: number;
+  outflow: number;
+  balance: number | null;
+  balances: Record<string, number>;
+  history: AccountPoint[];
+  /** Commodities this month moved that nothing prices, and so are
+   * missing from every figure above. */
+  unpriced: string[];
+  txns: RegisterTxn[];
 }
 
 export interface NetWorthPoint {
@@ -315,6 +361,73 @@ export interface Season {
   projected: number | null;
 }
 
+/** One commodity still held, at what it is worth and what it cost.
+ *
+ * `basis`, `gain` and `ret` are null together. A position reports a
+ * cost only when every unit currently held arrived carrying one, so a
+ * holding that came in as staking interest or a swap says nothing
+ * rather than claiming it was free. */
+export interface Position {
+  /** The ticker, as the ledger writes it. */
+  currency: string;
+  /** What a `commodity` directive named it, or the ticker again. */
+  label: string;
+  /** Its declared `asset-class:`, or null where nothing declared one. */
+  class: string | null;
+  units: number;
+  price: number;
+  value: number;
+  /** `value` over the whole portfolio, dust included. */
+  share: number;
+  basis: number | null;
+  gain: number | null;
+  ret: number | null;
+  /** Accounts still holding it, and postings that ever touched it. */
+  accounts: number;
+  postings: number;
+  first: string;
+  last: string;
+}
+
+/** What one declared asset class adds up to. */
+export interface AssetClass {
+  /** null for the commodities nothing classified. */
+  name: string | null;
+  value: number;
+  share: number;
+  positions: number;
+}
+
+export interface Investments {
+  /** Ranked by value, biggest first, with dust folded out. */
+  items: Position[];
+  /** Ranked the same way, unclassified last. */
+  classes: AssetClass[];
+  /** Everything held, dust and unclassified included. */
+  total: number;
+  /** Positions too small to rank, and what they came to together. */
+  dust: number;
+  dust_value: number;
+  /** What the positions that recorded a cost cost, what those same
+   * positions are worth now, and the gain between them. */
+  basis: number;
+  based_value: number;
+  gain: number;
+  ret: number | null;
+  /** `based_value / total` — how much of the portfolio that gain
+   * actually speaks for. */
+  coverage: number | null;
+  /** Held, valued, and with nothing to compare against. */
+  unbased: number;
+  unbased_count: number;
+  /** How many equally-sized holdings this spread is worth, which is
+   * the number the count only looks like. */
+  effective: number | null;
+  /** Commodities held that nothing prices in the display currency.
+   * They are missing from every figure above. */
+  unpriced: string[];
+}
+
 /** One merchant, over the trailing year. */
 export interface Payee {
   /** The name the ledger writes, trimmed and no further. */
@@ -419,6 +532,7 @@ export interface ReportsView {
   projects: Projects;
   income: Income;
   season: Season;
+  investments: Investments;
   payees: Payees;
   trust: Trust;
 }
@@ -447,6 +561,16 @@ export const getCategory = (
 ) =>
   get<CategoryView>(
     `/api/category/${encodeURIComponent(account)}/${month}?basis=${basis}&cur=${cur}`,
+  );
+
+export const getAccount = (
+  account: string,
+  month: string,
+  basis: number,
+  cur: string,
+) =>
+  get<AccountView>(
+    `/api/account/${encodeURIComponent(account)}/${month}?basis=${basis}&cur=${cur}`,
   );
 
 export const getReports = (basis: number, cur: string) =>

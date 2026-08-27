@@ -6,12 +6,33 @@
 //! safe), and a glob matching nothing is a warning rather than an error.
 
 use std::collections::{HashSet, VecDeque};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
-use beancount_parser::{Directive, Entry, Include, parse_iter};
+use beancount_parser::{
+    Directive, DirectiveContent, Entry, Include, parse_iter,
+};
 use miette::{Diagnostic, NamedSource, SourceSpan};
 use rust_decimal::Decimal;
 use thiserror::Error;
+
+/// A `document` directive, with the file it names made findable.
+///
+/// The path is written relative to the file that declared it, and once the
+/// directives are one flat list that file is gone — so resolving it is the
+/// loader's job, the same as an `include`. The resolved form travels beside
+/// the directives rather than overwriting them: `Document::path` on the
+/// directive still says what the ledger says.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Document {
+    /// Account the file is attached to.
+    pub account: String,
+    /// `(year, month, day)`, as [`crate::model::Day`].
+    pub date: (u16, u8, u8),
+    /// Absolute. The file it names may not exist; that is not this layer's
+    /// question, and a document that has gone missing is worth reporting
+    /// rather than quietly dropping.
+    pub path: PathBuf,
+}
 
 /// Everything read from disk, before any budget modelling.
 #[derive(Debug)]
@@ -22,6 +43,8 @@ pub struct LoadedLedger {
     pub options: Vec<(String, String)>,
     /// All directives from all files.
     pub directives: Vec<Directive<Decimal>>,
+    /// Every `document` directive, with its path resolved.
+    pub documents: Vec<Document>,
     /// Non-fatal problems (e.g. globs that matched nothing).
     pub warnings: Vec<String>,
 }
@@ -201,6 +224,32 @@ impl Source<'_> {
     }
 }
 
+/// A document path as written, made absolute against the file that wrote it.
+///
+/// Beancount resolves these relative to the declaring file, so `../` in an
+/// included file counts from *that* file's directory. `canonicalize` would
+/// be the obvious tool and is the wrong one: it fails on a path naming a
+/// file nobody put there, and those are exactly the ones still worth
+/// showing. The directory is already canonical, so resolving `..`
+/// lexically cannot disagree with what the filesystem would say.
+fn resolve_document(dir: &Path, path: &str) -> PathBuf {
+    let path = Path::new(path);
+    if path.is_absolute() {
+        return path.to_path_buf();
+    }
+    let mut out = PathBuf::new();
+    for part in dir.join(path).components() {
+        match part {
+            Component::ParentDir => {
+                out.pop();
+            }
+            Component::CurDir => {}
+            part => out.push(part),
+        }
+    }
+    out
+}
+
 /// Absolute paths are how the loader thinks and the worst way to read a
 /// diagnostic. Show one relative to the working directory when it is below it.
 fn display_path(path: &Path) -> String {
@@ -222,6 +271,7 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
         files: Vec::new(),
         options: Vec::new(),
         directives: Vec::new(),
+        documents: Vec::new(),
         warnings: Vec::new(),
     };
     let mut seen: HashSet<PathBuf> = HashSet::new();
@@ -256,6 +306,18 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
             })?;
             match entry {
                 Entry::Directive(directive) => {
+                    if let DirectiveContent::Document(doc) = &directive.content
+                    {
+                        ledger.documents.push(Document {
+                            account: doc.account.as_str().to_owned(),
+                            date: (
+                                directive.date.year,
+                                directive.date.month,
+                                directive.date.day,
+                            ),
+                            path: resolve_document(dir, &doc.path),
+                        });
+                    }
                     ledger.directives.push(directive)
                 }
                 Entry::Option(option) => {

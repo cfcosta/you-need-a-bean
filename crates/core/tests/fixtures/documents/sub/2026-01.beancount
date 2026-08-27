@@ -1,0 +1,11 @@
+2026-01-05 * "Acme" "yearly subscription"
+  Expenses:Software   120.00 USD
+  Liabilities:Card
+
+2026-01-06 * "Cafe" "flat white"
+  Expenses:Coffee       4.50 USD
+  Assets:Bank
+
+; Declared one directory down and pointing back up: this path is relative
+; to this file, not to the ledger root.
+2026-01-06 document Expenses:Coffee "../receipts/coffee.txt"

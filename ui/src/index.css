@@ -34,6 +34,13 @@
   --over-track: rgba(247, 118, 142, 0.24);
   --bar-past: #414868;
   --bar-now: #7aa2f7;
+  /* Asset classes on the allocation bar. Categorical, and picked so
+     none of them is one of the colours that means a verdict. */
+  --alloc-1: #7aa2f7;
+  --alloc-2: #bb9af7;
+  --alloc-3: #7dcfff;
+  --alloc-4: #73daca;
+  --alloc-5: #565f89;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.3);
   --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
@@ -67,6 +74,11 @@
     --over-track: rgba(245, 42, 101, 0.24);
     --bar-past: #7e9be5;
     --bar-now: #2e7de9;
+    --alloc-1: #2e7de9;
+    --alloc-2: #9854f1;
+    --alloc-3: #007197;
+    --alloc-4: #118c74;
+    --alloc-5: #7c84a3;
     --shadow: 0 1px 2px rgba(52, 59, 88, 0.08), 0 4px 16px rgba(52, 59, 88, 0.1);
     --shadow-pop: 0 8px 32px rgba(52, 59, 88, 0.25);
   }
@@ -98,6 +110,11 @@
   --over-track: rgba(245, 42, 101, 0.24);
   --bar-past: #7e9be5;
   --bar-now: #2e7de9;
+  --alloc-1: #2e7de9;
+  --alloc-2: #9854f1;
+  --alloc-3: #007197;
+  --alloc-4: #118c74;
+  --alloc-5: #7c84a3;
   --shadow: 0 1px 2px rgba(52, 59, 88, 0.08), 0 4px 16px rgba(52, 59, 88, 0.1);
   --shadow-pop: 0 8px 32px rgba(52, 59, 88, 0.25);
 }
@@ -305,9 +322,15 @@ a:focus-visible {
   padding: 5px 10px;
   border-radius: 6px;
   color: var(--brand-ink);
+  text-decoration: none;
+  box-sizing: border-box;
 }
 .acct-row:hover {
   background: var(--brand-hover);
+}
+.acct-row.active {
+  background: var(--brand-hover);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 .acct-name {
   min-width: 0;
@@ -1021,6 +1044,28 @@ a:focus-visible {
 .chart-svg .cf-bar.clip {
   opacity: 0.55;
 }
+.chart-svg .rg-bar.in {
+  fill: var(--good);
+}
+.chart-svg .rg-bar.out {
+  fill: var(--over);
+}
+.chart-svg .rg-bar.past {
+  opacity: 0.42;
+}
+.chart-svg .rg-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+.chart-svg .rg-dot {
+  fill: var(--accent);
+}
+.chart-svg .axis.on {
+  fill: var(--ink);
+  font-weight: 650;
+}
 .chart-svg .sr-line {
   fill: none;
   stroke: var(--accent);
@@ -1081,8 +1126,15 @@ a:focus-visible {
 .key .sw.gone {
   background: var(--over);
 }
-.key .sw.kept {
+.key .sw.kept,
+.key .sw.in {
   background: var(--good);
+}
+.key .sw.out {
+  background: var(--over);
+}
+.key .sw.net {
+  background: var(--accent);
 }
 .key .sw.soft {
   background: var(--warn);
@@ -1584,6 +1636,161 @@ button.yr-row:hover .yr-cell-bar {
   text-align: right;
   color: var(--muted);
 }
+
+/* What the money is in. The bar runs the whole width because
+   allocation is a proportion of one thing, and one hue stepped down
+   by size keeps the classes reading as an order rather than as five
+   unrelated colours. */
+.inv-alloc {
+  display: flex;
+  height: 9px;
+  margin: 13px 0 8px;
+  gap: 1.5px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.inv-alloc span {
+  height: 100%;
+  min-width: 0;
+}
+.inv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.inv-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.inv-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex: none;
+}
+.inv-thin {
+  cursor: help;
+  text-decoration: underline dotted var(--line-2);
+  text-underline-offset: 3px;
+}
+/* The two halves of the portfolio side by side: what has a cost to
+   measure against, and what only has a price. */
+.inv-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.inv-box {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  padding: 9px 11px;
+}
+.inv-box h4 {
+  margin: 0 0 5px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.inv-big {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.15;
+}
+.inv-big.ok {
+  color: var(--good-text);
+}
+.inv-big.bad {
+  color: var(--over-text);
+}
+.inv-sub {
+  margin-top: 4px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.inv-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 13px;
+}
+.inv-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 11.5px;
+}
+.inv-name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.inv-name b {
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.inv-name i {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inv-cls {
+  justify-self: end;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.inv-amt {
+  justify-self: end;
+  min-width: 72px;
+  text-align: right;
+  font-weight: 550;
+}
+.inv-pct {
+  justify-self: end;
+  min-width: 38px;
+  text-align: right;
+  color: var(--muted);
+}
+.inv-ret {
+  justify-self: end;
+  min-width: 44px;
+  text-align: right;
+  font-weight: 550;
+}
+.inv-ret.ok {
+  color: var(--good-text);
+}
+.inv-ret.bad {
+  color: var(--over-text);
+}
+.inv-ret.none {
+  color: var(--muted);
+  font-weight: 400;
+}
+.inv-dust {
+  color: var(--muted);
+  cursor: help;
+}
+.inv-dust .inv-name b {
+  font-weight: 550;
+}
 /* The page's footnotes. Each row is one doubt: a dot for how bad it
    is, what it is, and what rests on it. */
 /* The shape of a year: twelve columns of median spend, with this
@@ -1694,6 +1901,145 @@ button.yr-row:hover .yr-cell-bar {
 .month-label.page-title {
   text-align: left;
   min-width: 148px;
+}
+
+/* ---------- Account register ---------- */
+#account {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 20px 26px;
+}
+.acct-head {
+  padding: 12px 20px 0;
+}
+.acct-head .crumb {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.acct-head h2 {
+  margin: 2px 0 0;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.acct-head .raw {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* A statement, read down: the columns money leaves by and arrives by
+   are kept apart, so which way a line went is a position rather than
+   a sign to decode. */
+.reg {
+  margin-top: 10px;
+}
+.reg-head,
+.reg-row {
+  display: grid;
+  grid-template-columns:
+    46px minmax(0, 1fr) minmax(0, 150px)
+    96px 96px 108px;
+  gap: 10px;
+  align-items: baseline;
+}
+.reg-head {
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.reg-head .r {
+  text-align: right;
+}
+.reg-row {
+  width: 100%;
+  text-align: left;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--line);
+}
+button.reg-row:hover {
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+.reg-row.open {
+  border-bottom-color: transparent;
+}
+.reg-row .d {
+  font-size: 10px;
+  color: var(--muted);
+}
+.reg-row .who {
+  min-width: 0;
+}
+.reg-row .payee {
+  font-size: 12.5px;
+  font-weight: 550;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.reg-row .narr {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reg-row .cat {
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reg-row .cat.income {
+  color: var(--good-text);
+}
+.reg-row .cat.transfer {
+  color: var(--accent-ink);
+}
+.reg-row .in,
+.reg-row .out,
+.reg-row .bal {
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.reg-row .in {
+  color: var(--good-text);
+}
+.reg-row .bal {
+  color: var(--ink-2);
+}
+.reg-row .bal .hole {
+  color: var(--muted);
+  cursor: help;
+}
+.reg-row.opening .payee {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.reg-detail {
+  padding: 0 4px 0 56px;
+  border-bottom: 1px solid var(--line);
+}
+/* The detail already carries the inspector's own frame; inside the
+   register the row above it is the frame. */
+.reg-detail .txn-detail {
+  padding-left: 0;
+  border-bottom: none;
 }
 
 /* ---------- Inspector ---------- */
@@ -2255,9 +2601,147 @@ button.yr-row:hover .yr-cell-bar {
   #strip {
     grid-template-columns: repeat(2, 1fr);
   }
+  /* The counterpart is the first thing to go: the postings under an
+     opened row still say it, and outflow, inflow and balance do not
+     survive being squeezed. */
+  .reg-head,
+  .reg-row {
+    grid-template-columns: 40px minmax(0, 1fr) 80px 80px 92px;
+    gap: 8px;
+  }
+  .reg-head .cat-h,
+  .reg-row .cat {
+    display: none;
+  }
+  .reg-detail {
+    padding-left: 12px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
   }
+}
+
+/* Documents — the file a `document` directive points at. The badge on a
+   transaction row is an indicator, not a link: a row is already one big
+   button, and a link inside it would be a button inside a button. */
+.badge.doc {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  gap: 2px;
+  padding: 1px 4px 1px 3px;
+}
+.docs {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.doc-row {
+  /* Flex, not grid: the account chip is only there when the document hangs
+     off some other account, and a missing grid cell would strand the arrow
+     mid-row. */
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.doc-row:hover {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+.doc-kind {
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  padding: 1px 3px;
+  min-width: 28px;
+  text-align: center;
+}
+.doc-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  /* Names run to hashes and order ids; the full path is in the title. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doc-acct {
+  font-size: 9.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.doc-go {
+  font-size: 10px;
+  color: var(--muted);
+}
+.doc-row:hover .doc-kind,
+.doc-row:hover .doc-go {
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+/* The fold under a list cut short. Same gesture as the year card's, so
+   the same caret: pointing down there is more to see, up to put it away. */
+.pj-more {
+  margin-top: 8px;
+  padding: 2px 0;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.pj-more:hover {
+  color: var(--ink);
+}
+.pj-more::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 6px;
+  border: 3.5px solid transparent;
+  border-top-color: currentColor;
+  vertical-align: -1px;
+}
+.pj-more.open::before {
+  border-top-color: transparent;
+  border-bottom-color: currentColor;
+  vertical-align: 1.5px;
+}
+/* What the card set aside, and why. Each reason carries its own
+   explanation, because a bare count is a claim the reader cannot check. */
+.pj-left {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.pj-left-lead {
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.pj-left-item {
+  border-bottom: 1px dotted var(--line-2);
+  cursor: help;
+}
+.pj-left-item:hover {
+  color: var(--ink);
 }

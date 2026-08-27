@@ -1,19 +1,22 @@
 //! The read-only JSON API over a loaded [`Ledger`].
 //!
-//! Three endpoints drive the whole UI: `/api/summary` (ledger shape and
-//! month range), `/api/month/{month}` (the monthly budget page), and
-//! `/api/category/{account}/{month}` (the inspector drill-down).
+//! A handful of endpoints drive the whole UI: `/api/summary` (ledger
+//! shape and month range), `/api/month/{month}` (the monthly budget
+//! page), `/api/category/{account}/{month}` (the inspector drill-down),
+//! `/api/account/{account}/{month}` (one account's register),
+//! `/api/reports` (the reports page), and `/api/document/{id}` (the file
+//! a `document` directive points at).
 
 use std::collections::HashMap;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::extract::{Path, Query, State};
-use axum::http::{StatusCode, Uri};
+use axum::http::{StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
-use bean_core::model::{Day, Ledger, MonthKey, Txn};
+use bean_core::model::{AccountKind, Day, Ledger, MonthKey, Txn};
 use bean_core::query::{AccountRow, CategoryRow, Group};
 use bean_core::reports::FireScenario;
 use rust_decimal::Decimal;
@@ -125,7 +128,9 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/summary", get(summary))
         .route("/api/month/{month}", get(month_view))
         .route("/api/category/{account}/{month}", get(category_view))
+        .route("/api/account/{account}/{month}", get(account_view))
         .route("/api/reports", get(reports))
+        .route("/api/document/{id}", get(document))
         .fallback(fallback)
         .with_state(state)
 }
@@ -253,6 +258,60 @@ async fn category_view(
         }),
         "history": history,
         "split": amounts_json(&view.split),
+        "txns": txns,
+    })))
+}
+
+async fn account_view(
+    State(state): State<Arc<AppState>>,
+    Path((account, month)): Path<(String, String)>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Result<Json<Value>, ApiError> {
+    let month = parse_month(&month)?;
+    let snapshot = state.snapshot();
+    let (basis, cur) = params(&snapshot, &query)?;
+    let Some(view) = snapshot.ledger.account_view(&account, month, basis, &cur)
+    else {
+        return Err(err(StatusCode::NOT_FOUND, "unknown account"));
+    };
+
+    let at = month.end_of_month();
+    let history: Vec<Value> = view
+        .history
+        .iter()
+        .map(|p| {
+            json!({
+                "month": p.month.to_string(),
+                "inflow": num(p.inflow),
+                "outflow": num(p.outflow),
+                "balance": opt_num(p.balance),
+            })
+        })
+        .collect();
+    // A register row is a transaction plus where it left the account,
+    // so the two travel together rather than as parallel arrays.
+    let txns: Vec<Value> = view
+        .entries
+        .iter()
+        .map(|e| {
+            let mut row =
+                txn_json(&snapshot.ledger, e.txn, &view.account, &cur, at);
+            row["delta"] = opt_num(e.delta);
+            row["balance"] = opt_num(e.balance);
+            row
+        })
+        .collect();
+    Ok(Json(json!({
+        "account": view.account,
+        "label": view.label,
+        "kind": kind_str(view.kind),
+        "opening": opt_num(view.opening),
+        "inflow": num(view.inflow),
+        "outflow": num(view.outflow),
+        "balance": opt_num(view.converted),
+        "balances": amounts_json(&view.balances),
+        "history": history,
+        "unpriced": view.unpriced,
         "txns": txns,
     })))
 }
@@ -412,6 +471,42 @@ async fn reports(
             })
         })
         .collect();
+    let positions: Vec<Value> = view
+        .investments
+        .items
+        .iter()
+        .map(|p| {
+            json!({
+                "currency": p.currency,
+                "label": p.label,
+                "class": p.class,
+                "units": units_json(p.units),
+                "price": num(p.price),
+                "value": num(p.value),
+                "share": ratio_json(Some(p.share)),
+                "basis": opt_num(p.basis),
+                "gain": opt_num(p.gain),
+                "ret": ratio_json(p.ret),
+                "accounts": p.accounts,
+                "postings": p.postings,
+                "first": format_day(p.first),
+                "last": format_day(p.last),
+            })
+        })
+        .collect();
+    let classes: Vec<Value> = view
+        .investments
+        .classes
+        .iter()
+        .map(|c| {
+            json!({
+                "name": c.name,
+                "value": num(c.value),
+                "share": ratio_json(Some(c.share)),
+                "positions": c.positions,
+            })
+        })
+        .collect();
     let payees: Vec<Value> = view
         .payees
         .items
@@ -544,6 +639,22 @@ async fn reports(
             "pace": ratio_json(view.season.pace),
             "projected": opt_num(view.season.projected),
         },
+        "investments": {
+            "items": positions,
+            "classes": classes,
+            "total": num(view.investments.total),
+            "dust": view.investments.dust,
+            "dust_value": num(view.investments.dust_value),
+            "basis": num(view.investments.basis),
+            "based_value": num(view.investments.based_value),
+            "gain": num(view.investments.gain),
+            "ret": ratio_json(view.investments.ret),
+            "coverage": ratio_json(view.investments.coverage),
+            "unbased": num(view.investments.unbased),
+            "unbased_count": view.investments.unbased_count,
+            "effective": opt_num(view.investments.effective),
+            "unpriced": view.investments.unpriced,
+        },
         "payees": {
             "window": window_json(view.payees.window),
             "items": payees,
@@ -595,6 +706,15 @@ fn category_json(row: &CategoryRow) -> Value {
     })
 }
 
+/// How an account shows up in the sidebar, as the UI spells it.
+fn kind_str(kind: AccountKind) -> &'static str {
+    match kind {
+        AccountKind::Budget => "budget",
+        AccountKind::Tracking => "tracking",
+        AccountKind::Hidden => "hidden",
+    }
+}
+
 fn account_json(row: &AccountRow) -> Value {
     json!({
         "account": row.account,
@@ -602,6 +722,83 @@ fn account_json(row: &AccountRow) -> Value {
         "balances": amounts_json(&row.balances),
         "converted": opt_num(row.converted),
     })
+}
+
+/// The file's own name, which is what a person recognises it by.
+fn file_name(path: &std::path::Path) -> String {
+    path.file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// The paperwork hanging off one transaction.
+///
+/// Always present, even when empty: a caller should not have to tell an
+/// absent key from an empty list to know there is nothing to show.
+fn documents_json(ledger: &Ledger, txn: &Txn) -> Vec<Value> {
+    ledger
+        .documents_of(txn)
+        .into_iter()
+        .filter_map(|id| Some((id, ledger.document(id)?)))
+        .map(|(id, doc)| {
+            json!({
+                "id": id,
+                "name": file_name(&doc.path),
+                "path": doc.path.to_string_lossy(),
+                "account": doc.account,
+            })
+        })
+        .collect()
+}
+
+/// One document, served as it sits on disk.
+///
+/// The id is an index into the ledger's own list, so a request can only
+/// name a file the ledger named first — there is no path here to traverse.
+async fn document(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Response, ApiError> {
+    let snapshot = state.snapshot();
+    let doc = id
+        .parse::<usize>()
+        .ok()
+        .and_then(|id| snapshot.ledger.document(id))
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "no such document"))?;
+
+    let bytes = tokio::fs::read(&doc.path).await.map_err(|source| {
+        err(
+            StatusCode::NOT_FOUND,
+            &format!("cannot read {}: {source}", doc.path.display()),
+        )
+    })?;
+
+    // Some ledgers contain saved HTML receipts. Served from the app's own
+    // origin one could read and drive the app, so every
+    // document goes out sandboxed — a browser treats a sandboxed response
+    // as its own opaque origin — and `nosniff` keeps a mislabelled file
+    // from being reinterpreted into something executable.
+    let name = file_name(&doc.path).replace(['"', '\\'], "");
+    Ok((
+        [
+            (
+                header::CONTENT_TYPE,
+                mime_guess::from_path(&doc.path)
+                    .first_or_octet_stream()
+                    .essence_str()
+                    .to_owned(),
+            ),
+            (
+                header::CONTENT_DISPOSITION,
+                format!("inline; filename=\"{name}\""),
+            ),
+            (header::CONTENT_SECURITY_POLICY, "sandbox".to_owned()),
+            (header::X_CONTENT_TYPE_OPTIONS, "nosniff".to_owned()),
+        ],
+        bytes,
+    )
+        .into_response())
 }
 
 fn txn_json(
@@ -676,6 +873,7 @@ fn txn_json(
                 num(rest.iter().fold(*first, |acc, v| acc + v))
             }),
         "postings": postings,
+        "documents": documents_json(ledger, txn),
     })
 }
 
@@ -763,6 +961,15 @@ fn num(value: Decimal) -> Value {
 
 fn opt_num(value: Option<Decimal>) -> Value {
     value.map_or(Value::Null, num)
+}
+
+/// A quantity of something that is not money.
+///
+/// Cents are the wrong resolution for units: a ten-thousandth of a
+/// bitcoin is a real holding and [`num`] rounds it to nothing, which
+/// would print a position worth something as owning zero of it.
+fn units_json(value: Decimal) -> Value {
+    json!(value.normalize().to_f64())
 }
 
 /// A share as JSON.
