@@ -89,3 +89,28 @@ export function windowLabel(window: [string, string] | null): string {
 export function pctLabel(ratio: number | null): string {
   return ratio == null ? "—" : `${Math.round(ratio * 100)}%`;
 }
+
+/** Trailing zeros a fixed width added, and the dot they leave behind. */
+const trimZeros = (s: string) =>
+  s.includes(".") ? s.replace(/\.?0+$/, "") : s;
+
+/** A share as a percentage, at whatever precision the number deserves:
+ * whole percent once rounding cannot lie about it, one decimal through
+ * the single digits, and two significant figures below one percent.
+ *
+ * The last case is the point. Flooring everything small to "<1%" makes
+ * two different ratios print as the same string, so a line carrying
+ * both reads as though it repeats itself — and a number that is small
+ * is not the same as a number nobody measured.
+ */
+export function ratio(v: number | null): string {
+  if (v == null) return "—";
+  const p = Math.abs(v) * 100;
+  if (p === 0) return "0%";
+  const sign = v < 0 ? "−" : "";
+  // Below a millionth of a percent `toPrecision` reaches for exponent
+  // notation, which is not a number anyone reads off a card.
+  if (p < 1e-6) return `${sign}<0.000001%`;
+  const s = p >= 10 ? p.toFixed(0) : p >= 1 ? p.toFixed(1) : p.toPrecision(2);
+  return `${sign}${trimZeros(s)}%`;
+}

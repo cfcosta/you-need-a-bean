@@ -6,6 +6,7 @@ import {
   monthName,
   monthShort,
   pctLabel,
+  ratio,
   windowLabel,
 } from "./format";
 
@@ -64,5 +65,42 @@ describe("pctLabel", () => {
 
   test("dashes out a missing ratio", () => {
     expect(pctLabel(null)).toBe("—");
+  });
+});
+
+describe("ratio", () => {
+  test("drops the decimal once a share is big enough not to need it", () => {
+    expect(ratio(0.4231)).toBe("42%");
+    expect(ratio(1)).toBe("100%");
+  });
+
+  test("keeps one decimal in the single digits", () => {
+    expect(ratio(0.042)).toBe("4.2%");
+  });
+
+  test("does not print a decimal that is only a zero", () => {
+    expect(ratio(0.0999)).toBe("10%");
+    expect(ratio(0.05)).toBe("5%");
+  });
+
+  // The bug this exists to kill: two different ratios both floored to
+  // "<1%" read as the same number, and the sentence holding them reads
+  // as if it repeats itself.
+  test("keeps two figures below one percent rather than a bucket", () => {
+    expect(ratio(0.000123)).toBe("0.012%");
+    expect(ratio(0.000456)).toBe("0.046%");
+    expect(ratio(0.0000004)).toBe("0.00004%");
+  });
+
+  test("says zero only when there is nothing there", () => {
+    expect(ratio(0)).toBe("0%");
+  });
+
+  test("carries a true minus sign, like every other amount", () => {
+    expect(ratio(-0.052)).toBe("\u22125.2%");
+  });
+
+  test("dashes out a missing ratio", () => {
+    expect(ratio(null)).toBe("\u2014");
   });
 });
