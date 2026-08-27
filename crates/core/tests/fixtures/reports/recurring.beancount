@@ -1,0 +1,424 @@
+; Recurring charges: a few genuine subscriptions on a regular cadence,
+; one that stopped, and a payee that repeats without being a
+; subscription at all.
+option "title" "Recurring"
+option "operating_currency" "USD"
+
+2023-01-01 open Assets:Checking USD
+2023-01-01 open Liabilities:Card USD
+2023-01-01 open Income:Salary USD
+2023-01-01 open Expenses:Subscriptions:Streaming USD
+2023-01-01 open Expenses:Housing:Rent USD
+2023-01-01 open Expenses:Insurance:Car USD
+2023-01-01 open Expenses:Fitness:Gym USD
+2023-01-01 open Expenses:Food:Groceries USD
+2023-01-01 open Expenses:Subscriptions:Hosting USD
+
+2025-03-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2025-04-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2025-05-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2025-06-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2025-07-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2025-08-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2025-09-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2025-10-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2025-11-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2025-12-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2026-01-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2026-02-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           15.99 USD
+  Liabilities:Card
+
+2026-03-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           17.99 USD
+  Liabilities:Card
+
+2026-04-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           17.99 USD
+  Liabilities:Card
+
+2026-05-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           17.99 USD
+  Liabilities:Card
+
+2026-06-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           17.99 USD
+  Liabilities:Card
+
+2026-07-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           17.99 USD
+  Liabilities:Card
+
+2026-08-12 * "Netflix" "Streaming"
+  Expenses:Subscriptions:Streaming           17.99 USD
+  Liabilities:Card
+
+2025-03-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2025-04-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2025-05-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2025-06-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2025-07-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2025-08-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2025-09-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2025-10-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2025-11-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2025-12-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2026-01-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2026-02-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2026-03-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2026-04-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2026-05-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2026-06-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2026-07-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2026-08-01 * "Landlord" "Rent"
+  Expenses:Housing:Rent                    2000.00 USD
+  Assets:Checking
+
+2024-06-20 * "Assurance" "Car insurance"
+  Expenses:Insurance:Car                   1200.00 USD
+  Assets:Checking
+
+2025-06-20 * "Assurance" "Car insurance"
+  Expenses:Insurance:Car                   1200.00 USD
+  Assets:Checking
+
+2026-06-20 * "Assurance" "Car insurance"
+  Expenses:Insurance:Car                   1200.00 USD
+  Assets:Checking
+
+2025-03-05 * "City Gym" "Membership"
+  Expenses:Fitness:Gym                       50.00 USD
+  Assets:Checking
+
+2025-04-05 * "City Gym" "Membership"
+  Expenses:Fitness:Gym                       50.00 USD
+  Assets:Checking
+
+2025-05-05 * "City Gym" "Membership"
+  Expenses:Fitness:Gym                       50.00 USD
+  Assets:Checking
+
+2025-06-05 * "City Gym" "Membership"
+  Expenses:Fitness:Gym                       50.00 USD
+  Assets:Checking
+
+2025-07-05 * "City Gym" "Membership"
+  Expenses:Fitness:Gym                       50.00 USD
+  Assets:Checking
+
+2025-08-05 * "City Gym" "Membership"
+  Expenses:Fitness:Gym                       50.00 USD
+  Assets:Checking
+
+2025-09-05 * "City Gym" "Membership"
+  Expenses:Fitness:Gym                       50.00 USD
+  Assets:Checking
+
+2025-10-05 * "City Gym" "Membership"
+  Expenses:Fitness:Gym                       50.00 USD
+  Assets:Checking
+
+2025-11-05 * "City Gym" "Membership"
+  Expenses:Fitness:Gym                       50.00 USD
+  Assets:Checking
+
+2025-03-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   312.40 USD
+  Assets:Checking
+
+2025-04-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   198.75 USD
+  Assets:Checking
+
+2025-05-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   401.10 USD
+  Assets:Checking
+
+2025-06-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   150.00 USD
+  Assets:Checking
+
+2025-07-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   275.60 USD
+  Assets:Checking
+
+2025-08-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   499.99 USD
+  Assets:Checking
+
+2025-09-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   180.25 USD
+  Assets:Checking
+
+2025-10-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   362.80 USD
+  Assets:Checking
+
+2025-11-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   210.05 USD
+  Assets:Checking
+
+2025-12-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   455.30 USD
+  Assets:Checking
+
+2026-01-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   168.90 USD
+  Assets:Checking
+
+2026-02-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   320.15 USD
+  Assets:Checking
+
+2026-03-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   244.70 USD
+  Assets:Checking
+
+2026-04-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   388.45 USD
+  Assets:Checking
+
+2026-05-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   175.55 USD
+  Assets:Checking
+
+2026-06-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   290.00 USD
+  Assets:Checking
+
+2026-07-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   412.35 USD
+  Assets:Checking
+
+2026-08-18 * "Market" "Groceries"
+  Expenses:Food:Groceries                   205.80 USD
+  Assets:Checking
+
+2025-03-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-04-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-05-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-06-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-07-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-08-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-09-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-10-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-11-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-12-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2026-01-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2026-02-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2026-03-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2026-04-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2026-05-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2026-06-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2026-07-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2026-08-25 * "Employer" "Salary"
+  Income:Salary                            -6000.00 USD
+  Assets:Checking
+
+2025-03-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.09 USD
+  Liabilities:Card
+
+2025-04-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.11 USD
+  Liabilities:Card
+
+2025-05-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.14 USD
+  Liabilities:Card
+
+2025-06-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.07 USD
+  Liabilities:Card
+
+2025-07-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.12 USD
+  Liabilities:Card
+
+2025-08-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.16 USD
+  Liabilities:Card
+
+2025-09-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.10 USD
+  Liabilities:Card
+
+2025-10-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.13 USD
+  Liabilities:Card
+
+2025-11-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.08 USD
+  Liabilities:Card
+
+2025-12-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.15 USD
+  Liabilities:Card
+
+2026-01-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.11 USD
+  Liabilities:Card
+
+2026-02-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.09 USD
+  Liabilities:Card
+
+2026-03-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.14 USD
+  Liabilities:Card
+
+2026-04-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.12 USD
+  Liabilities:Card
+
+2026-05-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.06 USD
+  Liabilities:Card
+
+2026-06-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.13 USD
+  Liabilities:Card
+
+2026-07-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.10 USD
+  Liabilities:Card
+
+2026-08-08 * "Cloud Host" "Hosting"
+  Expenses:Subscriptions:Hosting             58.14 USD
+  Liabilities:Card
+

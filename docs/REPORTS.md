@@ -29,10 +29,20 @@ Each line is one task: core computation (with tests) → API shape → card.
       part of net worth growth that wasn't you saving. Splits each net
       worth move into "you added X · markets added Y", with an implied
       return for the year.
-- [ ] **3 · Recurring charges** — cluster transactions by (account,
+- [x] **3 · Recurring charges** — cluster transactions by (account,
       payee) on a regular cadence with a stable amount. Yields the fixed
       monthly nut, price increases ("Netflix 15.99 → 17.99, +$24/yr"),
       and lapsed subscriptions still charging. Feeds tasks 1 and 8.
+      Detection is deliberately strict — three charges, a cadence two
+      thirds of the gaps agree on, and amounts within 25% of their
+      median — so what it finds is a floor, never the whole bill. The
+      view carries `coverage` (fixed over total spend) for exactly that
+      reason, and the page never shows a lean figure without it: sparse
+      coverage is only a lower bound, while broader coverage makes the
+      estimate more representative. A price rise has to clear 2% of the
+      prior charge to count, so a subscription
+      billed in another currency does not report a raise every time the
+      exchange rate moves.
 - [ ] **4 · Year over year + biggest movers** — the year card ranks but
       never compares. Add the prior twelve months as a delta, plus the
       categories whose trailing quarter moved most against the quarter
@@ -53,10 +63,10 @@ Each line is one task: core computation (with tests) → API shape → card.
       sale of something unpriced reads as a market gain nothing caused,
       so the implied return is withheld while any price is missing. The
       rest of the list is still open.
-- [~] **8 · FIRE variants** — Coast FIRE (stop saving today, still get
+- [x] **8 · FIRE variants** — Coast FIRE (stop saving today, still get
       there in N years), lean FIRE off fixed costs, and what saving more
-      per month buys. Coasting and the savings steps have shipped; the
-      lean target waits on task 3 to price fixed costs.
+      per month buys. All three have shipped: task 3 prices the fixed
+      costs the lean target and the lean runway are built on.
 - [x] **9 · Net worth composition** — stack the area chart by cash /
       investments / liabilities so it shows *what* is growing, not just
       that something is.

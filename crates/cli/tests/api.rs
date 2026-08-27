@@ -185,6 +185,18 @@ async fn reports_endpoint_shapes_series_and_fire() {
         );
     }
 
+    // Recurring charges carry the fixed nut and the share of spending
+    // it accounts for, so the lean figures are never read alone.
+    let rec = &body["recurring"];
+    assert!(rec["monthly_fixed"].is_number());
+    assert!(rec["annual_fixed"].is_number());
+    for item in rec["items"].as_array().unwrap() {
+        assert!(item["payee"].is_string());
+        assert!(item["active"].is_boolean());
+        assert!(item["cadence"].is_string());
+        assert!(item["monthly"].is_number());
+    }
+
     // Runway is cash against the same monthly spend FIRE uses.
     let runway = &body["runway"];
     assert!(runway["liquid"].is_number());

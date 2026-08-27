@@ -280,3 +280,117 @@ fn a_fully_priced_ledger_reports_nothing_unpriced() {
     assert!(view.growth.unpriced.is_empty());
     assert!(view.growth.implied_return.is_some());
 }
+
+#[test]
+fn recurring_finds_the_charges_that_repeat_on_a_cadence() {
+    let view = fixture("recurring").reports_view((2026, 8, 20), 6, "USD");
+    let r = &view.recurring;
+
+    let names: Vec<(&str, &str)> = r
+        .items
+        .iter()
+        .map(|i| (i.payee.as_str(), i.cadence.label()))
+        .collect();
+    // Still charging first, biggest first inside that, so the top of
+    // the list is the top of next month's bill and the one that stopped
+    // falls to the bottom whatever it used to cost. Groceries repeat
+    // under one payee every month but never for the same amount, so
+    // they are not a charge you can plan around and stay out.
+    assert_eq!(
+        names,
+        vec![
+            ("Landlord", "monthly"),
+            ("Assurance", "yearly"),
+            ("Cloud Host", "monthly"),
+            ("Netflix", "monthly"),
+            ("City Gym", "monthly"),
+        ]
+    );
+
+    let rent = &r.items[0];
+    assert_eq!(rent.account, "Expenses:Housing:Rent");
+    assert_eq!(rent.amount, dec("2000.00"));
+    assert_eq!(rent.monthly, dec("2000.00"));
+    assert!(rent.active);
+    assert!(rent.change.is_none());
+
+    // A yearly premium is worth a twelfth of itself each month.
+    let car = &r.items[1];
+    assert_eq!(car.amount, dec("1200.00"));
+    assert_eq!(car.monthly, dec("100.00"));
+    assert!(car.active);
+
+    // The gym stopped charging nine months ago; it is still worth
+    // showing, but it is not part of what next month costs.
+    let gym = &r.items[4];
+    assert!(!gym.active);
+    assert_eq!(gym.last, (2025, 11, 5));
+
+    // Netflix went up in March and has stayed there since.
+    let netflix = &r.items[3];
+    assert_eq!(netflix.amount, dec("17.99"));
+    let change = netflix.change.as_ref().unwrap();
+    assert_eq!(change.from, dec("15.99"));
+    assert_eq!(change.to, dec("17.99"));
+    // Two dollars a month, twelve months a year.
+    assert_eq!(change.annual, dec("24.00"));
+
+    // The fixed nut counts only what is still charging.
+    assert_eq!(r.monthly_fixed, dec("2176.13"));
+    assert_eq!(r.annual_fixed, dec("26113.56"));
+}
+
+#[test]
+fn fixed_costs_drive_the_lean_target_and_the_lean_runway() {
+    let view = fixture("recurring").reports_view((2026, 8, 20), 6, "USD");
+
+    // 25× a year of fixed costs — the stash that covers the bills but
+    // not the lifestyle.
+    assert_eq!(view.fire.lean_number, Some(dec("652839.00")));
+    assert!(view.fire.lean_progress.is_some());
+
+    // And the same cash lasts longer once you only have to cover them.
+    let runway = &view.runway;
+    let (months, lean) = (runway.months.unwrap(), runway.lean_months.unwrap());
+    assert!(lean > months, "lean {lean} should outlast {months}");
+}
+
+#[test]
+fn the_fixed_nut_says_how_much_of_the_spending_it_covers() {
+    let view = fixture("recurring").reports_view((2026, 8, 20), 6, "USD");
+
+    // The nut is only ever what could be recognized as recurring, so it
+    // is reported against the spending it is a share of — a ledger with
+    // thin payees gets a small number here and every figure built on it
+    // inherits that.
+    let coverage = view.recurring.coverage.unwrap();
+    let spend = view.fire.monthly_spend;
+    assert_eq!(coverage, (view.recurring.monthly_fixed / spend).round_dp(4));
+    assert!(coverage > Decimal::ZERO && coverage < Decimal::ONE);
+}
+
+#[test]
+fn exchange_rate_drift_is_not_a_price_rise() {
+    let view = fixture("recurring").reports_view((2026, 8, 20), 6, "USD");
+    let find = |payee: &str| {
+        view.recurring
+            .items
+            .iter()
+            .find(|i| i.payee == payee)
+            .unwrap_or_else(|| panic!("{payee} was not detected"))
+    };
+
+    // A charge billed abroad lands on a different number every month
+    // once it is converted. Cents on fifty-eight dollars are the
+    // exchange rate moving, not a decision anyone made.
+    let hosting = find("Cloud Host");
+    assert_eq!(hosting.cadence.label(), "monthly");
+    assert!(
+        hosting.change.is_none(),
+        "cent drift reported as a rise: {:?}",
+        hosting.change
+    );
+
+    // Two dollars on sixteen is.
+    assert!(find("Netflix").change.is_some());
+}

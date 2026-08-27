@@ -8,12 +8,14 @@
 
 mod fire;
 mod growth;
+mod recurring;
 
 pub use fire::{
     FireScenario, FireView, RunwayView, SCENARIO_RATES, SavingsStep,
     months_to_fire,
 };
 pub use growth::{GrowthPoint, GrowthView};
+pub use recurring::{Cadence, PriceChange, Recurring, RecurringView};
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -61,6 +63,7 @@ pub struct ReportsView {
     pub fire: FireView,
     pub runway: RunwayView,
     pub growth: GrowthView,
+    pub recurring: RecurringView,
     /// Commodities held or moved that nothing prices in the display
     /// currency, sorted. Every amount in one of these is missing from
     /// the figures above — see [`GrowthView::unpriced`] for why that
@@ -168,11 +171,11 @@ impl Ledger {
             net_at(&net_worth, current),
             &cashflow,
         );
-        // The recurring pass has not landed, so nothing prices the
-        // fixed monthly nut yet. Both figures that lean on it — the
-        // lean FIRE target and the lean runway — stay open until it
-        // does, and this is the one place that changes when it lands.
-        let monthly_fixed = Decimal::ZERO;
+        // What the charges that come back cost every month, which is
+        // both the lean FIRE target and the runway you have if you cut
+        // everything discretionary.
+        let recurring = self.recurring_view(current, cur, fire.monthly_spend);
+        let monthly_fixed = recurring.monthly_fixed;
         fire.with_fixed(monthly_fixed);
         let runway =
             fire::runway_view(liquid, fire.monthly_spend, monthly_fixed);
@@ -219,6 +222,7 @@ impl Ledger {
             fire,
             runway,
             growth,
+            recurring,
             unpriced,
             year_window,
             year_groups,

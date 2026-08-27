@@ -149,6 +149,43 @@ export interface Growth {
   points: GrowthPoint[];
 }
 
+/** A charge whose amount stepped and stayed there. */
+export interface PriceChange {
+  from: number;
+  to: number;
+  /** What the step costs over a year at this cadence. */
+  annual: number;
+  since: string;
+}
+
+export interface Recurring {
+  account: string;
+  label: string;
+  payee: string;
+  /** "monthly", "yearly", … */
+  cadence: string;
+  amount: number;
+  /** `amount` spread over a month. */
+  monthly: number;
+  count: number;
+  first: string;
+  last: string;
+  /** Still charging, so still part of what next month costs. */
+  active: boolean;
+  change: PriceChange | null;
+}
+
+export interface RecurringView {
+  window: [string, string] | null;
+  /** What the still-charging series cost each month. A floor, not a
+   * bill — read it next to `coverage`. */
+  monthly_fixed: number;
+  annual_fixed: number;
+  /** `monthly_fixed` over the monthly spend. */
+  coverage: number | null;
+  items: Recurring[];
+}
+
 export interface Fire {
   window: [string, string] | null;
   monthly_spend: number;
@@ -179,6 +216,7 @@ export interface ReportsView {
   fire: Fire;
   runway: Runway;
   growth: Growth;
+  recurring: RecurringView;
   /** Commodities nothing prices in the display currency. Every amount
    * in one of them is missing from every figure on the page. */
   unpriced: string[];

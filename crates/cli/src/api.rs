@@ -318,6 +318,33 @@ async fn reports(
             })
         })
         .collect();
+    let recurring: Vec<Value> = view
+        .recurring
+        .items
+        .iter()
+        .map(|r| {
+            json!({
+                "account": r.account,
+                "label": r.label,
+                "payee": r.payee,
+                "cadence": r.cadence.label(),
+                "amount": num(r.amount),
+                "monthly": num(r.monthly),
+                "count": r.count,
+                "first": format_day(r.first),
+                "last": format_day(r.last),
+                "active": r.active,
+                "change": r.change.map_or(Value::Null, |c| {
+                    json!({
+                        "from": num(c.from),
+                        "to": num(c.to),
+                        "annual": num(c.annual),
+                        "since": format_day(c.since),
+                    })
+                }),
+            })
+        })
+        .collect();
     let year_groups: Vec<Value> = view
         .year_groups
         .iter()
@@ -356,6 +383,13 @@ async fn reports(
             "implied_return": ratio_json(view.growth.implied_return),
             "unpriced": view.growth.unpriced,
             "points": growth,
+        },
+        "recurring": {
+            "window": window_json(view.recurring.window),
+            "monthly_fixed": num(view.recurring.monthly_fixed),
+            "annual_fixed": num(view.recurring.annual_fixed),
+            "coverage": ratio_json(view.recurring.coverage),
+            "items": recurring,
         },
         "unpriced": view.unpriced,
         "year": {

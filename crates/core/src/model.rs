@@ -15,6 +15,27 @@ use crate::loader::LoadedLedger;
 /// A concrete calendar date as `(year, month, day)`.
 pub type Day = (u16, u8, u8);
 
+/// Whole days from `from` to `to`, negative when `to` came first.
+///
+/// Days since a fixed epoch by way of Howard Hinnant's civil-date
+/// algorithm: shift the year to start in March so the leap day lands at
+/// the end and never has to be special-cased.
+pub fn days_between(from: Day, to: Day) -> i64 {
+    fn serial((y, m, d): Day) -> i64 {
+        let (y, m, d) = (i64::from(y), i64::from(m), i64::from(d));
+        let y = if m <= 2 { y - 1 } else { y };
+        let era = y.div_euclid(400);
+        let year_of_era = y - era * 400;
+        let day_of_year =
+            (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + d - 1;
+        let day_of_era = year_of_era * 365 + year_of_era / 4
+            - year_of_era / 100
+            + day_of_year;
+        era * 146_097 + day_of_era
+    }
+    serial(to) - serial(from)
+}
+
 /// Price points for one `(from, to)` currency pair, sorted by date.
 type PriceSeries = Vec<(Day, Decimal)>;
 
