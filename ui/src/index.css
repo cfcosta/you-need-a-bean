@@ -993,15 +993,134 @@ a:focus-visible {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Where the year went. The card is two drawings of the same axis: a
+   ribbon of months on top, then one strip per group underneath, so a
+   spike in the ribbon can be traced down to the row that caused it.
+   The dashed line means "a usual month" in both. */
+.yr-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.yr-range {
+  margin-top: 2px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.yr-fig {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.yr-total {
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.1;
+}
+.yr-delta {
+  font-size: 10.5px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.yr-delta.up {
+  color: var(--over-text);
+}
+.yr-delta.down {
+  color: var(--good-text);
+}
+.yr-ribbon {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+  margin: 14px 0 4px;
+}
+.yr-mon {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+/* The year turns over here, so the column is labelled with the year
+   rather than the month and gets a hairline to break the run. */
+.yr-mon.turn {
+  border-left: 1px solid var(--line-2);
+  padding-left: 3px;
+  margin-left: -3px;
+}
+/* The window's first month is labelled with its year but is not a
+   break in anything — there is nothing to its left to divide it from. */
+.yr-mon:first-child {
+  border-left: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+.yr-mon-track {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 56px;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+.yr-mon-bar {
+  width: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+.yr-mon-bar.above {
+  opacity: 1;
+}
+/* What the same month cost a year earlier: bar above the line is a
+   rise, bar short of it is a fall. */
+.yr-was {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--ink-2);
+  opacity: 0.5;
+}
+.yr-mon-tag {
+  font-size: 9px;
+  text-align: center;
+  color: var(--muted);
+  overflow: hidden;
+}
+.yr-mon.turn .yr-mon-tag {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+/* A month costs about this much, so anything standing above it is a
+   month that cost more than it usually does. */
+.yr-usual {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed var(--ink);
+  opacity: 0.3;
+  pointer-events: none;
+}
 .yr-rows {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  margin-top: 12px;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
 }
 .yr-row {
   display: grid;
-  grid-template-columns: 108px minmax(0, 1fr) auto auto;
+  grid-template-columns: 92px minmax(0, 1fr) auto auto;
   gap: 8px;
   align-items: center;
   font-size: 11.5px;
@@ -1012,31 +1131,33 @@ a:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.yr-track {
+/* Every strip is scaled to its own biggest month, so the row says
+   when the money went and the amount beside it says how much. */
+.yr-strip {
   position: relative;
-  height: 8px;
-  border-radius: 99px;
-  background: var(--surface-2);
-  overflow: hidden;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+  height: 20px;
 }
-/* Where the same group sat a year earlier: bar past the tick is a
-   rise, bar short of it is a fall. Nudged a pixel so the tick at the
-   full width of the track still shows inside it. */
-.yr-mark {
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  width: 2px;
-  transform: translateX(-1px);
-  border-radius: 1px;
-  background: var(--ink);
-  opacity: 0.45;
+/* The empty months keep their slot so a strip always reads as a whole
+   year, but only just: a group paid once should look like one bar, not
+   eleven grey ones. */
+.yr-cell {
+  display: flex;
+  align-items: flex-end;
+  border-radius: 2px;
+  background: var(--line);
 }
-.yr-bar {
-  display: block;
-  height: 100%;
-  border-radius: 99px;
+.yr-cell-bar {
+  width: 100%;
+  border-radius: 2px;
   background: var(--accent);
+  opacity: 0.6;
+}
+.yr-cell-bar.above {
+  opacity: 1;
 }
 .yr-amt {
   justify-self: end;
@@ -1054,8 +1175,8 @@ a:focus-visible {
   color: var(--muted);
   font-weight: 450;
 }
-.yr-row.other .yr-bar {
-  opacity: 0.45;
+.yr-row.other .yr-cell-bar {
+  background: var(--muted);
 }
 .yr-pct.up,
 .mv-amt.up {
@@ -1272,6 +1393,71 @@ a:focus-visible {
 }
 /* The page's footnotes. Each row is one doubt: a dot for how bad it
    is, what it is, and what rests on it. */
+/* The shape of a year: twelve columns of median spend, with this
+   year's finished months drawn narrower and in front, so hot and cold
+   read as a difference in height rather than a number to compare. */
+.sn-pace {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.sn-pace .num {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.sn-pace .muted {
+  color: var(--muted);
+}
+.sn-chart {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 14px;
+}
+.sn-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.sn-stack {
+  position: relative;
+  width: 100%;
+  height: 84px;
+}
+.sn-med,
+.sn-act {
+  position: absolute;
+  bottom: 0;
+  border-radius: 2px 2px 0 0;
+}
+.sn-med {
+  left: 0;
+  width: 100%;
+  background: var(--bar-past);
+}
+/* Half the width and centred, so the median stays legible behind it. */
+.sn-act {
+  left: 25%;
+  width: 50%;
+}
+.sn-act.up {
+  background: var(--over-text);
+}
+.sn-act.down {
+  background: var(--good-text);
+}
+.sn-tick {
+  font-size: 9.5px;
+  color: var(--muted);
+}
+
 .tr-rows {
   display: flex;
   flex-direction: column;

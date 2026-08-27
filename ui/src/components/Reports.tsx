@@ -7,9 +7,20 @@ import type {
   NetWorthPoint,
   Projects,
   ReportsView,
+  Season,
   Trust,
+  YearGroup,
 } from "../api";
-import { fmt, fmtCompact, monthName, monthShort, windowLabel } from "../format";
+import {
+  calendarMonth,
+  fmt,
+  fmtCompact,
+  monthName,
+  monthShort,
+  windowLabel,
+} from "../format";
+import type { RibbonMonth, StripCell } from "../year";
+import { foldGroups, yearRibbon, yearStrip } from "../year";
 
 /** "2026-08" plus n months. */
 function addMonths(m: string, n: number): string {
@@ -618,19 +629,25 @@ function GrowthCard({ growth, cur }: { growth: Growth; cur: string }) {
   );
 }
 
+/** Where the year went: the whole year as a ribbon of months, then
+ * every group as its own strip under the same axis. The dashed line
+ * means the same thing in both — what a usual month costs — so a bar
+ * standing above it reads as a month that cost more than it should
+ * without anything having to say so. */
 function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
-  const groups = data.year.groups;
+  const { months, groups, typical } = data.year;
   const total = groups.reduce((s, g) => s + g.total, 0);
-  const top = groups.slice(0, 9);
+  // Past nine rows the strips stop being readable, so the tail folds
+  // into one — summed month by month, because where the rest of the
+  // year's money went is still worth seeing even in aggregate.
   const rest = groups.slice(9);
-  const restTotal = rest.reduce((s, g) => s + g.total, 0);
-  const max = Math.max(...groups.map((g) => Math.max(g.total, g.prior ?? 0)), 0);
-  const width = (v: number) =>
-    max > 0 ? `${Math.min(100, (v / max) * 100)}%` : "0%";
-  const share = (v: number) => {
-    const p = (v / total) * 100;
-    return p >= 0.5 ? `${Math.round(p)}%` : "<1%";
-  };
+  const rows: [YearGroup, boolean][] = groups
+    .slice(0, 9)
+    .map((g) => [g, false] as [YearGroup, boolean]);
+  if (rest.length > 0) {
+    const name = `${rest.length} more groups`;
+    rows.push([foldGroups(name, rest, months.length), true]);
+  }
 
   // The prior year is all-or-nothing: the core withholds it entirely
   // rather than compare a whole year against however much history
@@ -639,78 +656,139 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
   const priorTotal = groups.reduce((s, g) => s + (g.prior ?? 0), 0);
   const change = (g: { total: number; prior: number | null }) =>
     g.prior == null || g.prior <= 0 ? null : g.total / g.prior - 1;
+  const share = (v: number) => {
+    const p = (v / total) * 100;
+    return p >= 0.5 ? `${Math.round(p)}%` : "<1%";
+  };
 
-  /** A tick where last year's spend sat, so the bar reads as a move. */
-  const mark = (g: { prior: number | null }) =>
-    g.prior != null && g.prior > 0 ? (
-      <span className="yr-mark" style={{ left: width(g.prior) }} />
-    ) : null;
+  const ribbon = yearRibbon(months, typical);
+  const height = (h: number) => `${Math.max(h * 100, 2)}%`;
 
-  const rowTitle = (name: string, now: number, before: number | null) =>
-    before == null
-      ? `${name}: ${fmt(now, cur)}`
-      : `${name}: ${fmt(now, cur)} this year, ${fmt(before, cur)} the year before` +
-        ` (${signed(now - before, cur)}) · ${share(now)} of the year`;
+  const monthTitle = (m: RibbonMonth) =>
+    `${monthName(m.month)}: ${fmt(m.total, cur)}` +
+    (typical == null ? "" : ` · a usual month is ${fmt(typical, cur)}`) +
+    (m.prior == null ? "" : ` · ${fmt(m.prior, cur)} a year earlier`);
+
+  const cellTitle = (name: string, c: StripCell, usual: number | null) =>
+    `${name}, ${monthName(c.month)}: ${fmt(c.value, cur)}` +
+    (usual == null ? "" : ` · usually ${fmt(usual, cur)}`);
+
+  const rowTitle = (g: YearGroup) =>
+    `${g.name}: ${fmt(g.total, cur)} over the year` +
+    (g.typical == null ? "" : ` · ${fmt(g.typical, cur)} in a usual month`) +
+    (g.prior == null
+      ? ""
+      : ` · ${fmt(g.prior, cur)} the year before (${signed(g.total - g.prior, cur)})`) +
+    ` · ${share(g.total)} of the year`;
 
   return (
     <div className="report-card">
-      <h2>Where the year went</h2>
-      <div className="sub2">
-        spend by group, {windowLabel(data.year.window)} ·{" "}
-        {fmt(total, cur, 0)} total
-        {compared && (
-          <>
-            {" · "}
-            <b className={total > priorTotal ? "up" : "down"}>
-              {signed(total - priorTotal, cur)}
-            </b>{" "}
-            <span title={`${fmt(priorTotal, cur)} over ${windowLabel(data.year.prior_window)}`}>
-              on the year before
+      <div className="yr-head">
+        <div>
+          <h2>Where the year went</h2>
+          <div className="yr-range">{windowLabel(data.year.window)}</div>
+        </div>
+        <div className="yr-fig">
+          <span className="yr-total num">{fmtCompact(total, cur)}</span>
+          {compared && (
+            <span
+              className={`yr-delta ${total > priorTotal ? "up" : "down"}`}
+              title={`${fmt(priorTotal, cur)} over ${windowLabel(data.year.prior_window)}`}
+            >
+              {changePct(priorTotal > 0 ? total / priorTotal - 1 : null)} on{" "}
+              {fmtCompact(priorTotal, cur)}
             </span>
-          </>
-        )}
+          )}
+        </div>
       </div>
       {groups.length === 0 ? (
         <div className="empty">no spending in the last year</div>
       ) : (
-        <div className="yr-rows">
-          {top.map((g) => (
-            <div
-              key={g.name}
-              className="yr-row"
-              title={rowTitle(g.name, g.total, g.prior)}
-            >
-              <span className="yr-name">{g.name}</span>
-              <span className="yr-track">
-                <span className="yr-bar" style={{ width: width(g.total) }} />
-                {mark(g)}
-              </span>
-              <span className="yr-amt num">{fmtCompact(g.total, cur)}</span>
-              {compared ? (
-                <span
-                  className={`yr-pct num ${g.total > (g.prior ?? 0) ? "up" : g.total < (g.prior ?? 0) ? "down" : ""}`}
-                >
-                  {changePct(change(g))}
+        <>
+          <div className="yr-ribbon">
+            {ribbon.months.map((m) => (
+              <span
+                key={m.month}
+                className={`yr-mon${m.yearStart ? " turn" : ""}`}
+                title={monthTitle(m)}
+              >
+                <span className="yr-mon-track">
+                  {m.total > 0 && (
+                    <span
+                      className={`yr-mon-bar${m.above ? " above" : ""}`}
+                      style={{ height: height(m.height) }}
+                    />
+                  )}
+                  {/* A segment per month rather than one line across
+                      the ribbon: the tracks are what it has to measure
+                      against, and the month labels below them would
+                      drag a single line off its own scale. */}
+                  {ribbon.typicalHeight != null && (
+                    <span
+                      className="yr-usual"
+                      style={{ bottom: `${ribbon.typicalHeight * 100}%` }}
+                    />
+                  )}
+                  {m.priorHeight != null && m.prior !== null && m.prior > 0 && (
+                    <span
+                      className="yr-was"
+                      style={{ bottom: `${m.priorHeight * 100}%` }}
+                    />
+                  )}
                 </span>
-              ) : (
-                <span className="yr-pct num">{share(g.total)}</span>
-              )}
-            </div>
-          ))}
-          {rest.length > 0 && (
-            <div
-              className="yr-row other"
-              title={rest.map((g) => `${g.name}: ${fmt(g.total, cur)}`).join("\n")}
-            >
-              <span className="yr-name">{rest.length} more groups</span>
-              <span className="yr-track">
-                <span className="yr-bar" style={{ width: width(restTotal) }} />
+                <span className="yr-mon-tag">
+                  {m.yearStart ? m.month.slice(2, 4) : monthShort(m.month)[0]}
+                </span>
               </span>
-              <span className="yr-amt num">{fmtCompact(restTotal, cur)}</span>
-              <span className="yr-pct num">{share(restTotal)}</span>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+          <div className="yr-rows">
+            {rows.map(([g, other]) => {
+              const strip = yearStrip(g, months);
+              return (
+                <div
+                  key={g.name}
+                  className={`yr-row${other ? " other" : ""}`}
+                  title={rowTitle(g)}
+                >
+                  <span className="yr-name">{g.name}</span>
+                  <span className="yr-strip">
+                    {strip.typicalHeight != null && (
+                      <span
+                        className="yr-usual"
+                        style={{ bottom: `${strip.typicalHeight * 100}%` }}
+                      />
+                    )}
+                    {strip.cells.map((c) => (
+                      <span
+                        key={c.month}
+                        className="yr-cell"
+                        title={cellTitle(g.name, c, g.typical)}
+                      >
+                        {c.value > 0 && (
+                          <span
+                            className={`yr-cell-bar${c.above ? " above" : ""}`}
+                            style={{ height: height(c.height) }}
+                          />
+                        )}
+                      </span>
+                    ))}
+                  </span>
+                  <span className="yr-amt num">{fmtCompact(g.total, cur)}</span>
+                  {compared ? (
+                    <span
+                      className={`yr-pct num ${g.total > (g.prior ?? 0) ? "up" : g.total < (g.prior ?? 0) ? "down" : ""}`}
+                    >
+                      {changePct(change(g))}
+                    </span>
+                  ) : (
+                    <span className="yr-pct num">{share(g.total)}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
@@ -853,7 +931,7 @@ function IncomeCard({ data, cur }: { data: Income; cur: string }) {
     <div className="report-card">
       <h2>Where income comes from</h2>
       <div className="sub2">
-        by source, {windowLabel(data.window)} \u00b7 {fmt(data.total, cur, 0)}{" "}
+        by source, {windowLabel(data.window)} · {fmt(data.total, cur, 0)}{" "}
         in all
         {data.effective_sources != null && (
           <>
@@ -875,14 +953,14 @@ function IncomeCard({ data, cur }: { data: Income; cur: string }) {
             <span className="num">{pct(data.passive_cover)}</span>
             <span>
               {" "}
-              of what you spend already pays itself \u00b7{" "}
+              of what you spend already pays itself ·{" "}
               {fmt(data.passive, cur, 0)} passive, {pct(data.passive_share)} of
               income
             </span>
           </>
         ) : (
           <span className="muted">
-            nothing here arrives without work \u2014 mark a source with{" "}
+            nothing here arrives without work — mark a source with{" "}
             <code>income: "passive"</code> on its open directive
           </span>
         )}
@@ -924,6 +1002,118 @@ function IncomeCard({ data, cur }: { data: Income; cur: string }) {
           from {data.inferred === 1 ? "its name" : "their names"} alone
           {data.declared > 0 && `, ${data.declared} marked in the ledger`}
         </div>
+      )}
+    </div>
+  );
+}
+
+/** What a year of spending looks like when the level is taken out, and
+ * where this one lands if it keeps to that shape. The trailing average
+ * calls December a surprise every December; the median across years
+ * calls it December. */
+function SeasonCard({ data, cur }: { data: Season; cur: string }) {
+  const months = data.months;
+  // Scaled to the tallest thing drawn, so an unusually hot month is
+  // never clipped by the shape it broke out of.
+  const peak = Math.max(
+    ...months.map((p) => Math.max(p.median, p.actual ?? 0)),
+    1,
+  );
+  const height = (v: number) => `${Math.max(0, (v / peak) * 100)}%`;
+
+  const off = data.pace == null ? null : data.pace - 1;
+  const paceLabel =
+    off == null
+      ? null
+      : Math.abs(off) < 0.005
+        ? "running exactly to shape"
+        : `running ${Math.round(Math.abs(off) * 100)}% ${off > 0 ? "above" : "below"} its usual pace`;
+
+  return (
+    <div className="report-card">
+      <h2>The shape of a year</h2>
+      <div className="sub2">
+        median spend per calendar month
+        {data.years && (
+          <>
+            , {data.years[0]}–{data.years[1]} ·{" "}
+            {fmt(data.typical, cur, 0)} in a typical year
+          </>
+        )}
+      </div>
+
+      {months.length === 0 ? (
+        <div className="empty">
+          a whole year of history is needed before a shape appears —{" "}
+          {data.elapsed === 0
+            ? "nothing has finished yet"
+            : `${fmt(data.ytd, cur, 0)} so far this year`}
+        </div>
+      ) : (
+        <>
+          {/* The one number this card exists to produce. */}
+          <div className="sn-pace">
+            {data.projected != null ? (
+              <>
+                <span className="num">{fmt(data.projected, cur, 0)}</span>
+                <span>
+                  {" "}
+                  by the end of {data.year} · {fmt(data.ytd, cur, 0)}{" "}
+                  through {data.elapsed} month
+                  {data.elapsed === 1 ? "" : "s"}, {paceLabel}
+                </span>
+              </>
+            ) : (
+              <span className="muted">
+                no month of {data.year} is over yet, so there is no pace to
+                carry forward
+              </span>
+            )}
+          </div>
+
+          <div className="sn-chart">
+            {months.map((p) => (
+              <div
+                key={p.month}
+                className="sn-col"
+                title={
+                  `${calendarMonth(p.month)}: usually ${fmt(p.median, cur)}` +
+                  ` (${p.samples} year${p.samples === 1 ? "" : "s"}, ` +
+                  `${(p.share * 100).toFixed(1)}% of a year)` +
+                  (p.actual == null
+                    ? ""
+                    : `\n${data.year}: ${fmt(p.actual, cur)}`)
+                }
+              >
+                <span className="sn-stack">
+                  <span
+                    className="sn-med"
+                    style={{ height: height(p.median) }}
+                  />
+                  {p.actual != null && (
+                    <span
+                      className={`sn-act ${p.actual > p.median ? "up" : "down"}`}
+                      style={{ height: height(p.actual) }}
+                    />
+                  )}
+                </span>
+                <span className="sn-tick">
+                  {calendarMonth(p.month).slice(0, 1)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="fine">
+            The wide bar is the median of {data.years?.[0]}–
+            {data.years?.[1]}; the narrow one is {data.year}. At most five
+            prior years feed it: the year being projected cannot also be
+            the baseline it is measured against, and a longer reach is a
+            different life at a different level rather than a better
+            sample. The projection prices the months still ahead at what
+            this year has been paying for the ones behind it.
+          </div>
+        </>
       )}
     </div>
   );
@@ -1268,6 +1458,8 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
           </div>
 
           <YearCard data={data} cur={cur} />
+
+          <SeasonCard data={data.season} cur={cur} />
 
           <MoversCard data={data.movers} cur={cur} />
 

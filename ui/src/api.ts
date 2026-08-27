@@ -186,6 +186,21 @@ export interface YearGroup {
   /** The same group over the twelve months before, or null when the
    * ledger doesn't reach back far enough to hold a whole prior year. */
   prior: number | null;
+  /** Spend in each of `year.months`, in that order and always that
+   * long, so a cell always sits under the month it belongs to. */
+  monthly: number[];
+  /** What one month of this group usually costs — the median of the
+   * months it was actually paid. Null when it never was. */
+  typical: number | null;
+}
+
+/** One month of the trailing year, across every expense group. */
+export interface YearMonth {
+  month: string;
+  total: number;
+  /** The same calendar month a year earlier, or null without a whole
+   * prior year to take it from. */
+  prior: number | null;
 }
 
 /** One `Income:*` group over the trailing year. */
@@ -267,6 +282,39 @@ export interface Movers {
   items: Mover[];
 }
 
+/** One calendar month, across every year the ledger covers. */
+export interface SeasonPoint {
+  /** 1 through 12. */
+  month: number;
+  /** Median spend in this calendar month over the sample years. */
+  median: number;
+  /** `median` over the twelve medians: the shape, level divided out. */
+  share: number;
+  /** How many years fed the median. One is not a median. */
+  samples: number;
+  /** What this year actually spent, once the month is over. */
+  actual: number | null;
+}
+
+export interface Season {
+  /** The calendar years behind the medians, inclusive. Null when the
+   * ledger doesn't cover all twelve months even once. */
+  years: [number, number] | null;
+  /** Twelve points in calendar order; empty when `years` is null. */
+  months: SeasonPoint[];
+  /** What a median year costs: the twelve medians added up. */
+  typical: number;
+  year: number;
+  /** Months of `year` that are over, and what they cost. */
+  elapsed: number;
+  ytd: number;
+  /** `ytd` over what those same months usually cost. Above one is a
+   * year running hot, measured against the same months. */
+  pace: number | null;
+  /** `ytd` plus the rest of the year at this year's pace. */
+  projected: number | null;
+}
+
 /** A commodity still held, valued at a price from a while ago. */
 export interface StalePrice {
   commodity: string;
@@ -325,11 +373,17 @@ export interface ReportsView {
   year: {
     window: [string, string] | null;
     prior_window: [string, string] | null;
+    /** The window's months in order, oldest first: the axis every
+     * group's `monthly` is indexed by. */
+    months: YearMonth[];
+    /** What a month of this year usually costs. */
+    typical: number | null;
     groups: YearGroup[];
   };
   movers: Movers;
   projects: Projects;
   income: Income;
+  season: Season;
   trust: Trust;
 }
 

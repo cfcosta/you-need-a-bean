@@ -66,6 +66,12 @@ export function monthName(m: string): string {
   return `${MONTHS[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
 }
 
+/** 1 through 12 → "January". A calendar month with no year attached,
+ * for the shape a year has rather than a month in one. */
+export function calendarMonth(n: number): string {
+  return MONTHS[n - 1] ?? "";
+}
+
 /** "2026-08" → "Aug" */
 export function monthShort(m: string): string {
   return (MONTHS[Number(m.slice(5, 7)) - 1] ?? "").slice(0, 3);

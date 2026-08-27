@@ -108,8 +108,22 @@ Each line is one task: core computation (with tests) → API shape → card.
 - [x] **9 · Net worth composition** — stack the area chart by cash /
       investments / liabilities so it shows *what* is growing, not just
       that something is.
-- [ ] **10 · Seasonality** — median spend per calendar month across
+- [x] **10 · Seasonality** — median spend per calendar month across
       years, and the year-end projection that shape implies.
+      A trailing average calls December a surprise every December. The
+      median across years calls it December, and dividing each month by
+      the twelve leaves the shape with the level taken out — which is
+      what makes the projection work: the year ahead is priced at what
+      this year has been paying for the months behind it, so the level
+      cancels and only the shape carries. The sample is capped at five
+      prior years, and the cap is not a detail. A synthetic long-history
+      fixture demonstrates that distant price levels distort the current
+      pace. Five recent complete years provide enough samples for a
+      median without mixing in spending levels from a different era.
+      The year being
+      projected is never its own baseline, and a ledger that cannot
+      cover twelve calendar months even once reports no shape at all
+      rather than eight months that appear to cost nothing.
 - [ ] **11 · Payee leaderboard** — top merchants by trailing-year spend,
       with frequency and average ticket.
 
