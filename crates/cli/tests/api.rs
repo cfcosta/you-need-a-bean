@@ -256,14 +256,51 @@ async fn reports_endpoint_shapes_series_and_fire() {
     // compare it against and every prior comes back null rather than a
     // number measured off however much ledger happens to precede it.
     assert_eq!(year["prior_window"], Value::Null);
+    // The whole window month by month, empty ones included: this is the
+    // axis every group's strip is indexed by, so it has to stay as long
+    // as the window or the cells slide out from under their months.
+    assert_eq!(
+        year["months"],
+        json!([
+            {"month": "2025-12", "total": 130.0, "prior": null},
+            {"month": "2026-01", "total": 196.0, "prior": null},
+            {"month": "2026-02", "total": 530.0, "prior": null},
+            {"month": "2026-03", "total": 0.0, "prior": null},
+            {"month": "2026-04", "total": 0.0, "prior": null},
+            {"month": "2026-05", "total": 0.0, "prior": null},
+            {"month": "2026-06", "total": 0.0, "prior": null},
+            {"month": "2026-07", "total": 0.0, "prior": null},
+        ])
+    );
+    // The median of the months that saw spending, so the five empty
+    // ones on the end cannot drag what a month usually costs to zero.
+    assert_eq!(year["typical"], json!(196.0));
     // Vacation is absent: its only spending is VACHR with no price,
     // which never converts.
     assert_eq!(
         year["groups"],
         json!([
-            {"name": "Home", "total": 500.0, "prior": null},
-            {"name": "Fun", "total": 190.0, "prior": null},
-            {"name": "Food", "total": 166.0, "prior": null},
+            {
+                "name": "Home",
+                "total": 500.0,
+                "prior": null,
+                "typical": 500.0,
+                "monthly": [0.0, 0.0, 500.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            },
+            {
+                "name": "Fun",
+                "total": 190.0,
+                "prior": null,
+                "typical": 95.0,
+                "monthly": [100.0, 90.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            },
+            {
+                "name": "Food",
+                "total": 166.0,
+                "prior": null,
+                "typical": 30.0,
+                "monthly": [30.0, 106.0, 30.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            },
         ])
     );
 

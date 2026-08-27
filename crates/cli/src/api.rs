@@ -318,15 +318,33 @@ async fn reports(
             })
         })
         .collect();
+    // `monthly` is indexed by `year.months` below and always as long,
+    // zeroes and all, so the two can be drawn against one axis.
     let year_groups: Vec<Value> = view
         .year
         .groups
         .iter()
         .map(|g| {
+            let monthly: Vec<Value> =
+                g.monthly.iter().copied().map(num).collect();
             json!({
                 "name": g.name,
                 "total": num(g.total),
                 "prior": opt_num(g.prior),
+                "typical": opt_num(g.typical),
+                "monthly": monthly,
+            })
+        })
+        .collect();
+    let year_months: Vec<Value> = view
+        .year
+        .months
+        .iter()
+        .map(|m| {
+            json!({
+                "month": m.month.to_string(),
+                "total": num(m.total),
+                "prior": opt_num(m.prior),
             })
         })
         .collect();
@@ -453,6 +471,8 @@ async fn reports(
         "year": {
             "window": window_json(view.year.window),
             "prior_window": window_json(view.year.prior_window),
+            "months": year_months,
+            "typical": opt_num(view.year.typical),
             "groups": year_groups,
         },
         "income": {
