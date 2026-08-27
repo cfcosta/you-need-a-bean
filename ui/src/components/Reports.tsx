@@ -9,9 +9,12 @@ import type {
   GrowthPoint,
   Income,
   Investments,
+  Mover,
   Movers,
+  Payee,
   Payees,
   NetWorthPoint,
+  Position,
   Projects,
   ReportsView,
   Season,
@@ -892,8 +895,48 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
   );
 }
 
+function MoverRow({
+  i,
+  cur,
+  width,
+}: {
+  i: Mover;
+  cur: string;
+  width: (v: number) => string;
+}) {
+  return (
+    <div
+      className="mv-row"
+      title={`${i.account}: ${fmt(i.prior, cur)} → ${fmt(i.recent, cur)}`}
+    >
+      <span className="mv-name">
+        {i.label}
+        {i.group && <span className="mv-group">{i.group}</span>}
+      </span>
+      <span className="mv-track">
+        <span
+          className={`mv-bar ${i.delta > 0 ? "up" : "down"}`}
+          style={
+            i.delta > 0
+              ? { left: "50%", width: width(i.delta) }
+              : { right: "50%", width: width(i.delta) }
+          }
+        />
+      </span>
+      <span className={`mv-amt num ${i.delta > 0 ? "up" : "down"}`}>
+        {signed(i.delta, cur)}
+      </span>
+      <span className="mv-pct num">{changePct(i.ratio)}</span>
+    </div>
+  );
+}
+
 function MoversCard({ data, cur }: { data: Movers; cur: string }) {
+  const [open, setOpen] = useState(false);
   const delta = data.recent_total - data.prior_total;
+  // What the rows below the cut come to together. Both directions are in
+  // there, so it is a net the same way the card's own figure is.
+  const rest = data.hidden.reduce((sum, i) => sum + i.delta, 0);
   // Ranked by money, so the widest bar is the biggest move either way.
   const max = Math.max(...data.items.map((i) => Math.abs(i.delta)), 1);
   const width = (v: number) => `${(Math.abs(v) / max) * 50}%`;
@@ -923,34 +966,30 @@ function MoversCard({ data, cur }: { data: Movers; cur: string }) {
             : "no category moved enough to be worth naming"}
         </div>
       ) : (
-        <div className="mv-rows">
-          {data.items.map((i) => (
-            <div
-              key={i.account}
-              className="mv-row"
-              title={`${i.account}: ${fmt(i.prior, cur)} → ${fmt(i.recent, cur)}`}
-            >
-              <span className="mv-name">
-                {i.label}
-                {i.group && <span className="mv-group">{i.group}</span>}
-              </span>
-              <span className="mv-track">
-                <span
-                  className={`mv-bar ${i.delta > 0 ? "up" : "down"}`}
-                  style={
-                    i.delta > 0
-                      ? { left: "50%", width: width(i.delta) }
-                      : { right: "50%", width: width(i.delta) }
-                  }
-                />
-              </span>
-              <span className={`mv-amt num ${i.delta > 0 ? "up" : "down"}`}>
-                {signed(i.delta, cur)}
-              </span>
-              <span className="mv-pct num">{changePct(i.ratio)}</span>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="mv-rows">
+            {data.items.map((i) => (
+              <MoverRow key={i.account} i={i} cur={cur} width={width} />
+            ))}
+            {open &&
+              data.hidden.map((i) => (
+                <MoverRow key={i.account} i={i} cur={cur} width={width} />
+              ))}
+          </div>
+
+          <Fold
+            hidden={data.hidden.length}
+            open={open}
+            onToggle={() => setOpen(!open)}
+            label={
+              <>
+                {data.hidden.length} smaller move
+                {data.hidden.length === 1 ? "" : "s"}, {signed(rest, cur)}{" "}
+                between them
+              </>
+            }
+          />
+        </>
       )}
     </div>
   );
@@ -979,10 +1018,15 @@ function Fold({
   hidden,
   open,
   onToggle,
+  label,
 }: {
   hidden: number;
   open: boolean;
   onToggle: () => void;
+  /** What to call them while they are folded away. A bare count is
+   * right under a list the heading already named; a card whose cut
+   * means something particular says what it means. */
+  label?: ReactNode;
 }) {
   if (hidden <= 0) return null;
   return (
@@ -992,7 +1036,7 @@ function Fold({
       aria-expanded={open}
       onClick={onToggle}
     >
-      {open ? `fold ${hidden} back in` : `${hidden} more`}
+      {open ? `fold ${hidden} back in` : (label ?? `${hidden} more`)}
     </button>
   );
 }
@@ -1320,6 +1364,44 @@ const retPct = (r: number | null) =>
  * interest, a rebate or a swap carries no cost anywhere in the
  * ledger, and reading that absence as zero would print a return of
  * +100% on money nobody can say was made. */
+function InvRow({
+  p,
+  cur,
+  tail,
+}: {
+  p: Position;
+  cur: string;
+  tail?: boolean;
+}) {
+  return (
+    <div
+      className={`inv-row${tail ? " inv-tail" : ""}`}
+      title={
+        `${units(p.units)} ${p.currency} at ${fmt(p.price, cur)} = ${fmt(p.value, cur)}` +
+        (p.basis != null
+          ? `\ncost ${fmt(p.basis, cur)} · ${(p.gain ?? 0) > 0 ? "+" : ""}${fmt(p.gain ?? 0, cur)} (${retPct(p.ret)})`
+          : "\nno cost recorded — every unit held arrived without one") +
+        `\n${p.accounts} account${p.accounts === 1 ? "" : "s"}, ` +
+        `${p.postings} posting${p.postings === 1 ? "" : "s"}` +
+        ` · ${spanLabel(p.first, p.last)}`
+      }
+    >
+      <span className="inv-name">
+        <b>{p.currency}</b>
+        {p.label !== p.currency && <i>{p.label}</i>}
+      </span>
+      <span className="inv-cls">{p.class ?? ""}</span>
+      <span className="inv-amt num">{fmt(p.value, cur, 0)}</span>
+      <span className="inv-pct num">{ratio(p.share)}</span>
+      <span
+        className={`inv-ret num ${p.ret == null ? "none" : p.ret >= 0 ? "ok" : "bad"}`}
+      >
+        {retPct(p.ret)}
+      </span>
+    </div>
+  );
+}
+
 function InvestmentsCard({
   data,
   month,
@@ -1329,6 +1411,8 @@ function InvestmentsCard({
   month: string;
   cur: string;
 }) {
+  const [dust, setDust] = useState(false);
+
   if (data.total <= 0) {
     return (
       <div className="report-card">
@@ -1355,7 +1439,7 @@ function InvestmentsCard({
   const shade = (i: number) => ({
     background: `var(--alloc-${Math.min(i + 1, 5)})`,
   });
-  const held = data.items.length + data.dust;
+  const held = data.items.length + data.dust.length;
 
   return (
     <div className="report-card">
@@ -1443,53 +1527,41 @@ function InvestmentsCard({
 
       <div className="inv-rows">
         {data.items.map((p) => (
-          <div
-            key={p.currency}
-            className="inv-row"
-            title={
-              `${units(p.units)} ${p.currency} at ${fmt(p.price, cur)} = ${fmt(p.value, cur)}` +
-              (p.basis != null
-                ? `\ncost ${fmt(p.basis, cur)} · ${(p.gain ?? 0) > 0 ? "+" : ""}${fmt(p.gain ?? 0, cur)} (${retPct(p.ret)})`
-                : "\nno cost recorded — every unit held arrived without one") +
-              `\n${p.accounts} account${p.accounts === 1 ? "" : "s"}, ` +
-              `${p.postings} posting${p.postings === 1 ? "" : "s"}` +
-              ` · ${spanLabel(p.first, p.last)}`
-            }
-          >
-            <span className="inv-name">
-              <b>{p.currency}</b>
-              {p.label !== p.currency && <i>{p.label}</i>}
-            </span>
-            <span className="inv-cls">{p.class ?? ""}</span>
-            <span className="inv-amt num">{fmt(p.value, cur, 0)}</span>
-            <span className="inv-pct num">{ratio(p.share)}</span>
-            <span
-              className={`inv-ret num ${p.ret == null ? "none" : p.ret >= 0 ? "ok" : "bad"}`}
-            >
-              {retPct(p.ret)}
-            </span>
-          </div>
+          <InvRow key={p.currency} p={p} cur={cur} />
         ))}
 
-        {data.dust > 0 && (
-          <div
-            className="inv-row inv-dust"
-            title="Too small to rank against the rest. They are still in the total above and in their asset class — this line only keeps them out of the ranking."
-          >
-            <span className="inv-name">
-              <b>
-                {data.dust} smaller position{data.dust === 1 ? "" : "s"}
-              </b>
-            </span>
-            <span className="inv-cls" />
-            <span className="inv-amt num">
-              {fmt(data.dust_value, cur, 0)}
-            </span>
-            <span className="inv-pct num">
-              {ratio(data.dust_value / data.total)}
-            </span>
-            <span className="inv-ret num none">{"—"}</span>
-          </div>
+        {data.dust.length > 0 && (
+          <>
+            <button
+              type="button"
+              className={`inv-row inv-dust${dust ? " open" : ""}`}
+              aria-expanded={dust}
+              onClick={() => setDust(!dust)}
+              title="Too small to rank against the rest. They are still in the total above and in their asset class — this line only keeps them out of the ranking. Open it to see which."
+            >
+              <span className="inv-name">
+                <b>
+                  {dust
+                    ? "fold the small ones back in"
+                    : `${data.dust.length} smaller position${
+                        data.dust.length === 1 ? "" : "s"
+                      }`}
+                </b>
+              </span>
+              <span className="inv-cls" />
+              <span className="inv-amt num">
+                {fmt(data.dust_value, cur, 0)}
+              </span>
+              <span className="inv-pct num">
+                {ratio(data.dust_value / data.total)}
+              </span>
+              <span className="inv-ret num none">{"—"}</span>
+            </button>
+            {dust &&
+              data.dust.map((p) => (
+                <InvRow key={p.currency} p={p} cur={cur} tail />
+              ))}
+          </>
         )}
       </div>
 
@@ -1517,7 +1589,41 @@ function InvestmentsCard({
  * says which supermarket, how often, and how much a visit costs — the
  * three numbers that decide whether a line is worth doing anything
  * about. */
+function PayeeRow({
+  p,
+  cur,
+  width,
+}: {
+  p: Payee;
+  cur: string;
+  width: (v: number) => string;
+}) {
+  return (
+    <div
+      className="py-row"
+      title={
+        `${p.name}: ${fmt(p.spent, cur)} over ${p.count} charge` +
+        `${p.count === 1 ? "" : "s"}, averaging ${fmt(p.average, cur)}` +
+        `\n${p.months} month${p.months === 1 ? "" : "s"}, ` +
+        `${p.categories} categor${p.categories === 1 ? "y" : "ies"}` +
+        ` · ${spanLabel(p.first, p.last)}`
+      }
+    >
+      <span className="py-name">{p.name}</span>
+      <span className="py-meta num">
+        {p.count}× {fmtCompact(p.average, cur)}
+      </span>
+      <span className="ic-track">
+        <span className="ic-bar" style={{ width: width(p.spent) }} />
+      </span>
+      <span className="py-amt num">{fmtCompact(p.spent, cur)}</span>
+      <span className="py-pct num">{ratio(p.share)}</span>
+    </div>
+  );
+}
+
 function PayeeCard({ data, cur }: { data: Payees; cur: string }) {
+  const [open, setOpen] = useState(false);
   const max = data.items[0]?.spent ?? 0;
   const width = (v: number) => (max > 0 ? `${(v / max) * 100}%` : "0%");
   // How much of the year sits in the names below: the concentration
@@ -1564,34 +1670,28 @@ function PayeeCard({ data, cur }: { data: Payees; cur: string }) {
 
           <div className="py-rows">
             {data.items.map((p) => (
-              <div
-                key={p.name}
-                className="py-row"
-                title={
-                  `${p.name}: ${fmt(p.spent, cur)} over ${p.count} charge` +
-                  `${p.count === 1 ? "" : "s"}, averaging ${fmt(p.average, cur)}` +
-                  `\n${p.months} month${p.months === 1 ? "" : "s"}, ` +
-                  `${p.categories} categor${p.categories === 1 ? "y" : "ies"}` +
-                  ` · ${spanLabel(p.first, p.last)}`
-                }
-              >
-                <span className="py-name">{p.name}</span>
-                <span className="py-meta num">
-                  {p.count}× {fmtCompact(p.average, cur)}
-                </span>
-                <span className="ic-track">
-                  <span className="ic-bar" style={{ width: width(p.spent) }} />
-                </span>
-                <span className="py-amt num">{fmtCompact(p.spent, cur)}</span>
-                <span className="py-pct num">{ratio(p.share)}</span>
-              </div>
+              <PayeeRow key={p.name} p={p} cur={cur} width={width} />
             ))}
           </div>
 
-          {data.others > 0 && (
-            <div className="pj-note">
-              {data.others} more name{data.others === 1 ? "" : "s"} below the
-              cut, {fmt(data.others_spent, cur, 0)} between them
+          <Fold
+            hidden={data.others.length}
+            open={open}
+            onToggle={() => setOpen(!open)}
+            label={
+              <>
+                {data.others.length} more name
+                {data.others.length === 1 ? "" : "s"} below the cut,{" "}
+                {fmt(data.others_spent, cur, 0)} between them
+              </>
+            }
+          />
+
+          {open && (
+            <div className="py-rows py-tail">
+              {data.others.map((p) => (
+                <PayeeRow key={p.name} p={p} cur={cur} width={width} />
+              ))}
             </div>
           )}
         </>

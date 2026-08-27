@@ -59,7 +59,9 @@ pub struct PayeesView {
     /// that happens to be listed.
     pub total: Decimal,
     /// Payees past the cut, and what they came to between them.
-    pub others: usize,
+    /// Kept rather than counted, so the line standing in for them can
+    /// open onto the names themselves.
+    pub others_items: Vec<Payee>,
     pub others_spent: Decimal,
     /// Spend on transactions that name nobody. Not a gap in the
     /// ledger — a narration is often the whole story — but it is money
@@ -90,7 +92,7 @@ impl Ledger {
                 window,
                 items: Vec::new(),
                 total: Decimal::ZERO,
-                others: 0,
+                others_items: Vec::new(),
                 others_spent: Decimal::ZERO,
                 anonymous: Decimal::ZERO,
                 anonymous_count: 0,
@@ -195,8 +197,8 @@ impl Ledger {
             window,
             items,
             total,
-            others: tail.len(),
             others_spent: tail.iter().map(|p| p.spent).sum(),
+            others_items: tail,
             anonymous: cents(anonymous),
             anonymous_count,
         }

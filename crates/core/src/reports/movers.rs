@@ -49,6 +49,10 @@ pub struct MoversView {
     pub prior_total: Decimal,
     /// Biggest movers first, rises and falls together.
     pub items: Vec<Mover>,
+    /// The movers past the cut, ranked the same way. Kept rather than
+    /// dropped: a list that ends without saying it ended reads as the
+    /// whole answer when it is only the top of one.
+    pub hidden: Vec<Mover>,
 }
 
 impl Ledger {
@@ -64,6 +68,7 @@ impl Ledger {
                 recent_total: Decimal::ZERO,
                 prior_total: Decimal::ZERO,
                 items: Vec::new(),
+                hidden: Vec::new(),
             };
         };
 
@@ -101,7 +106,7 @@ impl Ledger {
                 .cmp(&a.delta.abs())
                 .then(a.account.cmp(&b.account))
         });
-        items.truncate(LIMIT);
+        let hidden = items.split_off(items.len().min(LIMIT));
 
         MoversView {
             recent: Some(recent),
@@ -109,6 +114,7 @@ impl Ledger {
             recent_total,
             prior_total,
             items,
+            hidden,
         }
     }
 }

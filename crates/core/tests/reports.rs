@@ -905,7 +905,7 @@ fn the_payee_leaderboard_ranks_merchants_by_what_they_took() {
     // reported rather than dropped.
     assert_eq!(payees.items.len(), 15);
     assert_eq!(payees.items[14].name, "Vendor K");
-    assert_eq!(payees.others, 1);
+    assert_eq!(payees.others_items.len(), 1);
     assert_eq!(payees.others_spent, dec("45.00"));
 
     // Money that named nobody is money this card cannot rank, and it
@@ -928,7 +928,7 @@ fn a_ledger_that_names_nobody_ranks_nobody() {
     // the card says the spend is unattributed rather than showing an
     // empty list and leaving the reason to the reader.
     assert!(payees.items.is_empty());
-    assert_eq!(payees.others, 0);
+    assert!(payees.others_items.is_empty());
     assert!(payees.total > Decimal::ZERO);
     assert_eq!(payees.anonymous, payees.total);
     assert_eq!(payees.anonymous_count, 8);
@@ -1058,11 +1058,62 @@ fn investments_fold_dust_and_name_what_nothing_prices() {
     // Five DUST at a ten-thousandth is half a cent. It is still held
     // and still counted in the total; it just does not earn a row.
     assert!(view.items.iter().all(|p| p.currency != "DUST"));
-    assert_eq!(view.dust, 1);
     assert_eq!(view.dust_value, dec("0.00"));
+
+    // Folded out of the ranking, not out of the report: the row that
+    // counts them opens onto the positions themselves.
+    let dust: Vec<&str> = view
+        .dust_items
+        .iter()
+        .map(|p| p.currency.as_str())
+        .collect();
+    assert_eq!(dust, vec!["DUST"]);
 
     // Two GOLD is a real holding that nothing can value, so it is
     // missing from every figure above — and named for it rather than
     // quietly dropped.
     assert_eq!(view.unpriced, vec!["GOLD".to_string()]);
+}
+
+#[test]
+fn payees_past_the_cut_are_kept_rather_than_counted() {
+    let view = fixture("payees").reports_view((2026, 4, 15), 3, "USD");
+    let payees = &view.payees;
+
+    // The ranking stops at fifteen, but the names past it are still
+    // carried, so the line that counts them can open onto them
+    // instead of dead-ending in a number nobody can check.
+    assert_eq!(payees.items.len(), 15);
+    assert!(!payees.others_items.is_empty());
+
+    // The tail carries on where the ranking stopped: nothing in it
+    // outspends the cheapest name that made the cut.
+    let cut = payees.items.last().unwrap().spent;
+    assert!(payees.others_items.iter().all(|p| p.spent <= cut));
+
+    // And it is the same money the summary claims, not a sample of it.
+    let summed: Decimal = payees.others_items.iter().map(|p| p.spent).sum();
+    assert_eq!(payees.others_spent, summed);
+}
+
+#[test]
+fn movers_past_the_cut_are_kept_rather_than_dropped() {
+    let view = fixture("movers-tail").reports_view((2026, 4, 15), 3, "USD");
+    let movers = &view.movers;
+    assert_eq!(movers.recent, Some((m("2026-01"), m("2026-03"))));
+
+    // Twelve categories rose, each by 200 more than the one below it.
+    // Eight earn a row; the other four used to vanish without the
+    // card ever admitting they existed.
+    assert_eq!(movers.items.len(), 8);
+    let hidden: Vec<Decimal> =
+        movers.hidden.iter().map(|mv| mv.delta).collect();
+    assert_eq!(
+        hidden,
+        vec![dec("800.00"), dec("600.00"), dec("400.00"), dec("200.00")]
+    );
+
+    // The tail is ranked by the same measure as the list above it, so
+    // opening it reads as one list rather than two.
+    assert!(movers.items.last().unwrap().delta.abs() >= dec("800.00"));
 }

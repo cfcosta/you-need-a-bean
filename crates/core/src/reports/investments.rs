@@ -100,8 +100,10 @@ pub struct InvestmentsView {
     pub classes: Vec<AssetClass>,
     /// Every position, dust included.
     pub total: Decimal,
-    /// Positions folded out of `items`, and what they came to together.
-    pub dust: usize,
+    /// Positions folded out of `items`, and what they came to
+    /// together. Kept rather than counted, so the row standing in for
+    /// them can open onto the positions themselves.
+    pub dust_items: Vec<Position>,
     pub dust_value: Decimal,
     /// Cost of the positions that recorded one.
     pub basis: Decimal,
@@ -397,8 +399,8 @@ impl Ledger {
             items,
             classes,
             total,
-            dust: tail.len(),
             dust_value: tail.iter().map(|p| p.value).sum(),
+            dust_items: tail,
             basis,
             based_value,
             gain: based_value - basis,

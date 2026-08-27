@@ -18,7 +18,7 @@ use axum::routing::get;
 use axum::{Json, Router};
 use bean_core::model::{AccountKind, Day, Ledger, MonthKey, Txn};
 use bean_core::query::{AccountRow, CategoryRow, Group};
-use bean_core::reports::FireScenario;
+use bean_core::reports::{FireScenario, Mover, Payee, Position};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use serde_json::{Map, Value, json};
@@ -439,22 +439,9 @@ async fn reports(
             })
         })
         .collect();
-    let movers: Vec<Value> = view
-        .movers
-        .items
-        .iter()
-        .map(|m| {
-            json!({
-                "account": m.account,
-                "label": m.label,
-                "group": m.group,
-                "recent": num(m.recent),
-                "prior": num(m.prior),
-                "delta": num(m.delta),
-                "ratio": ratio_json(m.ratio),
-            })
-        })
-        .collect();
+    let movers: Vec<Value> = view.movers.items.iter().map(mover_json).collect();
+    let movers_hidden: Vec<Value> =
+        view.movers.hidden.iter().map(mover_json).collect();
     let season: Vec<Value> = view
         .season
         .months
@@ -471,28 +458,13 @@ async fn reports(
             })
         })
         .collect();
-    let positions: Vec<Value> = view
+    let positions: Vec<Value> =
+        view.investments.items.iter().map(position_json).collect();
+    let dust: Vec<Value> = view
         .investments
-        .items
+        .dust_items
         .iter()
-        .map(|p| {
-            json!({
-                "currency": p.currency,
-                "label": p.label,
-                "class": p.class,
-                "units": units_json(p.units),
-                "price": num(p.price),
-                "value": num(p.value),
-                "share": ratio_json(Some(p.share)),
-                "basis": opt_num(p.basis),
-                "gain": opt_num(p.gain),
-                "ret": ratio_json(p.ret),
-                "accounts": p.accounts,
-                "postings": p.postings,
-                "first": format_day(p.first),
-                "last": format_day(p.last),
-            })
-        })
+        .map(position_json)
         .collect();
     let classes: Vec<Value> = view
         .investments
@@ -507,24 +479,9 @@ async fn reports(
             })
         })
         .collect();
-    let payees: Vec<Value> = view
-        .payees
-        .items
-        .iter()
-        .map(|p| {
-            json!({
-                "name": p.name,
-                "spent": num(p.spent),
-                "count": p.count,
-                "average": num(p.average),
-                "share": ratio_json(Some(p.share)),
-                "categories": p.categories,
-                "months": p.months,
-                "first": format_day(p.first),
-                "last": format_day(p.last),
-            })
-        })
-        .collect();
+    let payees: Vec<Value> = view.payees.items.iter().map(payee_json).collect();
+    let payees_others: Vec<Value> =
+        view.payees.others_items.iter().map(payee_json).collect();
     let stale: Vec<Value> = view
         .trust
         .stale
@@ -626,6 +583,7 @@ async fn reports(
             "recent_total": num(view.movers.recent_total),
             "prior_total": num(view.movers.prior_total),
             "items": movers,
+            "hidden": movers_hidden,
         },
         "season": {
             "years": view.season.years.map_or(Value::Null, |(from, to)| {
@@ -643,7 +601,7 @@ async fn reports(
             "items": positions,
             "classes": classes,
             "total": num(view.investments.total),
-            "dust": view.investments.dust,
+            "dust": dust,
             "dust_value": num(view.investments.dust_value),
             "basis": num(view.investments.basis),
             "based_value": num(view.investments.based_value),
@@ -659,7 +617,7 @@ async fn reports(
             "window": window_json(view.payees.window),
             "items": payees,
             "total": num(view.payees.total),
-            "others": view.payees.others,
+            "others": payees_others,
             "others_spent": num(view.payees.others_spent),
             "anonymous": num(view.payees.anonymous),
             "anonymous_count": view.payees.anonymous_count,
@@ -681,6 +639,51 @@ async fn reports(
             "warnings": view.trust.warnings,
         },
     })))
+}
+
+fn mover_json(m: &Mover) -> Value {
+    json!({
+        "account": m.account,
+        "label": m.label,
+        "group": m.group,
+        "recent": num(m.recent),
+        "prior": num(m.prior),
+        "delta": num(m.delta),
+        "ratio": ratio_json(m.ratio),
+    })
+}
+
+fn position_json(p: &Position) -> Value {
+    json!({
+        "currency": p.currency,
+        "label": p.label,
+        "class": p.class,
+        "units": units_json(p.units),
+        "price": num(p.price),
+        "value": num(p.value),
+        "share": ratio_json(Some(p.share)),
+        "basis": opt_num(p.basis),
+        "gain": opt_num(p.gain),
+        "ret": ratio_json(p.ret),
+        "accounts": p.accounts,
+        "postings": p.postings,
+        "first": format_day(p.first),
+        "last": format_day(p.last),
+    })
+}
+
+fn payee_json(p: &Payee) -> Value {
+    json!({
+        "name": p.name,
+        "spent": num(p.spent),
+        "count": p.count,
+        "average": num(p.average),
+        "share": ratio_json(Some(p.share)),
+        "categories": p.categories,
+        "months": p.months,
+        "first": format_day(p.first),
+        "last": format_day(p.last),
+    })
 }
 
 fn group_json(group: &Group) -> Value {

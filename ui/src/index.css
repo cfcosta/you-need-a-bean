@@ -1606,6 +1606,19 @@ button.yr-row:hover .yr-cell-bar {
   gap: 7px;
   margin-top: 12px;
 }
+/* The names past the cut, once they are asked for. There can be
+   hundreds, so they scroll in place rather than pushing everything
+   below them off the screen. */
+.py-tail {
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: 6px;
+  padding-right: 6px;
+}
+.py-tail .py-name,
+.py-tail .py-amt {
+  font-weight: 450;
+}
 .py-row {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) auto minmax(56px, 1fr) auto auto;
@@ -1784,11 +1797,43 @@ button.yr-row:hover .yr-cell-bar {
   color: var(--muted);
   font-weight: 400;
 }
+/* The positions the ranking set aside. It is the last row of the list
+   and the control that unfolds it at once — same triangle the year
+   card's cut-off row carries, because it is the same promise: this
+   line stands for things, and clicking turns it into them. */
 .inv-dust {
+  width: 100%;
+  font-size: 11.5px;
   color: var(--muted);
-  cursor: help;
+}
+.inv-dust:hover {
+  color: var(--ink);
 }
 .inv-dust .inv-name b {
+  font-weight: 550;
+}
+.inv-dust .inv-name b::after {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 5px;
+  border: 3.5px solid transparent;
+  border-top-color: currentColor;
+  vertical-align: -1px;
+}
+.inv-dust.open .inv-name b::after {
+  border-top-color: transparent;
+  border-bottom-color: currentColor;
+  vertical-align: 1.5px;
+}
+/* A position that only exists once the row above is opened. Indented
+   under it, so the two read as one list with a fold in it rather than
+   as a second list that appeared. */
+.inv-tail .inv-name {
+  padding-left: 14px;
+}
+.inv-tail .inv-name b {
   font-weight: 550;
 }
 /* The page's footnotes. Each row is one doubt: a dot for how bad it

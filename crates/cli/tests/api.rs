@@ -557,7 +557,12 @@ async fn reports_endpoint_ranks_the_payees() {
     let payees = &body["payees"];
     assert_eq!(payees["window"], json!(["2025-04", "2026-03"]));
     assert_eq!(payees["total"], json!(8000.0));
-    assert_eq!(payees["others"], json!(1));
+    // The names past the cut ride along rather than being counted,
+    // so the line standing in for them can open onto them.
+    let others = payees["others"].as_array().unwrap();
+    assert_eq!(others.len(), 1);
+    assert_eq!(others[0]["name"], json!("Vendor L"));
+    assert_eq!(others[0]["spent"], json!(45.0));
     assert_eq!(payees["others_spent"], json!(45.0));
     assert_eq!(payees["anonymous"], json!(630.0));
     assert_eq!(payees["anonymous_count"], json!(3));
@@ -610,7 +615,9 @@ async fn reports_endpoint_details_the_positions_held() {
     assert_eq!(inv["unbased"], json!(1500.0));
     assert_eq!(inv["unbased_count"], json!(2));
     assert_eq!(inv["effective"], json!(3.02));
-    assert_eq!(inv["dust"], json!(1));
+    let dust = inv["dust"].as_array().unwrap();
+    assert_eq!(dust.len(), 1);
+    assert_eq!(dust[0]["currency"], json!("DUST"));
     assert_eq!(inv["dust_value"], json!(0.0));
     assert_eq!(inv["unpriced"], json!(["GOLD"]));
 

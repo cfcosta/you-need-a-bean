@@ -1,0 +1,123 @@
+option "title" "Movers tail"
+option "operating_currency" "USD"
+
+2025-01-01 open Assets:Checking  USD
+2025-01-01 open Equity:Opening   USD
+2025-01-01 open Expenses:Cat01:Spend  USD
+2025-01-01 open Expenses:Cat02:Spend  USD
+2025-01-01 open Expenses:Cat03:Spend  USD
+2025-01-01 open Expenses:Cat04:Spend  USD
+2025-01-01 open Expenses:Cat05:Spend  USD
+2025-01-01 open Expenses:Cat06:Spend  USD
+2025-01-01 open Expenses:Cat07:Spend  USD
+2025-01-01 open Expenses:Cat08:Spend  USD
+2025-01-01 open Expenses:Cat09:Spend  USD
+2025-01-01 open Expenses:Cat10:Spend  USD
+2025-01-01 open Expenses:Cat11:Spend  USD
+2025-01-01 open Expenses:Cat12:Spend  USD
+
+2025-01-01 * "Opening balance"
+  Assets:Checking  200000.00 USD
+  Equity:Opening
+
+; The quarter before: every category costs the same, so the only
+; thing the comparison can find is what changed after it.
+
+2025-11-15 * "Cat01"
+  Expenses:Cat01:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat02"
+  Expenses:Cat02:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat03"
+  Expenses:Cat03:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat04"
+  Expenses:Cat04:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat05"
+  Expenses:Cat05:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat06"
+  Expenses:Cat06:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat07"
+  Expenses:Cat07:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat08"
+  Expenses:Cat08:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat09"
+  Expenses:Cat09:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat10"
+  Expenses:Cat10:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat11"
+  Expenses:Cat11:Spend  300.00 USD
+  Assets:Checking
+
+2025-11-15 * "Cat12"
+  Expenses:Cat12:Spend  300.00 USD
+  Assets:Checking
+
+; The recent quarter: twelve rises, each 200 bigger than the last, so
+; the ranking is unambiguous and four of them fall past the cut.
+
+2026-02-15 * "Cat01"
+  Expenses:Cat01:Spend  500.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat02"
+  Expenses:Cat02:Spend  700.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat03"
+  Expenses:Cat03:Spend  900.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat04"
+  Expenses:Cat04:Spend  1100.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat05"
+  Expenses:Cat05:Spend  1300.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat06"
+  Expenses:Cat06:Spend  1500.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat07"
+  Expenses:Cat07:Spend  1700.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat08"
+  Expenses:Cat08:Spend  1900.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat09"
+  Expenses:Cat09:Spend  2100.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat10"
+  Expenses:Cat10:Spend  2300.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat11"
+  Expenses:Cat11:Spend  2500.00 USD
+  Assets:Checking
+
+2026-02-15 * "Cat12"
+  Expenses:Cat12:Spend  2700.00 USD
+  Assets:Checking

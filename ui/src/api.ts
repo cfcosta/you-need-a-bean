@@ -326,6 +326,9 @@ export interface Movers {
   recent_total: number;
   prior_total: number;
   items: Mover[];
+  /** Ranked the same way, but past the cut — the card opens onto
+   * these rather than pretending the list above was all of them. */
+  hidden: Mover[];
 }
 
 /** One calendar month, across every year the ledger covers. */
@@ -406,7 +409,7 @@ export interface Investments {
   /** Everything held, dust and unclassified included. */
   total: number;
   /** Positions too small to rank, and what they came to together. */
-  dust: number;
+  dust: Position[];
   dust_value: number;
   /** What the positions that recorded a cost cost, what those same
    * positions are worth now, and the gain between them. */
@@ -455,7 +458,7 @@ export interface Payees {
    * `share`. */
   total: number;
   /** The names that qualified but didn't fit, and what they took. */
-  others: number;
+  others: Payee[];
   others_spent: number;
   /** Spend on transactions that name no payee, which is spend this
    * card cannot rank rather than spend that didn't happen. */
