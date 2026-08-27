@@ -731,10 +731,67 @@ a:focus-visible {
   font-weight: 650;
   letter-spacing: -0.01em;
 }
-.report-card .sub2 {
+/* Every card's head. The name and the span it covers sit on the left,
+   the one number the card produces against the right edge — the same
+   two places on every card, so the eye learns where to look once. */
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.card-span {
+  margin-top: 2px;
   font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--muted);
-  margin-top: 1px;
+}
+.card-fig {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  text-align: right;
+}
+.card-total {
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.card-total .ok {
+  color: var(--good-text);
+}
+.card-total .bad {
+  color: var(--over-text);
+}
+.card-note {
+  font-size: 10.5px;
+  font-weight: 550;
+  color: var(--muted);
+}
+.card-note .up {
+  color: var(--over-text);
+}
+.card-note .down {
+  color: var(--good-text);
+}
+/* What used to be a sentence on the card is a tooltip now, so the
+   things carrying one have to look like they are worth hovering. */
+.fire-sub,
+.card-span[title],
+.card-note[title],
+.pj-note[title],
+.key-item[title],
+.fire-stat .v[title] {
+  cursor: help;
+}
+.fire-sub,
+.card-span[title],
+.pj-note[title] {
+  text-decoration: underline dotted var(--line-2);
+  text-underline-offset: 3px;
 }
 .report-card .lbl {
   font-size: 10.5px;
@@ -787,29 +844,49 @@ a:focus-visible {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.fire-lean {
-  margin-top: 8px;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-.fire-lean b {
-  font-weight: 650;
-  color: var(--ink);
-}
 .fire-progress {
   margin-top: 16px;
 }
+/* The lean target is a place on the bar, so it is drawn there: a tick
+   through the bar with its label standing over it. */
+.fire-marks {
+  position: relative;
+  height: 14px;
+}
+.lean-tag {
+  position: absolute;
+  bottom: 0;
+  padding: 0 5px;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 550;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.lean-tag.past {
+  color: var(--good-text);
+}
 .fire-bar {
+  position: relative;
   height: 8px;
   border-radius: 99px;
   background: var(--surface-2);
-  overflow: hidden;
 }
 .fire-bar .fill {
   height: 100%;
   border-radius: 99px;
   background: var(--good);
+}
+.fire-bar .lean {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 99px;
+  background: var(--ink);
+  opacity: 0.55;
 }
 .fire-legend {
   display: flex;
@@ -882,12 +959,6 @@ a:focus-visible {
   border-radius: 99px;
   background: var(--good);
   vertical-align: 1px;
-}
-.fine {
-  margin-top: 12px;
-  font-size: 10px;
-  color: var(--muted);
-  line-height: 1.5;
 }
 .chart-svg {
   display: block;
@@ -1005,8 +1076,38 @@ a:focus-visible {
 .key .sw.market {
   background: var(--bean);
 }
-.key .sw.debt {
+.key .sw.debt,
+.key .sw.over,
+.key .sw.gone {
   background: var(--over);
+}
+.key .sw.kept {
+  background: var(--good);
+}
+.key .sw.soft {
+  background: var(--warn);
+}
+.key .sw.usual {
+  background: var(--bar-past);
+}
+.key .sw.outside {
+  background: var(--muted);
+}
+/* A line rather than a block, because that is what it is on the
+   chart. */
+.key .sw.trend {
+  height: 2px;
+  border-radius: 99px;
+  background: var(--accent);
+}
+/* The season card draws this year over the usual one, so its swatch
+   is the same pair: over on one side, under on the other. */
+.key .sw.now {
+  background: linear-gradient(
+    180deg,
+    var(--over-text) 50%,
+    var(--good-text) 50%
+  );
 }
 .gr-stats {
   margin-top: 12px;
@@ -1036,41 +1137,6 @@ a:focus-visible {
    ribbon of months on top, then one strip per group underneath, so a
    spike in the ribbon can be traced down to the row that caused it.
    The dashed line means "a usual month" in both. */
-.yr-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.yr-range {
-  margin-top: 2px;
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.yr-fig {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-}
-.yr-total {
-  font-size: 19px;
-  font-weight: 650;
-  line-height: 1.1;
-}
-.yr-delta {
-  font-size: 10.5px;
-  font-weight: 550;
-  white-space: nowrap;
-}
-.yr-delta.up {
-  color: var(--over-text);
-}
-.yr-delta.down {
-  color: var(--good-text);
-}
 .yr-ribbon {
   position: relative;
   display: grid;
@@ -1162,6 +1228,56 @@ a:focus-visible {
   gap: 8px;
   align-items: center;
   font-size: 11.5px;
+  /* The folded row is a button, and a button brings its own look. */
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+button.yr-row {
+  cursor: pointer;
+}
+button.yr-row:hover .yr-name,
+.yr-fold:hover {
+  color: var(--ink);
+}
+button.yr-row:hover .yr-cell-bar {
+  background: var(--accent);
+}
+/* Both fold controls carry the triangle a disclosure carries, so the
+   row that hides thirteen groups reads as the thing that brings them
+   back rather than as a summary line that happens to be last. */
+.yr-row.other .yr-name::after,
+.yr-fold::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border: 3.5px solid transparent;
+  vertical-align: 1.5px;
+}
+.yr-row.other .yr-name::after {
+  margin-left: 5px;
+  border-top-color: currentColor;
+  vertical-align: -1px;
+}
+.yr-fold::before {
+  margin-right: 6px;
+  border-bottom-color: currentColor;
+}
+.yr-fold {
+  align-self: start;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 10.5px;
+  color: var(--muted);
+  cursor: pointer;
 }
 .yr-name {
   font-weight: 550;

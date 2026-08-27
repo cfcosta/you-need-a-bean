@@ -1,5 +1,9 @@
+import type { ReactNode } from "react";
+import { useState } from "react";
+
 import type {
   CashflowPoint,
+  Fire,
   Growth,
   GrowthPoint,
   Income,
@@ -12,16 +16,18 @@ import type {
   Trust,
   YearGroup,
 } from "../api";
+import { fireFill, leanFlag, leanMark } from "../fire";
 import {
   calendarMonth,
   fmt,
   fmtCompact,
   monthName,
   monthShort,
+  ratio,
   windowLabel,
 } from "../format";
 import type { RibbonMonth, StripCell } from "../year";
-import { foldGroups, yearRibbon, yearStrip } from "../year";
+import { yearRibbon, yearRows, yearStrip } from "../year";
 
 /** "2026-08" plus n months. */
 function addMonths(m: string, n: number): string {
@@ -88,6 +94,68 @@ function bounds(values: number[]): [number, number] {
   const head = (max - min) * 0.08;
   if (min < 0) min -= head;
   return [min, max + head];
+}
+
+/** Every card's head: what it is, the span it covers, and the one
+ * number it produces.
+ *
+ * These three used to be a sentence under the title. The sentence
+ * spent its first clause restating the title and then buried the span
+ * and the total inside prose, which put the two facts a reader
+ * actually scans for in the hardest place on the card to find. Here
+ * they have fixed positions instead: the span under the name, the
+ * number against the right edge, the same on every card.
+ */
+function CardHead({
+  title,
+  span,
+  figure,
+  note,
+}: {
+  title: string;
+  span?: ReactNode;
+  /** The card's headline amount. */
+  figure?: ReactNode;
+  /** What the figure is measured against, small and beneath it. */
+  note?: ReactNode;
+}) {
+  return (
+    <div className="card-head">
+      <div>
+        <h2>{title}</h2>
+        {span != null && <div className="card-span">{span}</div>}
+      </div>
+      {(figure != null || note != null) && (
+        <div className="card-fig">
+          {figure != null && <span className="card-total num">{figure}</span>}
+          {note != null && <span className="card-note">{note}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface KeyItem {
+  /** The swatch class, which is what the mark on the chart looks
+   * like. */
+  sw: string;
+  label: ReactNode;
+  title?: string;
+}
+
+/** A chart's key. The swatch is the definition, so the sentence that
+ * used to define the series is not needed to read the picture. */
+function Key({ items }: { items: KeyItem[] }) {
+  return (
+    <div className="key">
+      {items.map((k) => (
+        <span key={k.sw} className="key-item" title={k.title}>
+          <i className={`sw ${k.sw}`} />
+          {k.label}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 function NetWorthChart({
@@ -453,11 +521,14 @@ function GrowthChart({
   points,
   cur,
   gaps,
+  equity,
 }: {
   points: GrowthPoint[];
   cur: string;
   /** Whether missing prices are riding along in the residual. */
   gaps: boolean;
+  /** Capital from outside the ledger, which no bar draws. */
+  equity: number;
 }) {
   const W = 460;
   const H = 170;
@@ -556,16 +627,32 @@ function GrowthChart({
           );
         })}
       </svg>
-      <div className="key">
-        <span className="key-item">
-          <i className="sw saved" />
-          you saved
-        </span>
-        <span className="key-item">
-          <i className="sw market" />
-          {gaps ? "market & gaps" : "markets moved"}
-        </span>
-      </div>
+      <Key
+        items={[
+          {
+            sw: "saved",
+            label: "you saved",
+            title: "Income that stayed: what no spending took back out.",
+          },
+          {
+            sw: "market",
+            label: gaps ? "market & gaps" : "markets moved",
+            title: gaps
+              ? "Everything no transaction explains — prices moving under what you already hold, plus the gaps left by the commodities nothing prices. Selling one for cash looks like a gain nothing caused."
+              : "Everything no transaction explains: prices and exchange rates moving under what you already hold.",
+          },
+          ...(equity !== 0
+            ? [
+                {
+                  sw: "outside",
+                  label: `${fmtCompact(equity, cur)} from outside`,
+                  title:
+                    "Opening balances and other capital that arrived through Equity accounts. Drawn in neither bar: it was not saved and it was not earned.",
+                },
+              ]
+            : []),
+        ]}
+      />
     </>
   );
 }
@@ -581,13 +668,16 @@ function GrowthCard({ growth, cur }: { growth: Growth; cur: string }) {
 
   return (
     <div className="report-card">
-      <h2>What moved net worth</h2>
-      <div className="sub2">
-        saving vs markets, {windowLabel(growth.window)}
-        {points.length < growth.points.length
-          ? ` · chart shows last ${points.length} months`
-          : ""}
-      </div>
+      <CardHead
+        title="What moved net worth"
+        span={windowLabel(growth.window)}
+        figure={
+          <span className={growth.delta >= 0 ? "ok" : "bad"}>
+            {signed(growth.delta, cur)}
+          </span>
+        }
+        note="net worth moved"
+      />
       <div className="fire-stats gr-stats">
         <div className="fire-stat">
           <div className="lbl">You saved</div>
@@ -615,17 +705,12 @@ function GrowthCard({ growth, cur }: { growth: Growth; cur: string }) {
           </div>
         </div>
       </div>
-      <GrowthChart points={points} cur={cur} gaps={gaps} />
-      <div className="fine">
-        Anything net worth did that no transaction explains is counted as the
-        market: prices and exchange rates moving under what you already hold.
-        {gaps
-          ? ` Here it also carries the gaps left by ${listOf(growth.unpriced)}, which have no price — selling one for cash looks like a gain nothing caused.`
-          : ""}
-        {growth.equity !== 0
-          ? ` ${fmt(growth.equity, cur, 0)} arrived through Equity accounts — opening balances and other capital from outside the ledger — and is left out of both bars.`
-          : ""}
-      </div>
+      <GrowthChart
+        points={points}
+        cur={cur}
+        gaps={gaps}
+        equity={growth.equity}
+      />
     </div>
   );
 }
@@ -635,20 +720,19 @@ function GrowthCard({ growth, cur }: { growth: Growth; cur: string }) {
  * means the same thing in both — what a usual month costs — so a bar
  * standing above it reads as a month that cost more than it should
  * without anything having to say so. */
+/** Rows drawn in full before the tail folds into one. */
+const CUT = 9;
+
 function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
   const { months, groups, typical } = data.year;
   const total = groups.reduce((s, g) => s + g.total, 0);
   // Past nine rows the strips stop being readable, so the tail folds
   // into one — summed month by month, because where the rest of the
-  // year's money went is still worth seeing even in aggregate.
-  const rest = groups.slice(9);
-  const rows: [YearGroup, boolean][] = groups
-    .slice(0, 9)
-    .map((g) => [g, false] as [YearGroup, boolean]);
-  if (rest.length > 0) {
-    const name = `${rest.length} more groups`;
-    rows.push([foldGroups(name, rest, months.length), true]);
-  }
+  // year's money went is still worth seeing even in aggregate. The
+  // fold is a cut rather than a summary, so it opens.
+  const [open, setOpen] = useState(false);
+  const rows = yearRows(groups, months.length, open, CUT);
+  const foldable = groups.length > CUT + 1;
 
   // The prior year is all-or-nothing: the core withholds it entirely
   // rather than compare a whole year against however much history
@@ -657,10 +741,7 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
   const priorTotal = groups.reduce((s, g) => s + (g.prior ?? 0), 0);
   const change = (g: { total: number; prior: number | null }) =>
     g.prior == null || g.prior <= 0 ? null : g.total / g.prior - 1;
-  const share = (v: number) => {
-    const p = (v / total) * 100;
-    return p >= 0.5 ? `${Math.round(p)}%` : "<1%";
-  };
+  const share = (v: number) => ratio(total > 0 ? v / total : null);
 
   const ribbon = yearRibbon(months, typical);
   const height = (h: number) => `${Math.max(h * 100, 2)}%`;
@@ -684,24 +765,22 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
 
   return (
     <div className="report-card">
-      <div className="yr-head">
-        <div>
-          <h2>Where the year went</h2>
-          <div className="yr-range">{windowLabel(data.year.window)}</div>
-        </div>
-        <div className="yr-fig">
-          <span className="yr-total num">{fmtCompact(total, cur)}</span>
-          {compared && (
+      <CardHead
+        title="Where the year went"
+        span={windowLabel(data.year.window)}
+        figure={fmtCompact(total, cur)}
+        note={
+          compared ? (
             <span
-              className={`yr-delta ${total > priorTotal ? "up" : "down"}`}
+              className={total > priorTotal ? "up" : "down"}
               title={`${fmt(priorTotal, cur)} over ${windowLabel(data.year.prior_window)}`}
             >
               {changePct(priorTotal > 0 ? total / priorTotal - 1 : null)} on{" "}
               {fmtCompact(priorTotal, cur)}
             </span>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
       {groups.length === 0 ? (
         <div className="empty">no spending in the last year</div>
       ) : (
@@ -744,13 +823,20 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
             ))}
           </div>
           <div className="yr-rows">
-            {rows.map(([g, other]) => {
+            {rows.map(({ group: g, folded }) => {
               const strip = yearStrip(g, months);
+              // The folded row is the control that unfolds it: the
+              // groups it stands for are the ones a click brings back.
+              const Row = folded ? "button" : "div";
               return (
-                <div
+                <Row
                   key={g.name}
-                  className={`yr-row${other ? " other" : ""}`}
-                  title={rowTitle(g)}
+                  type={folded ? "button" : undefined}
+                  className={`yr-row${folded ? " other" : ""}`}
+                  title={
+                    folded ? `${rowTitle(g)} · click to open` : rowTitle(g)
+                  }
+                  onClick={folded ? () => setOpen(true) : undefined}
                 >
                   <span className="yr-name">{g.name}</span>
                   <span className="yr-strip">
@@ -785,9 +871,18 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
                   ) : (
                     <span className="yr-pct num">{share(g.total)}</span>
                   )}
-                </div>
+                </Row>
               );
             })}
+            {foldable && open && (
+              <button
+                type="button"
+                className="yr-fold"
+                onClick={() => setOpen(false)}
+              >
+                fold {groups.length - CUT} back in
+              </button>
+            )}
           </div>
         </>
       )}
@@ -803,18 +898,22 @@ function MoversCard({ data, cur }: { data: Movers; cur: string }) {
 
   return (
     <div className="report-card">
-      <h2>What changed</h2>
-      <div className="sub2">
-        {data.recent == null ? (
-          "two quarters of history to compare"
-        ) : (
-          <>
-            {windowLabel(data.recent)} against {windowLabel(data.prior)} ·{" "}
-            <b className={delta > 0 ? "up" : "down"}>{signed(delta, cur)}</b> in
-            all
-          </>
-        )}
-      </div>
+      <CardHead
+        title="What changed"
+        span={
+          data.recent == null
+            ? "two quarters, once there are two"
+            : `${windowLabel(data.recent)} vs ${windowLabel(data.prior)}`
+        }
+        figure={
+          data.recent == null ? undefined : (
+            <span className={delta > 0 ? "bad" : "ok"}>
+              {signed(delta, cur)}
+            </span>
+          )
+        }
+        note={data.recent == null ? undefined : "in all"}
+      />
       {data.items.length === 0 ? (
         <div className="empty">
           {data.recent == null
@@ -864,7 +963,17 @@ function spanLabel(first: string, last: string): string {
   return `${monthYear(first)} \u2013 ${monthYear(last)}`;
 }
 
+/** The months a chart actually draws, as a label for its card. */
+const chartSpan = (points: { month: string }[]) => {
+  const from = points[0];
+  const to = points[points.length - 1];
+  return from && to ? spanLabel(from.month, to.month) : undefined;
+};
+
 function ProjectsCard({ data, cur }: { data: Projects; cur: string }) {
+  const count = data.items.length;
+  const spent = data.items.reduce((sum, p) => sum + p.spent, 0);
+  const back = data.items.reduce((sum, p) => sum + p.income, 0);
   const top = data.items.slice(0, 10);
   const rest = data.items.length - top.length;
   // Two shapes can't be topics under any reading, and saying how many
@@ -877,8 +986,24 @@ function ProjectsCard({ data, cur }: { data: Projects; cur: string }) {
 
   return (
     <div className="report-card">
-      <h2>Projects</h2>
-      <div className="sub2">what each tag and link cost, across its whole run</div>
+      <CardHead
+        title="Projects"
+        span={`${count} tag${count === 1 ? "" : "s"} & links`}
+        figure={
+          <span title="Charged across every tag and link's whole run.">
+            {fmtCompact(spent, cur)}
+          </span>
+        }
+        note={
+          back > 0 ? (
+            <span title="Refunds, reimbursements, and the card payments a statement tag catches along with its charges.">
+              {fmtCompact(back, cur)} came back
+            </span>
+          ) : (
+            "across their whole runs"
+          )
+        }
+      />
       {data.items.length === 0 ? (
         <div className="empty">no tag or link spans more than one transaction</div>
       ) : (
@@ -923,40 +1048,39 @@ function ProjectsCard({ data, cur }: { data: Projects; cur: string }) {
 function IncomeCard({ data, cur }: { data: Income; cur: string }) {
   const max = data.sources[0]?.total ?? 0;
   const width = (v: number) => (max > 0 ? `${(v / max) * 100}%` : "0%");
-  const pct = (v: number | null) =>
-    v == null ? "\u2014" : v < 0.005 ? "<1%" : `${Math.round(v * 100)}%`;
   const top = data.sources.slice(0, 8);
   const rest = data.sources.length - top.length;
 
   return (
     <div className="report-card">
-      <h2>Where income comes from</h2>
-      <div className="sub2">
-        by source, {windowLabel(data.window)} · {fmt(data.total, cur, 0)}{" "}
-        in all
-        {data.effective_sources != null && (
-          <>
-            {" \u00b7 "}
-            <span
-              title="1 / the sum of each source's squared share: how many equally-sized sources this spread is worth. Two jobs paying the same is 2.0."
-            >
-              {data.effective_sources.toFixed(1)} effective
+      <CardHead
+        title="Where income comes from"
+        span={windowLabel(data.window)}
+        figure={fmtCompact(data.total, cur)}
+        note={
+          data.effective_sources == null ? (
+            "in all"
+          ) : (
+            <span title="1 / the sum of each source's squared share: how many equally-sized sources this spread is worth. Two jobs paying the same is 2.0.">
+              from {data.effective_sources.toFixed(1)} effective sources
             </span>
-          </>
-        )}
-      </div>
+          )
+        }
+      />
 
       {/* The Coast and Barista question: how much of the bill is
-          already covered by money that arrives without you. */}
+          already covered by money that arrives without you. Leading
+          with the amount rather than a share: the two shares beside it
+          have different denominators, and at small scales a rounded
+          percentage hides which is which. */}
       <div className="ic-passive">
         {data.passive > 0 ? (
           <>
-            <span className="num">{pct(data.passive_cover)}</span>
+            <span className="num">{fmt(data.passive, cur, 0)}</span>
             <span>
               {" "}
-              of what you spend already pays itself ·{" "}
-              {fmt(data.passive, cur, 0)} passive, {pct(data.passive_share)} of
-              income
+              arrives on its own — {ratio(data.passive_cover)} of what you
+              spend, {ratio(data.passive_share)} of what you earn
             </span>
           </>
         ) : (
@@ -990,7 +1114,7 @@ function IncomeCard({ data, cur }: { data: Income; cur: string }) {
                 )}
               </span>
               <span className="ic-amt num">{fmtCompact(s.total, cur)}</span>
-              <span className="ic-pct num">{pct(s.share)}</span>
+              <span className="ic-pct num">{ratio(s.share)}</span>
             </div>
           ))}
           {rest > 0 && <div className="pj-note">{rest} more</div>}
@@ -1032,16 +1156,18 @@ function SeasonCard({ data, cur }: { data: Season; cur: string }) {
 
   return (
     <div className="report-card">
-      <h2>The shape of a year</h2>
-      <div className="sub2">
-        median spend per calendar month
-        {data.years && (
-          <>
-            , {data.years[0]}–{data.years[1]} ·{" "}
-            {fmt(data.typical, cur, 0)} in a typical year
-          </>
-        )}
-      </div>
+      <CardHead
+        title="The shape of a year"
+        span={
+          data.years == null ? undefined : (
+            <span title="At most five prior years feed the medians. The year being projected cannot also be the baseline it is measured against, and a longer reach is a different life at a different level rather than a better sample.">
+              {data.years[0]}–{data.years[1]}
+            </span>
+          )
+        }
+        figure={data.years == null ? undefined : fmtCompact(data.typical, cur)}
+        note={data.years == null ? undefined : "in a typical year"}
+      />
 
       {months.length === 0 ? (
         <div className="empty">
@@ -1056,7 +1182,12 @@ function SeasonCard({ data, cur }: { data: Season; cur: string }) {
           <div className="sn-pace">
             {data.projected != null ? (
               <>
-                <span className="num">{fmt(data.projected, cur, 0)}</span>
+                <span
+                  className="num"
+                  title="The months still ahead are priced at what this year has been paying for the ones behind it."
+                >
+                  {fmt(data.projected, cur, 0)}
+                </span>
                 <span>
                   {" "}
                   by the end of {data.year} · {fmt(data.ytd, cur, 0)}{" "}
@@ -1105,15 +1236,12 @@ function SeasonCard({ data, cur }: { data: Season; cur: string }) {
             ))}
           </div>
 
-          <div className="fine">
-            The wide bar is the median of {data.years?.[0]}–
-            {data.years?.[1]}; the narrow one is {data.year}. At most five
-            prior years feed it: the year being projected cannot also be
-            the baseline it is measured against, and a longer reach is a
-            different life at a different level rather than a better
-            sample. The projection prices the months still ahead at what
-            this year has been paying for the ones behind it.
-          </div>
+          <Key
+            items={[
+              { sw: "usual", label: "usually" },
+              { sw: "now", label: data.year, title: "red when it ran over" },
+            ]}
+          />
         </>
       )}
     </div>
@@ -1128,7 +1256,6 @@ function SeasonCard({ data, cur }: { data: Season; cur: string }) {
 function PayeeCard({ data, cur }: { data: Payees; cur: string }) {
   const max = data.items[0]?.spent ?? 0;
   const width = (v: number) => (max > 0 ? `${(v / max) * 100}%` : "0%");
-  const pct = (v: number) => (v < 0.005 ? "<1%" : `${Math.round(v * 100)}%`);
   // How much of the year sits in the names below: the concentration
   // question, which is the one that says whether a list this short can
   // change anything.
@@ -1136,11 +1263,12 @@ function PayeeCard({ data, cur }: { data: Payees; cur: string }) {
 
   return (
     <div className="report-card">
-      <h2>Where the money goes</h2>
-      <div className="sub2">
-        by payee, {windowLabel(data.window)} · {fmt(data.total, cur, 0)} in
-        all
-      </div>
+      <CardHead
+        title="Where the money goes"
+        span={windowLabel(data.window)}
+        figure={fmtCompact(data.total, cur)}
+        note="in all"
+      />
 
       {data.items.length === 0 ? (
         <div className="empty">
@@ -1151,7 +1279,7 @@ function PayeeCard({ data, cur }: { data: Payees; cur: string }) {
       ) : (
         <>
           <div className="ic-passive">
-            <span className="num">{pct(covered)}</span>
+            <span className="num">{ratio(covered)}</span>
             <span>
               {" "}
               of the year went to these {data.items.length} name
@@ -1162,7 +1290,7 @@ function PayeeCard({ data, cur }: { data: Payees; cur: string }) {
                   <span
                     title={`${data.anonymous_count} transactions carry no payee. They are in the total, so they are in the denominator of every share above — they are simply spend this card has no name to rank.`}
                   >
-                    {pct(data.anonymous / data.total)} of it (
+                    {ratio(data.anonymous / data.total)} of it (
                     {fmt(data.anonymous, cur, 0)}) names nobody
                   </span>
                 </>
@@ -1191,7 +1319,7 @@ function PayeeCard({ data, cur }: { data: Payees; cur: string }) {
                   <span className="ic-bar" style={{ width: width(p.spent) }} />
                 </span>
                 <span className="py-amt num">{fmtCompact(p.spent, cur)}</span>
-                <span className="py-pct num">{pct(p.share)}</span>
+                <span className="py-pct num">{ratio(p.share)}</span>
               </div>
             ))}
           </div>
@@ -1205,13 +1333,11 @@ function PayeeCard({ data, cur }: { data: Payees; cur: string }) {
         </>
       )}
 
-      <div className="fine">
-        Names are taken as the ledger writes them — deciding that two
-        spellings are one merchant is a guess, and a ranking built on
-        guesses ranks the guesses. Hover a row for the months, the
-        categories and the span behind it: a name reaching one category
-        every month is a subscription, and one reaching twenty is a card
-        rather than a shop.
+      <div
+        className="pj-note"
+        title="Deciding that two spellings are one merchant is a guess, and a ranking built on guesses ranks the guesses. Hover a row for the months, the categories and the span behind it: a name reaching one category every month is a subscription, and one reaching twenty is a card rather than a shop."
+      >
+        names as the ledger writes them
       </div>
     </div>
   );
@@ -1231,6 +1357,22 @@ interface Doubt {
   tone: "gone" | "soft";
   title?: string;
 }
+
+/** What the dot on a row means. A commodity with no price is missing
+ * from the totals outright; one priced long ago is present at a price
+ * that old, which is worse, because it still looks like a number. */
+const TONES: KeyItem[] = [
+  {
+    sw: "gone",
+    label: "missing from the totals",
+    title: "Every amount in these is absent from every figure above.",
+  },
+  {
+    sw: "soft",
+    label: "resting on something unconfirmed",
+    title: "Present in the figures above, at a number nothing has checked.",
+  },
+];
 
 /** The page's own footnotes: everything above is a conversion, a flag
  * or a category away from being wrong, and this says by how much. */
@@ -1314,13 +1456,19 @@ function TrustCard({
     });
   }
 
+  // What the doubts are between them holding up, and which kinds of
+  // doubt the key has to explain.
+  const held = doubts.reduce((sum, d) => sum + (d.amount ?? 0), 0);
+  const tones = new Set<string>(doubts.map((d) => d.tone));
+
   return (
     <div className="report-card">
-      <h2>What these numbers rest on</h2>
-      <div className="sub2">
-        every figure above is one conversion away from wrong ·{" "}
-        {windowLabel(t.window)}
-      </div>
+      <CardHead
+        title="What these numbers rest on"
+        span={windowLabel(t.window)}
+        figure={held > 0 ? fmtCompact(held, cur) : undefined}
+        note={held > 0 ? "resting on a doubt" : undefined}
+      />
 
       {doubts.length === 0 ? (
         <div className="empty">
@@ -1341,20 +1489,38 @@ function TrustCard({
         </div>
       )}
 
-      <div className="fine">
-        A commodity with no price is missing from the totals; one priced
-        long ago is present at a price that old, which is worse, because
-        it still looks like a number. The amounts say how much of the page
-        each doubt is holding up.
-      </div>
+      {doubts.length > 0 && (
+        <Key items={TONES.filter((k) => tones.has(k.sw))} />
+      )}
     </div>
+  );
+}
+
+/** Everything the lean marker used to say in a sentence of its own. */
+function leanTitle(f: Fire, coverage: number | null, cur: string): string {
+  const of =
+    f.lean_progress != null
+      ? ` — ${ratio(f.lean_progress)} of the way there`
+      : "";
+  const on =
+    coverage != null
+      ? `, on the ${ratio(coverage)} of spending that reads as recurring`
+      : "";
+  const n = fmt(f.lean_number ?? 0, cur, 0);
+  return (
+    `${n} covers the charges that come back rather than the ` +
+    `whole lifestyle${of}${on}.`
   );
 }
 
 export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
   const f = data.fire;
   const hasTarget = f.fire_number > 0;
-  const fill = Math.max(0, Math.min(1, f.progress ?? 0)) * 100;
+  const fill = fireFill(f.progress);
+  // The lean target is a second point on the same line as the first,
+  // so the bar carries it and the sentence under the bar saying where
+  // it would be is not needed.
+  const mark = leanMark(f.lean_number, f.fire_number);
   const cash = data.cashflow.slice(-24);
   const savings = savingsSeries(data.cashflow).slice(-24);
 
@@ -1378,22 +1544,38 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
             <div className="fire-num num">
               {hasTarget ? fmt(f.fire_number, cur, 0) : "—"}
             </div>
-            <div className="fire-sub">
-              {hasTarget
-                ? `25 × your annual spend of ${fmt(f.annual_spend, cur, 0)} (avg of ${windowLabel(f.window)})`
-                : "not enough spending history to size a target yet"}
+            <div
+              className="fire-sub num"
+              title={`Twenty-five years of ${fmt(f.annual_spend, cur, 0)}, the spending averaged over ${windowLabel(f.window)}.`}
+            >
+              {hasTarget ? (
+                <>
+                  <b>25 ×</b> {fmtCompact(f.annual_spend, cur)} a year ·{" "}
+                  {windowLabel(f.window)}
+                </>
+              ) : (
+                "no spending history to size one yet"
+              )}
             </div>
           </div>
           <div className="fire-stats">
             <div className="fire-stat">
               <div className="lbl">Net worth</div>
-              <div className="v num" title={fmt(f.net_worth, cur)}>
+              <div
+                className="v num"
+                title={`${fmt(f.net_worth, cur)} — only balances convertible to ${cur}. Commodities with no price are left out.`}
+              >
                 {fmt(f.net_worth, cur, 0)}
               </div>
             </div>
             <div className="fire-stat">
               <div className="lbl">Spend / month</div>
-              <div className="v num">{fmt(f.monthly_spend, cur)}</div>
+              <div
+                className="v num"
+                title={`Averaged over ${windowLabel(f.window)}, across every account — including the ones the budget page hides.`}
+              >
+                {fmt(f.monthly_spend, cur)}
+              </div>
             </div>
             <div className="fire-stat">
               <div className="lbl">Saved / month</div>
@@ -1428,8 +1610,26 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
         {hasTarget && (
           <>
             <div className="fire-progress">
+              {mark != null && (
+                <div className="fire-marks">
+                  <span
+                    className={`lean-tag${fill >= mark ? " past" : ""}`}
+                    style={leanFlag(mark)}
+                    title={leanTitle(f, data.recurring.coverage, cur)}
+                  >
+                    lean {fmtCompact(f.lean_number ?? 0, cur)}
+                  </span>
+                </div>
+              )}
               <div className="fire-bar">
-                <div className="fill" style={{ width: `${fill}%` }} />
+                <div className="fill" style={{ width: `${fill * 100}%` }} />
+                {mark != null && (
+                  <span
+                    className="lean"
+                    aria-hidden="true"
+                    style={{ left: `${mark * 100}%` }}
+                  />
+                )}
               </div>
               <div className="fire-legend num">
                 <span>
@@ -1445,23 +1645,6 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
                 </span>
               </div>
             </div>
-            {f.lean_number != null && (
-              <div className="fire-lean">
-                <b className="num">{fmt(f.lean_number, cur, 0)}</b> covers the
-                charges that come back rather than the whole lifestyle
-                {f.lean_progress != null
-                  ? ` — ${(f.lean_progress * 100).toFixed(1)}% of the way there`
-                  : ""}
-                {data.recurring.coverage != null
-                  ? `, on the ${
-                      data.recurring.coverage < 0.005
-                        ? "<1"
-                        : Math.round(data.recurring.coverage * 100)
-                    }% of spending that reads as recurring`
-                  : ""}
-                .
-              </div>
-            )}
             <div className="fire-scenarios">
               {f.scenarios.map((s, i) => (
                 <div key={s.rate} className="scenario">
@@ -1508,34 +1691,30 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
             )}
           </>
         )}
-        <div className="fine">
-          Net worth counts only balances convertible to {cur}; commodities
-          without a price are left out. Flows include every account, even ones
-          hidden from the budget page.
-        </div>
       </div>
 
       <div className="report-grid">
         <div className="report-col">
           <div className="report-card">
-            <h2>Net worth</h2>
-            <div className="sub2">
-              assets + liabilities at month end, converted to {cur}
-            </div>
+            <CardHead title="Net worth" span={chartSpan(data.net_worth)} />
             <NetWorthChart points={data.net_worth} cur={cur} />
           </div>
 
           <GrowthCard growth={data.growth} cur={cur} />
 
           <div className="report-card">
-            <h2>Monthly cashflow</h2>
-            <div className="sub2">
-              income − expenses
-              {cash.length < data.cashflow.length
-                ? ` · last ${cash.length} months`
-                : ""}
-            </div>
+            <CardHead title="Monthly cashflow" span={chartSpan(cash)} />
             <CashflowChart points={cash} cur={cur} />
+            <Key
+              items={[
+                { sw: "kept", label: "kept", title: "income above expenses" },
+                {
+                  sw: "over",
+                  label: "overspent",
+                  title: "expenses above income",
+                },
+              ]}
+            />
           </div>
 
           <IncomeCard data={data.income} cur={cur} />
@@ -1547,14 +1726,15 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
 
         <div className="report-col">
           <div className="report-card">
-            <h2>Savings rate</h2>
-            <div className="sub2">
-              share of income kept · line = 3-mo trend
-              {savings.length < data.cashflow.length
-                ? ` · last ${savings.length} months`
-                : ""}
-            </div>
+            <CardHead title="Savings rate" span={chartSpan(savings)} />
             <SavingsRateChart points={savings} cur={cur} />
+            <Key
+              items={[
+                { sw: "kept", label: "kept" },
+                { sw: "over", label: "overspent" },
+                { sw: "trend", label: "3-mo trend" },
+              ]}
+            />
           </div>
 
           <YearCard data={data} cur={cur} />
