@@ -1,0 +1,2 @@
+- Use the jujutsu skill to commit your changes every time you do substantial work (like finishing a task).
+- Always implement changes doing strict TDD (except for just visual stuff).
