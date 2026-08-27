@@ -105,9 +105,6 @@ export function Sidebar({
         >
           <b>{summary.title ?? summary.root ?? "ledger"}</b>
           <br />
-          {summary.root ?? "?"} ·{" "}
-          {summary.files === 1 ? "1 file" : `${summary.files} files`}
-          <br />
           {summary.directives.toLocaleString("en-US")} directives · parsed{" "}
           {parseLabel(summary.parse_ms)}
         </div>
