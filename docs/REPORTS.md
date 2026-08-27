@@ -67,9 +67,19 @@ Each line is one task: core computation (with tests) → API shape → card.
       and categories crossed, then counts what it excluded.
       Refunds and reimbursements net out, because a trip the employer
       paid half of did not cost what it charged.
-- [ ] **6 · Income breakdown** — income collapses to one number today.
+- [x] **6 · Income breakdown** — income collapses to one number today.
       Split by `Income:*` source, flag source concentration, and show
       passive income as a share of spend: the Coast/Barista-FIRE bar.
+      Concentration reads better as effective sources — `1 / Σ share²`
+      — than as the top share: ten names that pay out 56/43/1 is two
+      sources wearing ten labels, and the number says 2.03.
+      What counts as passive is the ledger's call first: `income:
+      passive` or `income: active` on the `open` directive settles it,
+      and the account name is only consulted when the ledger is silent.
+      The view reports how many sources were declared and how many were
+      guessed, so the card never presents a heuristic as a fact.
+      Cashback and referral commission are deliberately not passive — a
+      rebate stops the month the spending does.
 - [~] **7 · What's missing from these numbers** — commodities with no
       price (silently excluded from net worth), stale price directives,
       `!`-flagged transactions, uncategorized spend, loader warnings.

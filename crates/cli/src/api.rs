@@ -357,6 +357,19 @@ async fn reports(
             })
         })
         .collect();
+    let sources: Vec<Value> = view
+        .income
+        .sources
+        .iter()
+        .map(|s| {
+            json!({
+                "name": s.name,
+                "total": num(s.total),
+                "share": num(s.share),
+                "passive": num(s.passive),
+            })
+        })
+        .collect();
     let projects: Vec<Value> = view
         .projects
         .items
@@ -438,6 +451,17 @@ async fn reports(
             "window": window_json(view.year.window),
             "prior_window": window_json(view.year.prior_window),
             "groups": year_groups,
+        },
+        "income": {
+            "window": window_json(view.income.window),
+            "total": num(view.income.total),
+            "sources": sources,
+            "effective_sources": opt_num(view.income.effective_sources),
+            "passive": num(view.income.passive),
+            "passive_share": ratio_json(view.income.passive_share),
+            "passive_cover": ratio_json(view.income.passive_cover),
+            "declared": view.income.declared,
+            "inferred": view.income.inferred,
         },
         "projects": {
             "items": projects,

@@ -2,6 +2,7 @@ import type {
   CashflowPoint,
   Growth,
   GrowthPoint,
+  Income,
   Movers,
   NetWorthPoint,
   Projects,
@@ -915,6 +916,94 @@ function ProjectsCard({ data, cur }: { data: Projects; cur: string }) {
   );
 }
 
+function IncomeCard({ data, cur }: { data: Income; cur: string }) {
+  const max = data.sources[0]?.total ?? 0;
+  const width = (v: number) => (max > 0 ? `${(v / max) * 100}%` : "0%");
+  const pct = (v: number | null) =>
+    v == null ? "\u2014" : v < 0.005 ? "<1%" : `${Math.round(v * 100)}%`;
+  const top = data.sources.slice(0, 8);
+  const rest = data.sources.length - top.length;
+
+  return (
+    <div className="report-card">
+      <h2>Where income comes from</h2>
+      <div className="sub2">
+        by source, {windowLabel(data.window)} \u00b7 {fmt(data.total, cur, 0)}{" "}
+        in all
+        {data.effective_sources != null && (
+          <>
+            {" \u00b7 "}
+            <span
+              title="1 / the sum of each source's squared share: how many equally-sized sources this spread is worth. Two jobs paying the same is 2.0."
+            >
+              {data.effective_sources.toFixed(1)} effective
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* The Coast and Barista question: how much of the bill is
+          already covered by money that arrives without you. */}
+      <div className="ic-passive">
+        {data.passive > 0 ? (
+          <>
+            <span className="num">{pct(data.passive_cover)}</span>
+            <span>
+              {" "}
+              of what you spend already pays itself \u00b7{" "}
+              {fmt(data.passive, cur, 0)} passive, {pct(data.passive_share)} of
+              income
+            </span>
+          </>
+        ) : (
+          <span className="muted">
+            nothing here arrives without work \u2014 mark a source with{" "}
+            <code>income: "passive"</code> on its open directive
+          </span>
+        )}
+      </div>
+
+      {data.sources.length === 0 ? (
+        <div className="empty">no income in the last year</div>
+      ) : (
+        <div className="ic-rows">
+          {top.map((s) => (
+            <div
+              key={s.name}
+              className="ic-row"
+              title={`${s.name}: ${fmt(s.total, cur)}${
+                s.passive > 0 ? ` \u00b7 ${fmt(s.passive, cur)} passive` : ""
+              }`}
+            >
+              <span className="ic-name">{s.name}</span>
+              <span className="ic-track">
+                <span className="ic-bar" style={{ width: width(s.total) }} />
+                {s.passive > 0 && (
+                  <span
+                    className="ic-bar passive"
+                    style={{ width: width(s.passive) }}
+                  />
+                )}
+              </span>
+              <span className="ic-amt num">{fmtCompact(s.total, cur)}</span>
+              <span className="ic-pct num">{pct(s.share)}</span>
+            </div>
+          ))}
+          {rest > 0 && <div className="pj-note">{rest} more</div>}
+        </div>
+      )}
+
+      {data.inferred > 0 && (
+        <div className="pj-note">
+          {data.inferred} source{data.inferred === 1 ? "" : "s"} read as passive
+          from {data.inferred === 1 ? "its name" : "their names"} alone
+          {data.declared > 0 && `, ${data.declared} marked in the ledger`}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
   const f = data.fire;
   const hasTarget = f.fire_number > 0;
@@ -1101,6 +1190,8 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
             </div>
             <CashflowChart points={cash} cur={cur} />
           </div>
+
+          <IncomeCard data={data.income} cur={cur} />
 
           <ProjectsCard data={data.projects} cur={cur} />
         </div>

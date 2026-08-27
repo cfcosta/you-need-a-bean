@@ -8,6 +8,7 @@
 
 mod fire;
 mod growth;
+mod income;
 mod movers;
 mod projects;
 mod recurring;
@@ -18,6 +19,7 @@ pub use fire::{
     months_to_fire,
 };
 pub use growth::{GrowthPoint, GrowthView};
+pub use income::{IncomeSource, IncomeView};
 pub use movers::{Mover, MoversView};
 pub use projects::{Project, ProjectsView, Topic};
 pub use recurring::{Cadence, PriceChange, Recurring, RecurringView};
@@ -77,6 +79,8 @@ pub struct ReportsView {
     pub movers: MoversView,
     /// What each tag and link cost, over how long.
     pub projects: ProjectsView,
+    /// Where income comes from, and how much of it is passive.
+    pub income: IncomeView,
 }
 
 /// Per-month currency deltas for one root of the ledger.
@@ -212,6 +216,7 @@ impl Ledger {
             year: self.year_view(current, cur),
             movers: self.movers_view(current, cur),
             projects,
+            income: self.income_view(current, cur),
         }
     }
 

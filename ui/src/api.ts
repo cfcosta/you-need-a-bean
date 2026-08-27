@@ -212,6 +212,36 @@ export interface YearGroup {
   prior: number | null;
 }
 
+/** One `Income:*` group over the trailing year. */
+export interface IncomeSource {
+  /** The second segment, or the account itself when it has none. */
+  name: string;
+  total: number;
+  /** `total` over all income in the window. */
+  share: number;
+  /** The part of `total` that arrives without work. Groups can be
+   * mixed — staking rewards and a referral fee share a group. */
+  passive: number;
+}
+
+export interface Income {
+  window: [string, string] | null;
+  total: number;
+  sources: IncomeSource[];
+  /** `1 / Σ share²` — how many equally-sized sources this is worth. */
+  effective_sources: number | null;
+  passive: number;
+  /** `passive / total`. */
+  passive_share: number | null;
+  /** `passive` over the same window's spend: the share of the bill
+   * that already pays itself. */
+  passive_cover: number | null;
+  /** Accounts the ledger marked `income: "passive"` outright. */
+  declared: number;
+  /** Accounts taken as passive from their name alone. */
+  inferred: number;
+}
+
 /** What one tag or link cost, across however long it ran. */
 export interface Project {
   name: string;
@@ -279,6 +309,7 @@ export interface ReportsView {
   };
   movers: Movers;
   projects: Projects;
+  income: Income;
 }
 
 async function get<T>(url: string): Promise<T> {

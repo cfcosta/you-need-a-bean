@@ -521,3 +521,46 @@ fn tags_and_links_add_up_as_topics() {
     assert_eq!(projects.singletons, 2);
     assert_eq!(projects.markers, 1);
 }
+
+#[test]
+fn income_splits_by_source_and_measures_what_arrives_on_its_own() {
+    let view = fixture("income").reports_view((2026, 4, 15), 3, "USD");
+    let income = &view.income;
+
+    assert_eq!(income.window, Some((m("2025-04"), m("2026-03"))));
+    assert_eq!(income.total, dec("86500.00"));
+
+    let rows: Vec<(&str, Decimal, Decimal, Decimal)> = income
+        .sources
+        .iter()
+        .map(|s| (s.name.as_str(), s.total, s.share, s.passive))
+        .collect();
+    assert_eq!(
+        rows,
+        vec![
+            ("Salary", dec("72000.00"), dec("0.8324"), dec("0.00")),
+            // `income: "active"` on the open directive beats the name,
+            // which would otherwise read a rent roll here.
+            ("Rentals", dec("6000.00"), dec("0.0694"), dec("0.00")),
+            ("Dividends", dec("4000.00"), dec("0.0462"), dec("4000.00")),
+            // And the ledger can mark what no name would suggest.
+            ("Consulting", dec("3000.00"), dec("0.0347"), dec("3000.00")),
+            ("Interest", dec("1000.00"), dec("0.0116"), dec("1000.00")),
+            // A rebate on spending stops when the spending does.
+            ("Cashback", dec("500.00"), dec("0.0058"), dec("0.00")),
+        ]
+    );
+
+    // Six sources, but five-sixths of it is one paycheque: the spread
+    // is worth about one and a half independent sources.
+    assert_eq!(income.effective_sources, Some(dec("1.43")));
+
+    assert_eq!(income.passive, dec("8000.00"));
+    assert_eq!(income.passive_share, Some(dec("0.0925")));
+    // 8,000 against 40,000 of spending: a fifth of the bill already
+    // pays itself.
+    assert_eq!(income.passive_cover, Some(dec("0.2")));
+
+    assert_eq!(income.declared, 1);
+    assert_eq!(income.inferred, 2);
+}

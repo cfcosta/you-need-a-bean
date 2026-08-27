@@ -134,6 +134,19 @@ pub struct AccountInfo {
     /// Second segment for `Expenses:*` accounts, `None` otherwise.
     pub group: Option<String>,
     pub kind: AccountKind,
+    /// What `income:` on the open directive said: `Some(true)` for
+    /// `passive`, `Some(false)` for `active`, `None` when the ledger
+    /// is silent and the name is all there is to go on.
+    pub passive: Option<bool>,
+}
+
+/// The metadata one `open` directive carried, kept until the accounts
+/// are labelled.
+#[derive(Default)]
+struct OpenMeta {
+    name: Option<String>,
+    ynab: Option<String>,
+    income: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -293,7 +306,7 @@ impl Leg {
 #[derive(Default)]
 struct Builder {
     /// account → (`name:` metadata, `ynab:` metadata) from open directives.
-    opens: HashMap<String, (Option<String>, Option<String>)>,
+    opens: HashMap<String, OpenMeta>,
     txns: Vec<Txn>,
     monthly: HashMap<String, BTreeMap<MonthKey, CurrencySums>>,
     txn_index: HashMap<String, BTreeMap<MonthKey, Vec<usize>>>,
@@ -334,9 +347,14 @@ impl Builder {
                     }
                 }
                 DirectiveContent::Open(open) => {
-                    let name = meta_string(&directive.metadata, "name");
-                    let ynab = meta_string(&directive.metadata, "ynab");
-                    self.opens.insert(open.account.to_string(), (name, ynab));
+                    self.opens.insert(
+                        open.account.to_string(),
+                        OpenMeta {
+                            name: meta_string(&directive.metadata, "name"),
+                            ynab: meta_string(&directive.metadata, "ynab"),
+                            income: meta_string(&directive.metadata, "income"),
+                        },
+                    );
                 }
                 _ => {}
             }
@@ -478,11 +496,17 @@ impl Builder {
 
         let mut accounts = BTreeMap::new();
         for name in names {
-            let (meta_name, meta_ynab) = self
-                .opens
-                .get(name)
-                .map(|(n, y)| (n.as_deref(), y.as_deref()))
-                .unwrap_or((None, None));
+            let open = self.opens.get(name);
+            let meta_name = open.and_then(|o| o.name.as_deref());
+            let meta_ynab = open.and_then(|o| o.ynab.as_deref());
+            // `income: passive` on the open directive is the ledger
+            // saying so outright; anything else is a guess made
+            // elsewhere from the account's name.
+            let passive = match open.and_then(|o| o.income.as_deref()) {
+                Some("passive") => Some(true),
+                Some("active") => Some(false),
+                _ => None,
+            };
             let segments: Vec<&str> = name.split(':').collect();
             let is_expense = segments[0] == "Expenses";
 
@@ -510,6 +534,7 @@ impl Builder {
                     label,
                     group,
                     kind,
+                    passive,
                 },
             );
         }

@@ -259,6 +259,25 @@ async fn reports_endpoint_shapes_series_and_fire() {
         ])
     );
 
+    // Income split by source, with the passive slice inside each
+    // total rather than beside it.
+    let income = &body["income"];
+    let shares: f64 = income["sources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| {
+            assert!(
+                s["passive"].as_f64().unwrap() <= s["total"].as_f64().unwrap()
+            );
+            s["share"].as_f64().unwrap()
+        })
+        .sum();
+    if income["total"].as_f64().unwrap() > 0.0 {
+        assert!((shares - 1.0).abs() < 0.01, "shares summed to {shares}");
+        assert!(income["effective_sources"].as_f64().unwrap() >= 1.0);
+    }
+
     // Every tag and link that spans more than one transaction and
     // moved money, with what it took after refunds.
     let projects = &body["projects"];

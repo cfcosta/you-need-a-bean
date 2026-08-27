@@ -1,0 +1,56 @@
+option "title" "Income"
+option "operating_currency" "USD"
+
+2025-04-01 open Assets:Checking             USD
+2025-04-01 open Expenses:Living:Everything  USD
+2025-04-01 open Equity:Opening              USD
+
+2025-04-01 open Income:Salary:Acme          USD
+2025-04-01 open Income:Salary:Side          USD
+2025-04-01 open Income:Dividends:VTI        USD
+2025-04-01 open Income:Interest             USD
+2025-04-01 open Income:Cashback             USD
+
+; The ledger overrules the name: this one is a job, not a rent roll.
+2025-04-01 open Income:Rentals:Flat         USD
+  income: "active"
+
+; And marks one the name would never suggest.
+2025-04-01 open Income:Consulting:Retainer  USD
+  income: "passive"
+
+2025-04-01 * "Opening balance"
+  Assets:Checking  10000.00 USD
+  Equity:Opening
+
+2025-06-10 * "Acme" "Year of salary"
+  Income:Salary:Acme  -60000.00 USD
+  Assets:Checking
+
+2025-06-11 * "Side" "Year of moonlighting"
+  Income:Salary:Side  -12000.00 USD
+  Assets:Checking
+
+2025-06-12 * "Landlord" "Managing the flat"
+  Income:Rentals:Flat  -6000.00 USD
+  Assets:Checking
+
+2025-06-13 * "Broker" "Distributions"
+  Income:Dividends:VTI  -4000.00 USD
+  Assets:Checking
+
+2025-06-14 * "Client" "Retainer"
+  Income:Consulting:Retainer  -3000.00 USD
+  Assets:Checking
+
+2025-06-15 * "Bank" "Interest"
+  Income:Interest  -1000.00 USD
+  Assets:Checking
+
+2025-06-16 * "Card" "Cashback"
+  Income:Cashback  -500.00 USD
+  Assets:Checking
+
+2025-06-20 * "Everything" "A year of living"
+  Expenses:Living:Everything  40000.00 USD
+  Assets:Checking

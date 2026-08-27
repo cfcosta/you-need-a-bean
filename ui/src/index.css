@@ -1278,6 +1278,80 @@ a:focus-visible {
   font-size: 10.5px;
   color: var(--muted);
 }
+
+/* Income by source. The bar carries the passive slice inside the
+   total rather than beside it, because passive money is part of what
+   the source paid, not a separate source. */
+.ic-passive {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.ic-passive .num {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--good-text);
+}
+.ic-passive .muted {
+  color: var(--muted);
+}
+.ic-passive code {
+  font-size: 10.5px;
+  color: var(--ink-2);
+}
+.ic-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 12px;
+}
+.ic-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11.5px;
+}
+.ic-name {
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ic-track {
+  position: relative;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.ic-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+}
+.ic-bar.passive {
+  background: var(--good);
+}
+.ic-amt {
+  justify-self: end;
+  min-width: 56px;
+  text-align: right;
+  font-weight: 550;
+}
+.ic-pct {
+  justify-self: end;
+  min-width: 32px;
+  text-align: right;
+  color: var(--muted);
+}
 .month-label.page-title {
   text-align: left;
   min-width: 148px;
