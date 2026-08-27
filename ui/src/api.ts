@@ -315,6 +315,41 @@ export interface Season {
   projected: number | null;
 }
 
+/** One merchant, over the trailing year. */
+export interface Payee {
+  /** The name the ledger writes, trimmed and no further. */
+  name: string;
+  spent: number;
+  /** Charges behind `spent`, and what one of them averages. */
+  count: number;
+  average: number;
+  /** `spent` over the window's named and unnamed spend together. */
+  share: number;
+  /** Expense categories and distinct months this name reaches. One
+   * category over twelve months is a subscription; many over two is a
+   * shop you happen to buy everything at. */
+  categories: number;
+  months: number;
+  first: string;
+  last: string;
+}
+
+export interface Payees {
+  window: [string, string] | null;
+  /** Ranked by spend, biggest first, capped at fifteen. */
+  items: Payee[];
+  /** Every expense in the window, named or not — the denominator of
+   * `share`. */
+  total: number;
+  /** The names that qualified but didn't fit, and what they took. */
+  others: number;
+  others_spent: number;
+  /** Spend on transactions that name no payee, which is spend this
+   * card cannot rank rather than spend that didn't happen. */
+  anonymous: number;
+  anonymous_count: number;
+}
+
 /** A commodity still held, valued at a price from a while ago. */
 export interface StalePrice {
   commodity: string;
@@ -384,6 +419,7 @@ export interface ReportsView {
   projects: Projects;
   income: Income;
   season: Season;
+  payees: Payees;
   trust: Trust;
 }
 

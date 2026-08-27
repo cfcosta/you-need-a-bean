@@ -10,6 +10,7 @@ mod fire;
 mod growth;
 mod income;
 mod movers;
+mod payees;
 mod projects;
 mod recurring;
 mod season;
@@ -23,6 +24,7 @@ pub use fire::{
 pub use growth::{GrowthPoint, GrowthView};
 pub use income::{IncomeSource, IncomeView};
 pub use movers::{Mover, MoversView};
+pub use payees::{Payee, PayeesView};
 pub use projects::{Project, ProjectsView, Topic};
 pub use recurring::{Cadence, PriceChange, Recurring, RecurringView};
 pub use season::{SeasonPoint, SeasonView};
@@ -87,6 +89,8 @@ pub struct ReportsView {
     pub income: IncomeView,
     /// The shape a year of spending has, and where this one is going.
     pub season: SeasonView,
+    /// Who the year's money went to, ranked.
+    pub payees: PayeesView,
     /// The reasons to doubt everything above.
     pub trust: TrustView,
 }
@@ -227,6 +231,7 @@ impl Ledger {
             projects,
             income: self.income_view(current, cur),
             season,
+            payees: self.payees_view(current, cur),
             trust: self.trust_view(today, current, cur),
         }
     }

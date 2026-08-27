@@ -4,6 +4,7 @@ import type {
   GrowthPoint,
   Income,
   Movers,
+  Payees,
   NetWorthPoint,
   Projects,
   ReportsView,
@@ -1120,6 +1121,103 @@ function SeasonCard({ data, cur }: { data: Season; cur: string }) {
 }
 
 
+/** Who the money actually went to. The year card says groceries; this
+ * says which supermarket, how often, and how much a visit costs — the
+ * three numbers that decide whether a line is worth doing anything
+ * about. */
+function PayeeCard({ data, cur }: { data: Payees; cur: string }) {
+  const max = data.items[0]?.spent ?? 0;
+  const width = (v: number) => (max > 0 ? `${(v / max) * 100}%` : "0%");
+  const pct = (v: number) => (v < 0.005 ? "<1%" : `${Math.round(v * 100)}%`);
+  // How much of the year sits in the names below: the concentration
+  // question, which is the one that says whether a list this short can
+  // change anything.
+  const covered = data.items.reduce((sum, p) => sum + p.share, 0);
+
+  return (
+    <div className="report-card">
+      <h2>Where the money goes</h2>
+      <div className="sub2">
+        by payee, {windowLabel(data.window)} · {fmt(data.total, cur, 0)} in
+        all
+      </div>
+
+      {data.items.length === 0 ? (
+        <div className="empty">
+          {data.anonymous > 0
+            ? `no transaction in the window names a payee — ${fmt(data.anonymous, cur, 0)} of spend has nobody to rank`
+            : "no spending in the window"}
+        </div>
+      ) : (
+        <>
+          <div className="ic-passive">
+            <span className="num">{pct(covered)}</span>
+            <span>
+              {" "}
+              of the year went to these {data.items.length} name
+              {data.items.length === 1 ? "" : "s"}
+              {data.anonymous > 0 && (
+                <>
+                  {" · "}
+                  <span
+                    title={`${data.anonymous_count} transactions carry no payee. They are in the total, so they are in the denominator of every share above — they are simply spend this card has no name to rank.`}
+                  >
+                    {pct(data.anonymous / data.total)} of it (
+                    {fmt(data.anonymous, cur, 0)}) names nobody
+                  </span>
+                </>
+              )}
+            </span>
+          </div>
+
+          <div className="py-rows">
+            {data.items.map((p) => (
+              <div
+                key={p.name}
+                className="py-row"
+                title={
+                  `${p.name}: ${fmt(p.spent, cur)} over ${p.count} charge` +
+                  `${p.count === 1 ? "" : "s"}, averaging ${fmt(p.average, cur)}` +
+                  `\n${p.months} month${p.months === 1 ? "" : "s"}, ` +
+                  `${p.categories} categor${p.categories === 1 ? "y" : "ies"}` +
+                  ` · ${spanLabel(p.first, p.last)}`
+                }
+              >
+                <span className="py-name">{p.name}</span>
+                <span className="py-meta num">
+                  {p.count}× {fmtCompact(p.average, cur)}
+                </span>
+                <span className="ic-track">
+                  <span className="ic-bar" style={{ width: width(p.spent) }} />
+                </span>
+                <span className="py-amt num">{fmtCompact(p.spent, cur)}</span>
+                <span className="py-pct num">{pct(p.share)}</span>
+              </div>
+            ))}
+          </div>
+
+          {data.others > 0 && (
+            <div className="pj-note">
+              {data.others} more name{data.others === 1 ? "" : "s"} below the
+              cut, {fmt(data.others_spent, cur, 0)} between them
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="fine">
+        Names are taken as the ledger writes them — deciding that two
+        spellings are one merchant is a guess, and a ranking built on
+        guesses ranks the guesses. Hover a row for the months, the
+        categories and the span behind it: a name reaching one category
+        every month is a subscription, and one reaching twenty is a card
+        rather than a shop.
+      </div>
+    </div>
+  );
+}
+
+
 /** One reason to doubt the page, as the card draws it. */
 interface Doubt {
   key: string;
@@ -1441,6 +1539,8 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
           </div>
 
           <IncomeCard data={data.income} cur={cur} />
+
+          <PayeeCard data={data.payees} cur={cur} />
 
           <ProjectsCard data={data.projects} cur={cur} />
         </div>

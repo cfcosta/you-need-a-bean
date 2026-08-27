@@ -1,0 +1,212 @@
+; A trailing year of merchants, one of each shape the leaderboard has
+; to tell apart: a supermarket charging every month, an airline
+; charging once for more, a subscription charging every month for
+; little, a corner store crossing two categories, a purchase that came
+; back in full, and money that names nobody at all.
+option "title" "Payees"
+option "operating_currency" "USD"
+
+2025-01-01 open Assets:Checking          USD
+2025-01-01 open Assets:Savings           USD
+2025-01-01 open Equity:Opening           USD
+2025-01-01 open Expenses:Travel          USD
+2025-01-01 open Expenses:Food:Groceries  USD
+2025-01-01 open Expenses:Fun:Streaming   USD
+2025-01-01 open Expenses:Household       USD
+2025-01-01 open Expenses:Misc            USD
+
+2025-01-02 * "Opening balance"
+  Assets:Checking  100000.00 USD
+  Equity:Opening
+
+; Before the window, so none of it reaches the leaderboard.
+2025-02-15 * "Supermarket" "A month before the window opens"
+  Expenses:Food:Groceries  900.00 USD
+  Assets:Checking
+
+2025-04-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2025-04-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2025-05-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2025-05-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2025-06-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2025-06-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2025-07-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2025-07-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2025-08-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2025-08-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2025-09-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2025-09-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2025-10-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2025-10-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2025-11-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2025-11-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2025-12-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2025-12-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2026-01-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2026-01-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2026-02-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2026-02-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+2026-03-05 * "Supermarket" "Weekly shop"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+2026-03-07 * "Streaming Co" "Monthly subscription"
+  Expenses:Fun:Streaming   50.00 USD
+  Assets:Checking
+
+; The whole year in one charge.
+2025-07-20 * "Airline" "One flight"
+  Expenses:Travel          3000.00 USD
+  Assets:Checking
+
+; Two categories from one name.
+2025-11-05 * "Corner Store" "Dinner and a mop"
+  Expenses:Food:Groceries  180.00 USD
+  Expenses:Household       120.00 USD
+  Assets:Checking
+
+2026-02-05 * "Corner Store" "Dinner"
+  Expenses:Food:Groceries  200.00 USD
+  Assets:Checking
+
+; Bought and returned: it cost nothing, so it ranks nowhere.
+2025-09-10 * "Gadget Shop" "A thing"
+  Expenses:Household       400.00 USD
+  Assets:Checking
+
+2025-10-10 * "Gadget Shop" "Returned"
+  Expenses:Household       -400.00 USD
+  Assets:Checking
+
+; Nobody charged this, whatever it names.
+2025-06-01 * "Bank" "Moving my own money"
+  Assets:Savings           1000.00 USD
+  Assets:Checking
+
+; Money the ledger moved without saying to whom.
+2025-05-03 * "Card charge"
+  Expenses:Misc            210.00 USD
+  Assets:Checking
+
+2025-08-03 * "Card charge"
+  Expenses:Misc            210.00 USD
+  Assets:Checking
+
+2026-01-03 * "Card charge"
+  Expenses:Misc            210.00 USD
+  Assets:Checking
+
+; Twelve more names, so the sixteenth falls past the cut.
+2025-04-18 * "Vendor A" "One purchase"
+  Expenses:Misc            100.00 USD
+  Assets:Checking
+
+2025-05-18 * "Vendor B" "One purchase"
+  Expenses:Misc            95.00 USD
+  Assets:Checking
+
+2025-06-18 * "Vendor C" "One purchase"
+  Expenses:Misc            90.00 USD
+  Assets:Checking
+
+2025-07-18 * "Vendor D" "One purchase"
+  Expenses:Misc            85.00 USD
+  Assets:Checking
+
+2025-08-18 * "Vendor E" "One purchase"
+  Expenses:Misc            80.00 USD
+  Assets:Checking
+
+2025-09-18 * "Vendor F" "One purchase"
+  Expenses:Misc            75.00 USD
+  Assets:Checking
+
+2025-10-18 * "Vendor G" "One purchase"
+  Expenses:Misc            70.00 USD
+  Assets:Checking
+
+2025-11-18 * "Vendor H" "One purchase"
+  Expenses:Misc            65.00 USD
+  Assets:Checking
+
+2025-12-18 * "Vendor I" "One purchase"
+  Expenses:Misc            60.00 USD
+  Assets:Checking
+
+2026-01-18 * "Vendor J" "One purchase"
+  Expenses:Misc            55.00 USD
+  Assets:Checking
+
+2026-02-18 * "Vendor K" "One purchase"
+  Expenses:Misc            50.00 USD
+  Assets:Checking
+
+2026-03-18 * "Vendor L" "One purchase"
+  Expenses:Misc            45.00 USD
+  Assets:Checking

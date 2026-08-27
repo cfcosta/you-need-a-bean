@@ -843,3 +843,86 @@ fn a_ledger_too_short_to_have_a_shape_refuses_to_guess_one() {
     assert_eq!(season.year, 2026);
     assert_eq!(season.elapsed, 2);
 }
+
+#[test]
+fn the_payee_leaderboard_ranks_merchants_by_what_they_took() {
+    let ledger = fixture("payees");
+    let view = ledger.reports_view((2026, 4, 15), 3, "USD");
+    let payees = &view.payees;
+    assert_eq!(payees.window, Some((m("2025-04"), m("2026-03"))));
+
+    // 8,000 of spend in the window. The supermarket's 900 from
+    // February is a month too early to be in it.
+    assert_eq!(payees.total, dec("8000.00"));
+
+    let top: Vec<(&str, Decimal, usize, Decimal)> = payees.items[..4]
+        .iter()
+        .map(|p| (p.name.as_str(), p.spent, p.count, p.average))
+        .collect();
+    assert_eq!(
+        top,
+        vec![
+            ("Airline", dec("3000.00"), 1, dec("3000.00")),
+            ("Supermarket", dec("2400.00"), 12, dec("200.00")),
+            ("Streaming Co", dec("600.00"), 12, dec("50.00")),
+            ("Corner Store", dec("500.00"), 2, dec("250.00")),
+        ]
+    );
+
+    // The three numbers that tell the shapes apart: one flight, twelve
+    // identical small charges, twelve larger ones.
+    let air = &payees.items[0];
+    assert_eq!(air.months, 1);
+    assert_eq!(air.share, dec("0.375"));
+    assert_eq!(air.first, (2025, 7, 20));
+    assert_eq!(air.last, (2025, 7, 20));
+
+    let market = &payees.items[1];
+    assert_eq!(market.months, 12);
+    assert_eq!(market.categories, 1);
+    assert_eq!(market.share, dec("0.30"));
+    assert_eq!(market.first, (2025, 4, 5));
+    assert_eq!(market.last, (2026, 3, 5));
+
+    // One name, two categories.
+    let corner = &payees.items[3];
+    assert_eq!(corner.categories, 2);
+    assert_eq!(corner.months, 2);
+
+    // Bought and returned nets to nothing, so it ranks nowhere at all —
+    // not in the list and not in the tail behind it.
+    assert!(payees.items.iter().all(|p| p.name != "Gadget Shop"));
+    assert!(payees.items.iter().all(|p| p.name != "Bank"));
+
+    // Sixteen names qualify and fifteen fit, so the last one is
+    // reported rather than dropped.
+    assert_eq!(payees.items.len(), 15);
+    assert_eq!(payees.items[14].name, "Vendor K");
+    assert_eq!(payees.others, 1);
+    assert_eq!(payees.others_spent, dec("45.00"));
+
+    // Money that named nobody is money this card cannot rank, and it
+    // says how much rather than ranking around it.
+    assert_eq!(payees.anonymous, dec("630.00"));
+    assert_eq!(payees.anonymous_count, 3);
+}
+
+#[test]
+fn a_ledger_that_names_nobody_ranks_nobody() {
+    // The trailing window clamps to the ledger's first activity rather
+    // than refusing, the same way the income card's does: a merchant
+    // is a fact about however long you have been recording, and three
+    // months of it is still an answer.
+    let payees = ledger().reports_view((2026, 4, 15), 3, "USD").payees;
+    assert_eq!(payees.window, Some((m("2026-01"), m("2026-03"))));
+
+    // This ledger writes narrations and never a payee, which is what a
+    // whole class of importers produces. There is nobody to rank, and
+    // the card says the spend is unattributed rather than showing an
+    // empty list and leaving the reason to the reader.
+    assert!(payees.items.is_empty());
+    assert_eq!(payees.others, 0);
+    assert!(payees.total > Decimal::ZERO);
+    assert_eq!(payees.anonymous, payees.total);
+    assert_eq!(payees.anonymous_count, 8);
+}

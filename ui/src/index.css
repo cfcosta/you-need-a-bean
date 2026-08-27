@@ -1391,6 +1391,45 @@ a:focus-visible {
   text-align: right;
   color: var(--muted);
 }
+/* The payee leaderboard. Frequency and ticket size sit between the
+   name and the bar because the two of them are the answer: one line
+   worth cancelling looks nothing like a hundred worth trimming. */
+.py-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 12px;
+}
+.py-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(56px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11.5px;
+}
+.py-name {
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.py-meta {
+  color: var(--muted);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+.py-amt {
+  justify-self: end;
+  min-width: 56px;
+  text-align: right;
+  font-weight: 550;
+}
+.py-pct {
+  justify-self: end;
+  min-width: 32px;
+  text-align: right;
+  color: var(--muted);
+}
 /* The page's footnotes. Each row is one doubt: a dot for how bad it
    is, what it is, and what rests on it. */
 /* The shape of a year: twelve columns of median spend, with this

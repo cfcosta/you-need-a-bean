@@ -412,6 +412,24 @@ async fn reports(
             })
         })
         .collect();
+    let payees: Vec<Value> = view
+        .payees
+        .items
+        .iter()
+        .map(|p| {
+            json!({
+                "name": p.name,
+                "spent": num(p.spent),
+                "count": p.count,
+                "average": num(p.average),
+                "share": ratio_json(Some(p.share)),
+                "categories": p.categories,
+                "months": p.months,
+                "first": format_day(p.first),
+                "last": format_day(p.last),
+            })
+        })
+        .collect();
     let stale: Vec<Value> = view
         .trust
         .stale
@@ -525,6 +543,15 @@ async fn reports(
             "ytd": num(view.season.ytd),
             "pace": ratio_json(view.season.pace),
             "projected": opt_num(view.season.projected),
+        },
+        "payees": {
+            "window": window_json(view.payees.window),
+            "items": payees,
+            "total": num(view.payees.total),
+            "others": view.payees.others,
+            "others_spent": num(view.payees.others_spent),
+            "anonymous": num(view.payees.anonymous),
+            "anonymous_count": view.payees.anonymous_count,
         },
         "trust": {
             "window": window_json(view.trust.window),

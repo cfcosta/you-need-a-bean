@@ -124,8 +124,22 @@ Each line is one task: core computation (with tests) → API shape → card.
       projected is never its own baseline, and a ledger that cannot
       cover twelve calendar months even once reports no shape at all
       rather than eight months that appear to cost nothing.
-- [ ] **11 · Payee leaderboard** — top merchants by trailing-year spend,
+- [x] **11 · Payee leaderboard** — top merchants by trailing-year spend,
       with frequency and average ticket.
+      Frequency and ticket size are the point, not decoration. The year
+      card says the money went to groceries; it does not say it went to
+      one supermarket forty times. Twelve identical small charges are a
+      subscription and one line cancels them; a hundred medium ones are
+      a habit and nothing cancels them at all. Names are taken as the
+      ledger writes them, trimmed and no further — deciding that two
+      spellings are one merchant is a guess, and a ranking built on
+      guesses ranks the guesses. Transfers are excluded however they
+      are labelled, and a purchase returned in full ranks nowhere,
+      since neither is a charge. The synthetic payee fixture deliberately
+      mixes named and unnamed spending, and includes a name spanning
+      multiple categories, so both limitations remain visible. The
+      unnamed share is stated in the headline, while the categories and
+      months behind each name remain available on hover.
 
 ## Conventions these follow
 

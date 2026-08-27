@@ -498,3 +498,48 @@ async fn reports_endpoint_carries_the_seasonal_shape() {
         })
     );
 }
+
+#[tokio::test]
+async fn reports_endpoint_ranks_the_payees() {
+    let app = app_at("reports/payees", (2026, 4, 15));
+    let (status, body) = get_at(app, "/api/reports").await;
+    assert_eq!(status, StatusCode::OK);
+    let payees = &body["payees"];
+    assert_eq!(payees["window"], json!(["2025-04", "2026-03"]));
+    assert_eq!(payees["total"], json!(8000.0));
+    assert_eq!(payees["others"], json!(1));
+    assert_eq!(payees["others_spent"], json!(45.0));
+    assert_eq!(payees["anonymous"], json!(630.0));
+    assert_eq!(payees["anonymous_count"], json!(3));
+
+    let items = payees["items"].as_array().unwrap();
+    assert_eq!(items.len(), 15);
+    assert_eq!(
+        items[0],
+        json!({
+            "name": "Airline",
+            "spent": 3000.0,
+            "count": 1,
+            "average": 3000.0,
+            "share": 0.375,
+            "categories": 1,
+            "months": 1,
+            "first": "2025-07-20",
+            "last": "2025-07-20",
+        })
+    );
+    assert_eq!(
+        items[1],
+        json!({
+            "name": "Supermarket",
+            "spent": 2400.0,
+            "count": 12,
+            "average": 200.0,
+            "share": 0.3,
+            "categories": 1,
+            "months": 12,
+            "first": "2025-04-05",
+            "last": "2026-03-05",
+        })
+    );
+}
