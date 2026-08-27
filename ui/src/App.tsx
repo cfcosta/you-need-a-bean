@@ -19,6 +19,12 @@ import { BudgetTable } from "./components/BudgetTable";
 import { Inspector } from "./components/Inspector";
 import { Reports } from "./components/Reports";
 import { Sidebar } from "./components/Sidebar";
+import {
+  AccountSkeleton,
+  BootSkeleton,
+  Fatal,
+  ReportsSkeleton,
+} from "./components/Skeleton";
 import { StatStrip } from "./components/StatStrip";
 import { Topbar } from "./components/Topbar";
 import { monthWindow } from "./months";
@@ -231,12 +237,8 @@ export function App() {
     };
   }, [acct, month, basis, cur, revision]);
 
-  if (fatal != null) {
-    return <div className="empty">cannot reach the ledger server: {fatal}</div>;
-  }
-  if (summary == null || month == null || cur == null) {
-    return <div className="empty">loading ledger…</div>;
-  }
+  if (fatal != null) return <Fatal why={fatal} />;
+  if (summary == null || month == null || cur == null) return <BootSkeleton />;
 
   const window = monthWindow(summary.months, month, basis);
 
@@ -320,9 +322,18 @@ export function App() {
           />
           {summary.reload_error != null && (
             <div id="stale" role="status">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M8 1.4 15.2 14H.8L8 1.4zM7.25 6v4h1.5V6h-1.5zm0 5v1.5h1.5V11h-1.5z" />
+              </svg>
               <span className="stale-what">
-                the ledger changed but would not parse — showing the last
-                reading that worked
+                the ledger stopped parsing — these are the last numbers that
+                worked
               </span>
               <span className="stale-why mono">{summary.reload_error}</span>
             </div>
@@ -346,7 +357,7 @@ export function App() {
             (reports != null ? (
               <Reports data={reports} cur={cur} />
             ) : (
-              <div className="empty">crunching the numbers…</div>
+              <ReportsSkeleton />
             ))}
           {page === "account" &&
             (acctView != null && acctView.account === acct ? (
@@ -358,7 +369,7 @@ export function App() {
                 onToggleTxn={toggleTxn}
               />
             ) : (
-              <div className="empty">reading the account…</div>
+              <AccountSkeleton />
             ))}
         </main>
         {page === "budget" && (

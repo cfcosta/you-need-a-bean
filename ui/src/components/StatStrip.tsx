@@ -1,5 +1,30 @@
 import type { MonthView } from "../api";
-import { fmt, windowLabel } from "../format";
+import { fmt, pctLabel, windowLabel } from "../format";
+import { stripBars } from "../strip";
+
+const pos = (v: number) => `${(v * 100).toFixed(2)}%`;
+
+/** One tile's length on the strip's shared scale. `mark` is the typical
+ * month, `pace` where an even spend would have reached by today. */
+export function Bar({
+  cls,
+  fill,
+  mark,
+  pace,
+}: {
+  cls: string;
+  fill: number;
+  mark?: number | null;
+  pace?: number | null;
+}) {
+  return (
+    <span className={`tile-bar ${cls}`} aria-hidden="true">
+      <span className="fill" style={{ width: pos(fill) }} />
+      {pace != null && <span className="pace" style={{ left: pos(pace) }} />}
+      {mark != null && <span className="typ" style={{ left: pos(mark) }} />}
+    </span>
+  );
+}
 
 export function StatStrip({
   view,
@@ -12,47 +37,53 @@ export function StatStrip({
 }) {
   const sofar = view.is_current ? " so far" : "";
   const net = view.income - view.spent;
-  const pctTyp =
+  const bars = stripBars(view);
+  const ratio =
     view.typical != null && view.typical > 0
-      ? Math.round((view.spent / view.typical) * 100)
+      ? view.spent / view.typical
       : null;
-  const pctMon =
-    view.days_in_month > 0
-      ? Math.round((view.day / view.days_in_month) * 100)
-      : 0;
+  const spentTip = [
+    view.typical != null
+      ? `${fmt(view.spent, cur)} of a typical ${fmt(view.typical, cur)} — ${pctLabel(ratio)}`
+      : `${fmt(view.spent, cur)} — no earlier months to compare`,
+    view.is_current
+      ? `day ${view.day} of ${view.days_in_month}`
+      : "complete month",
+  ].join("\n");
 
   return (
     <div id="strip">
       <div className="tile">
         <div className="lbl">Income{sofar}</div>
         <div className="val num">{fmt(view.income, cur)}</div>
-        <div className="sub">all Income accounts</div>
+        <Bar cls="in" fill={bars.income} />
       </div>
-      <div className="tile">
+      <div className="tile" title={spentTip}>
         <div className="lbl">Spent{sofar}</div>
         <div className="val num">{fmt(view.spent, cur)}</div>
-        <div className="sub">
-          {pctTyp != null
-            ? `${pctTyp}% of a typical month`
-            : "no earlier months to compare"}
-          {view.is_current ? ` · ${pctMon}% of the month gone` : ""}
-        </div>
+        <Bar
+          cls={ratio != null && ratio > 1 ? "out over" : "out"}
+          fill={bars.spent}
+          mark={bars.typical}
+          pace={bars.paceMark}
+        />
       </div>
-      <div className="tile">
+      <div
+        className="tile"
+        title={`the median month with payments in ${windowLabel(window)}`}
+      >
         <div className="lbl">Typical month</div>
         <div className="val num">
           {view.typical != null ? fmt(view.typical, cur) : "—"}
         </div>
-        <div className="sub">
-          median month with payments, {windowLabel(window)}
-        </div>
+        <Bar cls="typical" fill={bars.typical ?? 0} />
       </div>
       <div className="tile">
         <div className="lbl">Net{sofar}</div>
         <div className="val num">
           <span className={net >= 0 ? "pos" : ""}>{fmt(net, cur)}</span>
         </div>
-        <div className="sub">income − spending</div>
+        <Bar cls={bars.negative ? "net neg" : "net"} fill={bars.net} />
       </div>
     </div>
   );

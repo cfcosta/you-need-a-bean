@@ -119,18 +119,30 @@ export function Sidebar({
               strokeLinecap="round"
             />
           </svg>
-          <div className="wordmark-text">
-            you need a bean<small>budget from beancount</small>
-          </div>
+          <div className="wordmark-text">you need a bean</div>
         </div>
         <div
           className="ledger-chip mono"
-          title={'option "title" from the main ledger file'}
+          title={`read-only — beancount is the source of truth\n${summary.directives.toLocaleString(
+            "en-US",
+          )} directives across ${summary.files} files, read in ${parseLabel(
+            summary.parse_ms,
+          )}`}
         >
+          <svg
+            className="lock"
+            width="10"
+            height="10"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            aria-label="read-only"
+          >
+            <path d="M8 1a3.2 3.2 0 0 0-3.2 3.2V6H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-.8V4.2A3.2 3.2 0 0 0 8 1zm1.8 5H6.2V4.2a1.8 1.8 0 1 1 3.6 0V6z" />
+          </svg>
           <b>{summary.title ?? summary.root ?? "ledger"}</b>
-          <br />
-          {summary.directives.toLocaleString("en-US")} directives · parsed{" "}
-          {parseLabel(summary.parse_ms)}
+          <span className="lc-n num">
+            {summary.directives.toLocaleString("en-US")}
+          </span>
         </div>
       </div>
 
@@ -199,10 +211,6 @@ export function Sidebar({
           />
         </>
       )}
-
-      <div className="side-foot mono">
-        read-only · beancount is the source of truth
-      </div>
     </nav>
   );
 }

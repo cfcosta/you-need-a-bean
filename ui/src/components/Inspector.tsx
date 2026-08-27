@@ -32,11 +32,6 @@ function Chart({
               className={`col${now ? " now" : ""}`}
               title={`${monthName(h.month)}: ${fmt(h.spent, cur)}`}
             >
-              {now && (
-                <span className="cap num" style={{ bottom: `${bh + 3}px` }}>
-                  {fmt(h.spent, cur, 0)}
-                </span>
-              )}
               <div className="bar" style={{ height: `${bh}px` }} />
             </div>
           );
@@ -76,7 +71,7 @@ function CurrencyCard({
       <div className="cur-split num">
         {codes.map((k) => {
           const native = view.split[k] ?? 0;
-          let conv = "operating currency";
+          let conv = "";
           if (k !== cur) {
             const inK = view.txns.filter((t) => t.currency === k);
             const convertible = inK.filter((t) => t.converted != null);
@@ -351,7 +346,21 @@ export function Inspector({
       </button>
       <div className="insp-pad">
         {view == null ? (
-          <div className="empty">Select a category to inspect it.</div>
+          <div className="empty insp-idle">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              aria-hidden="true"
+            >
+              <rect x="1.5" y="3" width="13" height="10" rx="1.5" />
+              <path d="M1.5 6.5h13M6 6.5V13" />
+            </svg>
+            pick a category
+          </div>
         ) : (
           <InspectorBody
             view={view}
@@ -407,16 +416,22 @@ function InspectorBody({
       </div>
 
       <div className="card">
-        <h3>Target — typical month</h3>
+        <h3
+          title={
+            view.window != null
+              ? `the median month with payments in ${windowLabel(view.window)} (${basis} mo)`
+              : undefined
+          }
+        >
+          Target — typical month
+        </h3>
         <div className="target-val num">
           {view.avg != null ? fmt(view.avg, cur) : "—"}
           <span className="target-sub"> / month</span>
         </div>
-        <div className="target-sub">
-          {view.window != null
-            ? `median month with payments in ${windowLabel(view.window)} (${basis} mo)`
-            : "no earlier months with payments yet"}
-        </div>
+        {view.window == null && (
+          <div className="target-sub">no earlier months with payments yet</div>
+        )}
         <div className={`target-meter meter ${st}`}>
           <span className="fill" style={{ width: `${meterPct}%` }} />
         </div>
@@ -447,11 +462,11 @@ function InspectorBody({
 
       <div>
         <div className="detail-label" style={{ margin: "4px 0 2px" }}>
-          Transactions — {monthName(month)} ({view.txns.length})
+          Transactions<span className="lbl-n num">{view.txns.length}</span>
         </div>
         <div className="txn-list">
           {view.txns.length === 0 && (
-            <div className="empty">No transactions in {monthName(month)}.</div>
+            <div className="empty">nothing in {monthShort(month)}</div>
           )}
           {view.txns.map((t, ti) => {
             const isOpen = openTxns.has(ti);

@@ -33,6 +33,7 @@ import {
 } from "../format";
 import type { RibbonMonth, StripCell } from "../year";
 import { yearRibbon, yearRows, yearStrip } from "../year";
+import { Unpriced } from "./Unpriced";
 
 /** "2026-08" plus n months. */
 function addMonths(m: string, n: number): string {
@@ -64,6 +65,11 @@ function listOf(items: string[]): string {
 }
 
 const monthYear = (m: string) => `${monthShort(m)} ${m.slice(0, 4)}`;
+
+/** A share as a bar width. Clamped, because a share above one would run
+ * the fill past the track it is drawn inside. */
+const cover = (v: number) =>
+  `${Math.min(100, Math.max(0, v * 100)).toFixed(2)}%`;
 
 /** A change in money, always carrying its sign. `fmtCompact` already
  * writes the minus, so only a rise needs one added. */
@@ -1161,19 +1167,37 @@ function IncomeCard({ data, cur }: { data: Income; cur: string }) {
       />
 
       {/* The Coast and Barista question: how much of the bill is
-          already covered by money that arrives without you. Leading
-          with the amount rather than a share: the two shares beside it
-          have different denominators, and at small scales a rounded
-          percentage hides which is which. */}
-      <div className="ic-passive">
+          already covered by money that arrives without you. Two rounded
+          percentages against different denominators read as noise at
+          small scales, so the one that matters is a length instead —
+          the bar is the year's spending, the fill is the part of it
+          that arrives on its own. */}
+      <div
+        className="ic-passive"
+        title={
+          data.passive > 0
+            ? `${fmt(data.passive, cur)} arrives without work\n` +
+              `${ratio(data.passive_cover)} of what you spend \u00b7 ` +
+              `${ratio(data.passive_share)} of what you earn`
+            : undefined
+        }
+      >
         {data.passive > 0 ? (
           <>
             <span className="num">{fmt(data.passive, cur, 0)}</span>
-            <span>
-              {" "}
-              arrives on its own — {ratio(data.passive_cover)} of what you
-              spend, {ratio(data.passive_share)} of what you earn
-            </span>
+            {data.passive_cover != null ? (
+              <>
+                <span className="icp-bar" aria-hidden="true">
+                  <span
+                    className="fill"
+                    style={{ width: cover(data.passive_cover) }}
+                  />
+                </span>
+                <span className="icp-of">of what you spend</span>
+              </>
+            ) : (
+              <span className="icp-of">arrives on its own</span>
+            )}
           </>
         ) : (
           <span className="muted">
@@ -1890,17 +1914,7 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
 
   return (
     <section id="reports">
-      {data.unpriced.length > 0 && (
-        <div className="notice">
-          <b>{listOf(data.unpriced)}</b>{" "}
-          {data.unpriced.length === 1 ? "has" : "have"} no price in {cur}, so
-          every amount in {data.unpriced.length === 1 ? "it" : "them"} is
-          missing from these numbers — the balances you hold and the income and
-          spending that passed through {data.unpriced.length === 1 ? "it" : "them"}
-          . Add <code>price</code> directives to bring{" "}
-          {data.unpriced.length === 1 ? "it" : "them"} in.
-        </div>
-      )}
+      <Unpriced codes={data.unpriced} cur={cur} where="every report here" />
       <div className="report-card">
         <div className="fire-top">
           <div className="fire-main">

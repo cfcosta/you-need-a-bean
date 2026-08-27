@@ -1,6 +1,7 @@
 import type { MonthView, Summary } from "../api";
 import { monthName, windowLabel } from "../format";
 import type { Page } from "../router";
+import { monthProgress } from "../strip";
 
 const BASES = [3, 6, 12] as const;
 
@@ -50,7 +51,6 @@ export function Topbar({
       {page === "reports" ? (
         <div className="month-label page-title">
           <h1>Reports</h1>
-          <div className="sub num">as of {summary.today}</div>
         </div>
       ) : (
       <div className="month-pager">
@@ -72,12 +72,24 @@ export function Topbar({
         </button>
         <div className="month-label">
           <h1>{monthName(month)}</h1>
-          <div className="sub num">
-            {view == null
-              ? " "
-              : view.is_current
-                ? `day ${view.day} of ${view.days_in_month}`
-                : "complete month"}
+          <div
+            className="month-progress"
+            title={
+              view == null
+                ? undefined
+                : view.is_current
+                  ? `day ${view.day} of ${view.days_in_month}`
+                  : "complete month"
+            }
+          >
+            <span
+              style={{
+                width:
+                  view == null
+                    ? "0%"
+                    : `${((monthProgress(view) ?? 1) * 100).toFixed(1)}%`,
+              }}
+            />
           </div>
         </div>
         <button

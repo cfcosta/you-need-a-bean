@@ -1,7 +1,10 @@
 import type { AccountPoint, AccountView, RegisterTxn } from "../api";
 import { fmt, fmtCode, fmtCompact, monthName, monthShort } from "../format";
 import { counterpart, prevMonth } from "../register";
+import { accountBars } from "../strip";
 import { TxnChips, TxnDetail } from "./Inspector";
+import { Bar } from "./StatStrip";
+import { Unpriced } from "./Unpriced";
 
 const W = 720;
 const H = 168;
@@ -214,63 +217,73 @@ export function Account({
       : null;
   const ins = view.txns.filter((t) => (t.delta ?? 0) > 0).length;
   const outs = view.txns.filter((t) => (t.delta ?? 0) < 0).length;
+  const bars = accountBars(view);
+  const moved = view.inflow - view.outflow;
 
   return (
     <>
       <div className="acct-head">
         <div className="crumb">
-          {view.kind === "tracking" ? "Tracking account" : "Budget account"} ·{" "}
-          {monthName(month)}
+          {view.kind === "tracking" ? "Tracking account" : "Budget account"}
         </div>
         <h2>{view.label}</h2>
         <div className="raw mono">{view.account}</div>
       </div>
 
       <div id="strip">
-        <div className="tile">
+        <div className="tile" title={`end of ${monthName(prevMonth(month))}`}>
           <div className="lbl">Opening</div>
           <div className="val num">
             {view.opening != null ? fmt(view.opening, cur) : "—"}
           </div>
-          <div className="sub">end of {monthName(prevMonth(month))}</div>
+          <Bar
+            cls={bars.openingNegative ? "level neg" : "level"}
+            fill={bars.opening ?? 0}
+          />
         </div>
-        <div className="tile">
-          <div className="lbl">In</div>
+        <div
+          className="tile"
+          title={`${ins} ${ins === 1 ? "arrival" : "arrivals"}`}
+        >
+          <div className="lbl">
+            In{ins > 0 && <span className="lbl-n num">{ins}</span>}
+          </div>
           <div className="val num">
             <span className="pos">{fmt(view.inflow, cur)}</span>
           </div>
-          <div className="sub">
-            {ins} {ins === 1 ? "arrival" : "arrivals"}
-          </div>
+          <Bar cls="in" fill={bars.inflow} />
         </div>
-        <div className="tile">
-          <div className="lbl">Out</div>
+        <div
+          className="tile"
+          title={`${outs} ${outs === 1 ? "payment" : "payments"}`}
+        >
+          <div className="lbl">
+            Out{outs > 0 && <span className="lbl-n num">{outs}</span>}
+          </div>
           <div className="val num">{fmt(view.outflow, cur)}</div>
-          <div className="sub">
-            {outs} {outs === 1 ? "payment" : "payments"}
-          </div>
+          <Bar cls="out" fill={bars.outflow} />
         </div>
-        <div className="tile">
+        <div
+          className="tile"
+          title={
+            native != null && (codes.length > 1 || codes[0] !== cur)
+              ? `end of ${monthName(month)} — ${native}`
+              : `end of ${monthName(month)}`
+          }
+        >
           <div className="lbl">Balance</div>
           <div className="val num">
             {view.balance != null ? fmt(view.balance, cur) : "—"}
           </div>
-          <div className="sub" title={native ?? undefined}>
-            {native != null && (codes.length > 1 || codes[0] !== cur)
-              ? native
-              : `end of ${monthShort(month)}`}
-          </div>
+          <Bar
+            cls={bars.balanceNegative ? "level neg" : "level"}
+            fill={bars.balance ?? 0}
+          />
         </div>
       </div>
 
       <div id="account">
-        {view.unpriced.length > 0 && (
-          <div className="notice">
-            This month moved <b>{view.unpriced.join(", ")}</b>, which nothing
-            prices in {cur}. Every figure here is missing them — the lines
-            they touch show a dash rather than a number that isn't one.
-          </div>
-        )}
+        <Unpriced codes={view.unpriced} cur={cur} where="this account" />
 
         <div className="report-card">
           <div className="card-head">
@@ -280,11 +293,15 @@ export function Account({
                 {view.history.length} months to {monthShort(month)}
               </div>
             </div>
-            <div className="card-fig">
+            <div
+              className="card-fig"
+              title={`${monthName(month)} — in minus out`}
+            >
               <span className="card-total num">
-                {fmtCompact(view.inflow - view.outflow, cur)}
+                {moved > 0 ? "+" : ""}
+                {fmtCompact(moved, cur)}
               </span>
-              <span className="card-note">this month, net</span>
+              <span className="card-note">{monthShort(month)}</span>
             </div>
           </div>
           <FlowChart points={view.history} cur={cur} month={month} />

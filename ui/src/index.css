@@ -229,28 +229,37 @@ a:focus-visible {
   font-weight: 650;
   letter-spacing: -0.01em;
 }
-.wordmark-text small {
-  display: block;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--brand-ink-2);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-top: 1px;
-}
+/* Which ledger is open, and how big it is. What that size was read
+   from and how long it took are a tooltip; the padlock is the whole of
+   what "read-only" used to say in words. */
 .ledger-chip {
   margin-top: 12px;
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--brand-line);
   font-size: 10.5px;
   color: var(--brand-ink-2);
-  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: help;
+}
+.ledger-chip .lock {
+  flex: none;
+  opacity: 0.6;
 }
 .ledger-chip b {
   color: var(--brand-ink);
   font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ledger-chip .lc-n {
+  margin-left: auto;
+  flex: none;
 }
 .side-nav {
   padding: 10px 8px;
@@ -350,15 +359,6 @@ a:focus-visible {
 .acct-amt.neg {
   color: #f7768e;
 }
-.side-foot {
-  margin-top: auto;
-  padding: 12px 16px;
-  font-size: 10px;
-  color: var(--brand-ink-2);
-  border-top: 1px solid var(--brand-line);
-  line-height: 1.6;
-}
-
 /* ---------- Main ---------- */
 #main {
   display: flex;
@@ -410,10 +410,22 @@ a:focus-visible {
   font-weight: 650;
   letter-spacing: -0.01em;
 }
-.month-label .sub {
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: -1px;
+/* How far through the month we are. The topbar has no room for a
+   sentence, and a length says it without one. A finished month fills. */
+.month-progress {
+  width: 74px;
+  height: 2px;
+  margin: 4px auto 0;
+  border-radius: 99px;
+  background: var(--line-2);
+  overflow: hidden;
+  cursor: help;
+}
+.month-progress span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
 }
 .topbar-right {
   margin-left: auto;
@@ -478,13 +490,64 @@ a:focus-visible {
   margin-top: 2px;
   white-space: nowrap;
 }
-.tile .sub {
-  font-size: 10.5px;
-  color: var(--muted);
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* A count on the label — "In 12" — where the tile used to spell out
+   "12 arrivals" on a line of its own. */
+.lbl-n {
+  margin-left: 5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+/* Each tile carries its number as a length as well as a figure, and all
+   four are drawn to one scale. Whether the month is dear is then a
+   comparison the reader makes by eye rather than one the tile asserts. */
+.tile-bar {
+  position: relative;
+  display: block;
+  height: 4px;
+  margin-top: 9px;
+  border-radius: 99px;
+  background: var(--surface-2);
+}
+.tile-bar .fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 99px;
+  background: var(--accent);
+}
+.tile-bar.in .fill,
+.tile-bar.net .fill {
+  background: var(--good);
+}
+.tile-bar.out.over .fill,
+.tile-bar.net.neg .fill,
+.tile-bar.level.neg .fill {
+  background: var(--over);
+}
+.tile-bar.typical .fill {
+  background: var(--muted);
+}
+/* The typical month, and where an even spend through it would have
+   reached by today — the same two marks the budget table's bars use. */
+.tile-bar .typ {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1.5px;
+  border-radius: 1px;
+  background: var(--ink-2);
+  opacity: 0.75;
+}
+.tile-bar .pace {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1.5px;
+  border-radius: 1px;
+  background: var(--muted);
+  opacity: 0.8;
 }
 .tile .val .pos {
   color: var(--good-text);
@@ -1074,24 +1137,30 @@ a:focus-visible {
 }
 
 .notice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
   border: 1px solid var(--warn-track);
   background: var(--warn-tint);
   border-radius: 10px;
-  padding: 10px 13px;
+  padding: 8px 12px;
   margin-bottom: 12px;
   font-size: 11.5px;
-  line-height: 1.55;
   color: var(--ink-2);
+  cursor: help;
 }
-.notice b {
-  font-weight: 650;
+.notice svg {
+  flex: none;
   color: var(--warn-text);
 }
 .notice code {
   font-size: 11px;
-  padding: 1px 4px;
+  font-weight: 600;
+  padding: 1px 5px;
   border-radius: 4px;
   background: var(--surface-2);
+  color: var(--warn-text);
 }
 
 .key {
@@ -1528,6 +1597,9 @@ button.yr-row:hover .yr-cell-bar {
    total rather than beside it, because passive money is part of what
    the source paid, not a separate source. */
 .ic-passive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-top: 12px;
   padding: 9px 11px;
   border: 1px solid var(--line);
@@ -1535,6 +1607,34 @@ button.yr-row:hover .yr-cell-bar {
   background: var(--surface-2);
   font-size: 11.5px;
   line-height: 1.5;
+}
+.ic-passive[title] {
+  cursor: help;
+}
+/* The whole year's spending. The fill is the part of it that arrives
+   without work — a sliver when the answer is "almost none", which is
+   the honest picture two rounded percentages could not draw. */
+.ic-passive .icp-bar {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.ic-passive .icp-bar .fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  min-width: 1.5px;
+  border-radius: 99px;
+  background: var(--good);
+}
+.ic-passive .icp-of {
+  flex: none;
+  color: var(--muted);
 }
 .ic-passive .num {
   font-size: 15px;
@@ -2213,13 +2313,6 @@ button.reg-row:hover {
 .chart .col.now .bar {
   background: var(--bar-now);
 }
-.chart .col .cap {
-  position: absolute;
-  font-size: 9.5px;
-  font-weight: 600;
-  color: var(--ink-2);
-  white-space: nowrap;
-}
 .chart .xlabels {
   position: absolute;
   left: 0;
@@ -2511,17 +2604,105 @@ button.reg-row:hover {
   color: var(--muted);
   font-size: 11.5px;
 }
+/* The inspector before anything is picked. It fills a whole column, so
+   it gets a mark to sit under rather than a line of text alone. */
+.insp-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 44px 4px;
+  opacity: 0.65;
+}
+.insp-idle svg {
+  opacity: 0.7;
+}
 .insp-close {
   display: none;
+}
+
+/* ---------- Waiting ---------- */
+
+/* A block the size of what is coming, breathing so it doesn't read as
+   content that failed to render. The whole point is that no sentence
+   has to say what is loading. */
+.sk {
+  display: block;
+  border-radius: 6px;
+  background: var(--surface-2);
+  animation: sk-breathe 1.5s ease-in-out infinite;
+}
+.sk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sk-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sk-stack.r {
+  align-items: flex-end;
+}
+@keyframes sk-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* Before there is a ledger there is no layout to stand in for. */
+.boot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 100vh;
+  padding: 24px;
+  text-align: center;
+}
+.boot svg {
+  animation: sk-breathe 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .boot svg {
+    animation: none;
+  }
+}
+.boot.fatal svg {
+  color: var(--over-text);
+  animation: none;
+}
+.boot.fatal b {
+  font-size: 14px;
+  font-weight: 650;
+}
+.boot.fatal code {
+  font-size: 11.5px;
+  color: var(--muted);
+  max-width: 44ch;
+  overflow-wrap: anywhere;
 }
 
 /* The files on disk stopped parsing. Says so where the numbers are,
    because otherwise a save that silently changes nothing reads as a
    bug in the page. */
 #stale {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 8px;
   flex-shrink: 0;
   margin: 12px 20px 0;
   padding: 9px 12px;
@@ -2529,10 +2710,17 @@ button.reg-row:hover {
   border-radius: 9px;
   background: var(--warn-tint);
 }
+#stale svg {
+  color: var(--warn-text);
+}
 .stale-what {
   font-size: 11.5px;
   font-weight: 600;
   color: var(--warn-text);
+}
+/* The parse error lines up under the sentence, not under the mark. */
+.stale-why {
+  grid-column: 2;
 }
 .stale-why {
   font-size: 10.5px;
