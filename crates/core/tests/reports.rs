@@ -65,10 +65,11 @@ fn year_breakdown_totals_the_trailing_year_by_group() {
 
     // A fixed twelve-month window clamped to first activity — the
     // display basis (3 here) plays no part.
-    assert_eq!(view.year_window, Some((m("2026-01"), m("2026-03"))));
+    assert_eq!(view.year.window, Some((m("2026-01"), m("2026-03"))));
 
     let rows: Vec<(&str, Decimal)> = view
-        .year_groups
+        .year
+        .groups
         .iter()
         .map(|g| (g.name.as_str(), g.total))
         .collect();
@@ -78,6 +79,88 @@ fn year_breakdown_totals_the_trailing_year_by_group() {
         rows,
         vec![("Rent", dec("6000.00")), ("Food", dec("4000.00"))]
     );
+
+    // Three months of history can't be measured against the year
+    // before it, and the view says so rather than comparing a quarter
+    // to nothing and calling everything new.
+    assert_eq!(view.year.prior_window, None);
+    assert!(view.year.groups.iter().all(|g| g.prior.is_none()));
+    assert_eq!(view.movers.recent, None);
+    assert!(view.movers.items.is_empty());
+}
+
+#[test]
+fn the_year_card_carries_the_year_before_it() {
+    let view = fixture("movers").reports_view((2026, 4, 15), 3, "USD");
+
+    assert_eq!(view.year.window, Some((m("2025-04"), m("2026-03"))));
+    assert_eq!(view.year.prior_window, Some((m("2024-04"), m("2025-03"))));
+
+    let rows: Vec<(&str, Decimal, Option<Decimal>)> = view
+        .year
+        .groups
+        .iter()
+        .map(|g| (g.name.as_str(), g.total, g.prior))
+        .collect();
+    assert_eq!(
+        rows,
+        vec![
+            // Rent never moved: 12 × 2,000 either year.
+            ("Housing", dec("24000.00"), Some(dec("24000.00"))),
+            // Groceries stepped 500 → 900 for the last three months.
+            ("Food", dec("7320.00"), Some(dec("6120.00"))),
+            ("Travel", dec("3000.00"), Some(dec("5000.00"))),
+            ("Health", dec("400.00"), Some(dec("0.00"))),
+            // Spent nothing this year, and that is the whole point of
+            // keeping the row: 2,400 last year, gone.
+            ("Education", dec("0.00"), Some(dec("2400.00"))),
+        ]
+    );
+}
+
+#[test]
+fn movers_rank_the_quarter_by_money_not_percentage() {
+    let view = fixture("movers").reports_view((2026, 4, 15), 3, "USD");
+    let movers = &view.movers;
+
+    assert_eq!(movers.recent, Some((m("2026-01"), m("2026-03"))));
+    assert_eq!(movers.prior, Some((m("2025-10"), m("2025-12"))));
+    assert_eq!(movers.recent_total, dec("9130.00"));
+    assert_eq!(movers.prior_total, dec("10530.00"));
+
+    let rows: Vec<(&str, Decimal, Decimal, Decimal, Option<Decimal>)> = movers
+        .items
+        .iter()
+        .map(|i| (i.label.as_str(), i.recent, i.prior, i.delta, i.ratio))
+        .collect();
+    assert_eq!(
+        rows,
+        vec![
+            // One trip last quarter, none this one: the biggest single
+            // reason the quarter came in lighter.
+            (
+                "Flights",
+                dec("0.00"),
+                dec("3000.00"),
+                dec("-3000.00"),
+                Some(dec("-1"))
+            ),
+            (
+                "Groceries",
+                dec("2700.00"),
+                dec("1500.00"),
+                dec("1200.00"),
+                Some(dec("0.8"))
+            ),
+            // Nothing to divide by, so no percentage is offered.
+            ("Gym", dec("400.00"), dec("0.00"), dec("400.00"), None),
+        ]
+    );
+
+    // Rent didn't move and coffee moved by nothing worth a sentence;
+    // neither earns a row.
+    assert!(!movers.items.iter().any(|i| i.label == "Rent"));
+    assert!(!movers.items.iter().any(|i| i.label == "Coffee"));
 }
 
 #[test]

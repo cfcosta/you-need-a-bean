@@ -43,10 +43,18 @@ Each line is one task: core computation (with tests) → API shape → card.
       prior charge to count, so a subscription
       billed in another currency does not report a raise every time the
       exchange rate moves.
-- [ ] **4 · Year over year + biggest movers** — the year card ranks but
+- [x] **4 · Year over year + biggest movers** — the year card ranks but
       never compares. Add the prior twelve months as a delta, plus the
       categories whose trailing quarter moved most against the quarter
       before it: the direct answer to "why is my spending up?".
+      Both comparisons refuse to clamp: a window that the ledger cannot
+      cover in full comes back empty rather than measuring a year
+      against the four months that happen to precede it, which reports
+      a collapse that is only the edge of the data. Movers rank by
+      money and not by percentage — a category doubling from 5 to 10
+      answers nothing — and a move must clear 1% of the bigger quarter
+      to earn a row, a floor that scales with the ledger instead of
+      assuming a currency.
 - [ ] **5 · Tags and links as projects** — `#renovation` and
       `^trip-japan` are how beancount users scope work across months and
       categories, and the UI aggregates them nowhere. Total, count and

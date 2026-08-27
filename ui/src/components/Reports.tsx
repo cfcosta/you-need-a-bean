@@ -2,6 +2,7 @@ import type {
   CashflowPoint,
   Growth,
   GrowthPoint,
+  Movers,
   NetWorthPoint,
   RecurringView,
   ReportsView,
@@ -38,6 +39,20 @@ function listOf(items: string[]): string {
 }
 
 const monthYear = (m: string) => `${monthShort(m)} ${m.slice(0, 4)}`;
+
+/** A change in money, always carrying its sign. `fmtCompact` already
+ * writes the minus, so only a rise needs one added. */
+const signed = (v: number, cur: string) =>
+  `${v > 0 ? "+" : ""}${fmtCompact(v, cur)}`;
+
+/** A change as a percentage. `null` means there was nothing to grow
+ * from, which is a category that appeared rather than one that rose. */
+function changePct(ratio: number | null): string {
+  if (ratio == null) return "new";
+  const p = ratio * 100;
+  if (Math.abs(p) < 0.5) return "flat";
+  return `${p > 0 ? "+" : "\u2212"}${Math.round(Math.abs(p))}%`;
+}
 
 /** Round gridline values covering [min, max], roughly `want` of them. */
 function ticks(min: number, max: number, want: number): number[] {
@@ -682,7 +697,7 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
   const top = groups.slice(0, 9);
   const rest = groups.slice(9);
   const restTotal = rest.reduce((s, g) => s + g.total, 0);
-  const max = groups[0]?.total ?? 0;
+  const max = Math.max(...groups.map((g) => Math.max(g.total, g.prior ?? 0)), 0);
   const width = (v: number) =>
     max > 0 ? `${Math.min(100, (v / max) * 100)}%` : "0%";
   const share = (v: number) => {
@@ -690,12 +705,43 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
     return p >= 0.5 ? `${Math.round(p)}%` : "<1%";
   };
 
+  // The prior year is all-or-nothing: the core withholds it entirely
+  // rather than compare a whole year against however much history
+  // happens to precede it.
+  const compared = data.year.prior_window != null;
+  const priorTotal = groups.reduce((s, g) => s + (g.prior ?? 0), 0);
+  const change = (g: { total: number; prior: number | null }) =>
+    g.prior == null || g.prior <= 0 ? null : g.total / g.prior - 1;
+
+  /** A tick where last year's spend sat, so the bar reads as a move. */
+  const mark = (g: { prior: number | null }) =>
+    g.prior != null && g.prior > 0 ? (
+      <span className="yr-mark" style={{ left: width(g.prior) }} />
+    ) : null;
+
+  const rowTitle = (name: string, now: number, before: number | null) =>
+    before == null
+      ? `${name}: ${fmt(now, cur)}`
+      : `${name}: ${fmt(now, cur)} this year, ${fmt(before, cur)} the year before` +
+        ` (${signed(now - before, cur)}) · ${share(now)} of the year`;
+
   return (
     <div className="report-card">
       <h2>Where the year went</h2>
       <div className="sub2">
         spend by group, {windowLabel(data.year.window)} ·{" "}
         {fmt(total, cur, 0)} total
+        {compared && (
+          <>
+            {" · "}
+            <b className={total > priorTotal ? "up" : "down"}>
+              {signed(total - priorTotal, cur)}
+            </b>{" "}
+            <span title={`${fmt(priorTotal, cur)} over ${windowLabel(data.year.prior_window)}`}>
+              on the year before
+            </span>
+          </>
+        )}
       </div>
       {groups.length === 0 ? (
         <div className="empty">no spending in the last year</div>
@@ -705,14 +751,23 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
             <div
               key={g.name}
               className="yr-row"
-              title={`${g.name}: ${fmt(g.total, cur)}`}
+              title={rowTitle(g.name, g.total, g.prior)}
             >
               <span className="yr-name">{g.name}</span>
               <span className="yr-track">
                 <span className="yr-bar" style={{ width: width(g.total) }} />
+                {mark(g)}
               </span>
               <span className="yr-amt num">{fmtCompact(g.total, cur)}</span>
-              <span className="yr-pct num">{share(g.total)}</span>
+              {compared ? (
+                <span
+                  className={`yr-pct num ${g.total > (g.prior ?? 0) ? "up" : g.total < (g.prior ?? 0) ? "down" : ""}`}
+                >
+                  {changePct(change(g))}
+                </span>
+              ) : (
+                <span className="yr-pct num">{share(g.total)}</span>
+              )}
             </div>
           ))}
           {rest.length > 0 && (
@@ -728,6 +783,66 @@ function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
               <span className="yr-pct num">{share(restTotal)}</span>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MoversCard({ data, cur }: { data: Movers; cur: string }) {
+  const delta = data.recent_total - data.prior_total;
+  // Ranked by money, so the widest bar is the biggest move either way.
+  const max = Math.max(...data.items.map((i) => Math.abs(i.delta)), 1);
+  const width = (v: number) => `${(Math.abs(v) / max) * 50}%`;
+
+  return (
+    <div className="report-card">
+      <h2>What changed</h2>
+      <div className="sub2">
+        {data.recent == null ? (
+          "two quarters of history to compare"
+        ) : (
+          <>
+            {windowLabel(data.recent)} against {windowLabel(data.prior)} ·{" "}
+            <b className={delta > 0 ? "up" : "down"}>{signed(delta, cur)}</b> in
+            all
+          </>
+        )}
+      </div>
+      {data.items.length === 0 ? (
+        <div className="empty">
+          {data.recent == null
+            ? "not enough history yet — six months are needed to compare two quarters"
+            : "no category moved enough to be worth naming"}
+        </div>
+      ) : (
+        <div className="mv-rows">
+          {data.items.map((i) => (
+            <div
+              key={i.account}
+              className="mv-row"
+              title={`${i.account}: ${fmt(i.prior, cur)} → ${fmt(i.recent, cur)}`}
+            >
+              <span className="mv-name">
+                {i.label}
+                {i.group && <span className="mv-group">{i.group}</span>}
+              </span>
+              <span className="mv-track">
+                <span
+                  className={`mv-bar ${i.delta > 0 ? "up" : "down"}`}
+                  style={
+                    i.delta > 0
+                      ? { left: "50%", width: width(i.delta) }
+                      : { right: "50%", width: width(i.delta) }
+                  }
+                />
+              </span>
+              <span className={`mv-amt num ${i.delta > 0 ? "up" : "down"}`}>
+                {signed(i.delta, cur)}
+              </span>
+              <span className="mv-pct num">{changePct(i.ratio)}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -935,6 +1050,8 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
           </div>
 
           <YearCard data={data} cur={cur} />
+
+          <MoversCard data={data.movers} cur={cur} />
 
           <RecurringCard data={data.recurring} cur={cur} />
         </div>

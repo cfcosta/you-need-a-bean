@@ -244,14 +244,50 @@ async fn reports_endpoint_shapes_series_and_fire() {
 
     let year = &body["year"];
     assert_eq!(year["window"], json!(["2025-12", "2026-07"]));
+    // Eight months of history is not a year, so there is nothing to
+    // compare it against and every prior comes back null rather than a
+    // number measured off however much ledger happens to precede it.
+    assert_eq!(year["prior_window"], Value::Null);
     // Vacation is absent: its only spending is VACHR with no price,
     // which never converts.
     assert_eq!(
         year["groups"],
         json!([
-            {"name": "Home", "total": 500.0},
-            {"name": "Fun", "total": 190.0},
-            {"name": "Food", "total": 166.0},
+            {"name": "Home", "total": 500.0, "prior": null},
+            {"name": "Fun", "total": 190.0, "prior": null},
+            {"name": "Food", "total": 166.0, "prior": null},
+        ])
+    );
+
+    // Six whole months do fit, so the quarters compare even though the
+    // years cannot.
+    let movers = &body["movers"];
+    assert_eq!(movers["recent"], json!(["2026-05", "2026-07"]));
+    assert_eq!(movers["prior"], json!(["2026-02", "2026-04"]));
+    // Nothing at all was spent in the last three months, so every
+    // category that had been running reads as the fall it is — and
+    // ranked by money, rent leads groceries.
+    assert_eq!(
+        movers["items"],
+        json!([
+            {
+                "account": "Expenses:Home:Rent",
+                "label": "Monthly Rent",
+                "group": "Home",
+                "recent": 0.0,
+                "prior": 500.0,
+                "delta": -500.0,
+                "ratio": -1.0,
+            },
+            {
+                "account": "Expenses:Food:Groceries",
+                "label": "Groceries",
+                "group": "Food",
+                "recent": 0.0,
+                "prior": 30.0,
+                "delta": -30.0,
+                "ratio": -1.0,
+            },
         ])
     );
 }

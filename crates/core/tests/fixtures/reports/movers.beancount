@@ -1,0 +1,421 @@
+option "title" "Movers"
+option "operating_currency" "USD"
+
+2024-04-01 open Assets:Checking            USD
+2024-04-01 open Income:Salary              USD
+2024-04-01 open Expenses:Housing:Rent      USD
+2024-04-01 open Expenses:Food:Groceries    USD
+2024-04-01 open Expenses:Food:Coffee       USD
+2024-04-01 open Expenses:Travel:Flights    USD
+2024-04-01 open Expenses:Health:Gym        USD
+2024-04-01 open Expenses:Education:Course  USD
+2024-04-01 open Equity:Opening             USD
+
+2024-04-01 * "Opening balance"
+  Assets:Checking  20000.00 USD
+  Equity:Opening
+
+2024-04-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2024-04-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2024-04-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2024-04-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2024-05-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2024-05-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2024-05-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2024-05-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2024-06-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2024-06-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2024-06-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2024-06-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2024-07-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2024-07-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2024-07-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2024-07-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2024-08-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2024-08-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2024-08-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2024-08-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2024-09-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2024-09-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2024-09-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2024-09-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2024-10-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2024-10-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2024-10-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2024-10-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2024-11-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2024-11-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2024-11-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2024-11-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2024-12-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2024-12-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2024-12-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2024-12-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-01-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-01-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-01-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-01-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-02-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-02-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-02-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-02-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-03-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-03-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-03-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-03-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-04-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-04-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-04-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-04-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-05-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-05-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-05-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-05-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-06-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-06-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-06-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-06-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-07-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-07-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-07-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-07-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-08-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-08-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-08-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-08-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-09-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-09-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-09-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-09-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-10-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-10-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-10-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-10-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-11-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-11-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-11-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-11-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-12-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2025-12-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2025-12-08 * "Market"
+  Expenses:Food:Groceries    500.00 USD
+  Assets:Checking
+
+2025-12-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2026-01-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2026-01-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2026-01-08 * "Market"
+  Expenses:Food:Groceries    900.00 USD
+  Assets:Checking
+
+2026-01-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2026-02-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2026-02-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2026-02-08 * "Market"
+  Expenses:Food:Groceries    900.00 USD
+  Assets:Checking
+
+2026-02-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2026-03-01 * "Employer"
+  Income:Salary              -6000.00 USD
+  Assets:Checking
+
+2026-03-03 * "Landlord"
+  Expenses:Housing:Rent      2000.00 USD
+  Assets:Checking
+
+2026-03-08 * "Market"
+  Expenses:Food:Groceries    900.00 USD
+  Assets:Checking
+
+2026-03-09 * "Cafe"
+  Expenses:Food:Coffee       10.00 USD
+  Assets:Checking
+
+2025-11-12 * "Airline"
+  Expenses:Travel:Flights    3000.00 USD
+  Assets:Checking
+
+2024-07-20 * "Airline"
+  Expenses:Travel:Flights    5000.00 USD
+  Assets:Checking
+
+2026-02-05 * "City Gym"
+  Expenses:Health:Gym        200.00 USD
+  Assets:Checking
+
+2026-03-05 * "City Gym"
+  Expenses:Health:Gym        200.00 USD
+  Assets:Checking
+
+2024-09-15 * "Bootcamp"
+  Expenses:Education:Course  2400.00 USD
+  Assets:Checking
+

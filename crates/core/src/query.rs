@@ -168,6 +168,23 @@ impl Ledger {
         (!spends.is_empty()).then(|| median(&mut spends))
     }
 
+    /// Total converted spend over an inclusive month range, each month
+    /// valued at its own end date.
+    pub(crate) fn range_spend(
+        &self,
+        account: &str,
+        (from, to): (MonthKey, MonthKey),
+        cur: &str,
+    ) -> Decimal {
+        let mut total = Decimal::ZERO;
+        let mut m = from;
+        while m <= to {
+            total += self.spent_converted(account, m, cur);
+            m = m.next();
+        }
+        total
+    }
+
     /// Total converted spend over the trailing twelve months — the
     /// sort weight behind the table and the raw material of the
     /// reports page's year breakdown. Amortizing what the year really
@@ -179,14 +196,28 @@ impl Ledger {
         month: MonthKey,
         cur: &str,
     ) -> Option<Decimal> {
-        let (from, to) = self.window(month, 12)?;
-        let mut total = Decimal::ZERO;
-        let mut m = from;
-        while m <= to {
-            total += self.spent_converted(account, m, cur);
-            m = m.next();
+        Some(self.range_spend(account, self.window(month, 12)?, cur))
+    }
+
+    /// Two adjacent windows of `months` each ending the month before
+    /// `month`: the recent one, then the one before it.
+    ///
+    /// `None` unless the ledger covers both in full. Unlike
+    /// [`Self::window`] this refuses to clamp, because the whole point
+    /// of the pair is the comparison: measuring a year against the four
+    /// months that happen to precede it reports a collapse that is only
+    /// the edge of the data.
+    pub(crate) fn periods(
+        &self,
+        month: MonthKey,
+        months: u32,
+    ) -> Option<((MonthKey, MonthKey), (MonthKey, MonthKey))> {
+        let start = month.minus(months * 2);
+        if months == 0 || start < self.first_txn_month? {
+            return None;
         }
-        Some(total)
+        let mid = month.minus(months);
+        Some(((mid, month.prev()), (start, mid.prev())))
     }
 
     /// The whole monthly page: stat tiles, grouped category table, and

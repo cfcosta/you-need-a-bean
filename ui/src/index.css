@@ -1095,10 +1095,24 @@ a:focus-visible {
   white-space: nowrap;
 }
 .yr-track {
+  position: relative;
   height: 8px;
   border-radius: 99px;
   background: var(--surface-2);
   overflow: hidden;
+}
+/* Where the same group sat a year earlier: bar past the tick is a
+   rise, bar short of it is a fall. Nudged a pixel so the tick at the
+   full width of the track still shows inside it. */
+.yr-mark {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 2px;
+  transform: translateX(-1px);
+  border-radius: 1px;
+  background: var(--ink);
+  opacity: 0.45;
 }
 .yr-bar {
   display: block;
@@ -1124,6 +1138,87 @@ a:focus-visible {
 }
 .yr-row.other .yr-bar {
   opacity: 0.45;
+}
+.yr-pct.up,
+.mv-amt.up {
+  color: var(--over-text);
+}
+.yr-pct.down,
+.mv-amt.down {
+  color: var(--good-text);
+}
+
+/* What changed: last quarter against the one before, ranked by money.
+   The bar diverges from a centre line so rises and falls read apart at
+   a glance instead of by their sign. */
+.mv-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 12px;
+}
+.mv-row {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11.5px;
+}
+.mv-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-weight: 550;
+  overflow: hidden;
+}
+.mv-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mv-group {
+  font-size: 10px;
+  font-weight: 450;
+  color: var(--muted);
+}
+.mv-track {
+  position: relative;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--surface-2);
+}
+.mv-track::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--line-2);
+}
+.mv-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+}
+.mv-bar.up {
+  background: var(--over-text);
+}
+.mv-bar.down {
+  background: var(--good-text);
+}
+.mv-amt {
+  justify-self: end;
+  min-width: 56px;
+  text-align: right;
+  font-weight: 650;
+}
+.mv-pct {
+  justify-self: end;
+  min-width: 38px;
+  text-align: right;
+  color: var(--muted);
 }
 .month-label.page-title {
   text-align: left;

@@ -207,6 +207,30 @@ export interface Fire {
 export interface YearGroup {
   name: string;
   total: number;
+  /** The same group over the twelve months before, or null when the
+   * ledger doesn't reach back far enough to hold a whole prior year. */
+  prior: number | null;
+}
+
+/** A category whose quarter moved against the quarter before it. */
+export interface Mover {
+  account: string;
+  label: string;
+  group: string | null;
+  recent: number;
+  prior: number;
+  /** `recent - prior`; positive is more spending. */
+  delta: number;
+  /** `delta / prior`; null when nothing was spent before. */
+  ratio: number | null;
+}
+
+export interface Movers {
+  recent: [string, string] | null;
+  prior: [string, string] | null;
+  recent_total: number;
+  prior_total: number;
+  items: Mover[];
 }
 
 export interface ReportsView {
@@ -220,7 +244,12 @@ export interface ReportsView {
   /** Commodities nothing prices in the display currency. Every amount
    * in one of them is missing from every figure on the page. */
   unpriced: string[];
-  year: { window: [string, string] | null; groups: YearGroup[] };
+  year: {
+    window: [string, string] | null;
+    prior_window: [string, string] | null;
+    groups: YearGroup[];
+  };
+  movers: Movers;
 }
 
 async function get<T>(url: string): Promise<T> {

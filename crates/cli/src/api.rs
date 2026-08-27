@@ -346,9 +346,32 @@ async fn reports(
         })
         .collect();
     let year_groups: Vec<Value> = view
-        .year_groups
+        .year
+        .groups
         .iter()
-        .map(|g| json!({"name": g.name, "total": num(g.total)}))
+        .map(|g| {
+            json!({
+                "name": g.name,
+                "total": num(g.total),
+                "prior": opt_num(g.prior),
+            })
+        })
+        .collect();
+    let movers: Vec<Value> = view
+        .movers
+        .items
+        .iter()
+        .map(|m| {
+            json!({
+                "account": m.account,
+                "label": m.label,
+                "group": m.group,
+                "recent": num(m.recent),
+                "prior": num(m.prior),
+                "delta": num(m.delta),
+                "ratio": ratio_json(m.ratio),
+            })
+        })
         .collect();
     Ok(Json(json!({
         "month": view.month.to_string(),
@@ -393,8 +416,16 @@ async fn reports(
         },
         "unpriced": view.unpriced,
         "year": {
-            "window": window_json(view.year_window),
+            "window": window_json(view.year.window),
+            "prior_window": window_json(view.year.prior_window),
             "groups": year_groups,
+        },
+        "movers": {
+            "recent": window_json(view.movers.recent),
+            "prior": window_json(view.movers.prior),
+            "recent_total": num(view.movers.recent_total),
+            "prior_total": num(view.movers.prior_total),
+            "items": movers,
         },
     })))
 }

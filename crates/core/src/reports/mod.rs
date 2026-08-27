@@ -8,14 +8,18 @@
 
 mod fire;
 mod growth;
+mod movers;
 mod recurring;
+mod year;
 
 pub use fire::{
     FireScenario, FireView, RunwayView, SCENARIO_RATES, SavingsStep,
     months_to_fire,
 };
 pub use growth::{GrowthPoint, GrowthView};
+pub use movers::{Mover, MoversView};
 pub use recurring::{Cadence, PriceChange, Recurring, RecurringView};
+pub use year::{YearGroup, YearView};
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -47,13 +51,6 @@ pub struct CashflowPoint {
     pub net: Decimal,
 }
 
-/// One expense group's share of the trailing year.
-#[derive(Debug, Clone)]
-pub struct YearGroup {
-    pub name: String,
-    pub total: Decimal,
-}
-
 #[derive(Debug, Clone)]
 pub struct ReportsView {
     /// The month the FIRE numbers are anchored to (today, clamped).
@@ -69,11 +66,13 @@ pub struct ReportsView {
     /// the figures above — see [`GrowthView::unpriced`] for why that
     /// matters most to the growth split.
     pub unpriced: Vec<String>,
-    /// The trailing-twelve-month window behind `year_groups`.
-    pub year_window: Option<(MonthKey, MonthKey)>,
-    /// Converted spend per expense group over that window, biggest
-    /// first. Groups that net to zero or less over the year drop out.
-    pub year_groups: Vec<YearGroup>,
+    /// Spend per expense group over the trailing year, against the
+    /// year before it.
+    pub year: YearView,
+    /// The categories whose last quarter moved most against the one
+    /// before — the year card's ranking asked as a question about
+    /// change rather than size.
+    pub movers: MoversView,
 }
 
 /// Per-month currency deltas for one root of the ledger.
@@ -179,7 +178,9 @@ impl Ledger {
         fire.with_fixed(monthly_fixed);
         let runway =
             fire::runway_view(liquid, fire.monthly_spend, monthly_fixed);
-        let year_window = self.window(current, 12);
+        // A year of history behind the growth split, matching the year
+        // card's window without sharing its meaning.
+        let growth_window = self.window(current, 12);
         // Every conversion the view needs has run by now, so the set is
         // complete. The growth split is the report the gaps hurt most:
         // an amount dropped from one side of a transaction and kept on
@@ -190,30 +191,9 @@ impl Ledger {
             &net_worth,
             &cashflow,
             &equity,
-            year_window,
+            growth_window,
             unpriced.clone(),
         );
-
-        // Where the year went: spend per expense group over the
-        // trailing twelve months, hidden accounts included — the same
-        // every-account stance as the flows above.
-        let mut totals: BTreeMap<&str, Decimal> = BTreeMap::new();
-        for info in self.accounts() {
-            let Some(group) = &info.group else { continue };
-            if let Some(spend) = self.year_spend(&info.account, current, cur) {
-                *totals.entry(group).or_default() += spend;
-            }
-        }
-        let mut year_groups: Vec<YearGroup> = totals
-            .into_iter()
-            .filter(|&(_, total)| total > Decimal::ZERO)
-            .map(|(name, total)| YearGroup {
-                name: name.to_string(),
-                total: cents(total),
-            })
-            .collect();
-        year_groups
-            .sort_by(|a, b| b.total.cmp(&a.total).then(a.name.cmp(&b.name)));
 
         ReportsView {
             month: current,
@@ -224,8 +204,8 @@ impl Ledger {
             growth,
             recurring,
             unpriced,
-            year_window,
-            year_groups,
+            year: self.year_view(current, cur),
+            movers: self.movers_view(current, cur),
         }
     }
 
