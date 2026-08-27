@@ -1,0 +1,6 @@
+; A Python plugin beancount should load, with an optional configuration
+; string. Common in real ledgers; the config is the one optional field that
+; shares a line with what precedes it, which is unambiguous only because both
+; are quoted.
+plugin "beancount.plugins.auto_accounts"
+plugin "beancount.plugins.forecast" "{'interval': 'monthly'}"

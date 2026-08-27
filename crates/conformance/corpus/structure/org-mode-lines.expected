@@ -1,0 +1,4 @@
+directive line=11 2026-01-01 open
+  account Assets:Cash
+directive line=14 2026-01-02 open
+  account Expenses:Groceries

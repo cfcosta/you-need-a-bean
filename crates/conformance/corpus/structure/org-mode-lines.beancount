@@ -1,0 +1,14 @@
+; So that a ledger can double as an org-mode document, beancount ignores a
+; line opening with one of `*:#!&?%` in column 1. These are the only lines the
+; catch-all claims; see errors/junk-line.beancount for what happens to
+; anything else.
+#!/usr/bin/env bean-check
+#+STARTUP: overview
+* January
+:PROPERTIES:
+:CATEGORY: ledger
+:END:
+2026-01-01 open Assets:Cash
+** an outline heading, not a transaction flag
+? & %
+2026-01-02 open Expenses:Groceries

@@ -23,7 +23,7 @@
 //! cargo bench -p you-need-a-bean-conformance -- --baseline before
 //! ```
 
-use std::hint::black_box;
+use std::{fmt::Write as _, hint::black_box};
 
 use bean_conformance::generate::{self, Config, Shape};
 use beancount_parser::{BeancountFile, parse, parse_iter};
@@ -44,7 +44,7 @@ fn parse_all(input: &str) -> usize {
 }
 
 fn generated(shape: Shape, directives: usize) -> String {
-    generate::ledger(SEED, Config::new(shape, directives))
+    generate::seeded(SEED, Config::new(shape, directives))
         .render()
         .text
 }
@@ -175,12 +175,16 @@ fn pathological(c: &mut Criterion) {
         }
         s
     };
-    let dropped_postings = {
-        // Every transaction has an unparseable leg, so the parser spends its
-        // time failing and recovering rather than succeeding.
+    let deep_meta_stack = {
+        // Every pushed key is copied onto every directive that follows, so a
+        // deep stack multiplies the work per directive. This is the shape that
+        // would expose that as quadratic.
         let mut s = String::new();
+        for i in 0..200 {
+            let _ = writeln!(s, "pushmeta k{i}: \"v\"");
+        }
         for _ in 0..10_000 {
-            s.push_str("2026-01-01 * \"x\"\n  Assets:Cash 1 USD\n  ~~~ junk\n");
+            s.push_str("2026-01-01 open Assets:Cash\n");
         }
         s
     };
@@ -196,7 +200,7 @@ fn pathological(c: &mut Criterion) {
         ("mostly-comments", &mostly_comments),
         ("long-strings", &long_strings),
         ("deep-expressions", &deep_expressions),
-        ("dropped-postings", &dropped_postings),
+        ("deep-meta-stack", &deep_meta_stack),
         ("error-at-the-end", &error_at_the_end),
     ];
 

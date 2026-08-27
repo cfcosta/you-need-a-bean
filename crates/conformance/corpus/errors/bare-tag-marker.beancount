@@ -1,0 +1,4 @@
+; The tag and link bodies were `take_while`, which matches the empty string, so
+; a bare `#` or `^` parsed as a tag with no name instead of failing.
+2026-01-01 * "bare markers" # ^
+  Assets:Cash 1 USD

@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while},
+    bytes::complete::{tag, take_while1},
     character::complete::satisfy,
     character::complete::{char as char_tag, space0, space1},
     combinator::{cut, iterator, map, opt, success, value},
@@ -288,22 +288,26 @@ pub(super) enum TagOrLink {
     Link(Link),
 }
 
+// Local patch vs upstream 2.6.0: `take_while1`, so a bare `#` is a syntax
+// error rather than an empty tag. See VENDOR.md.
 pub(super) fn parse_tag(input: Span<'_>) -> IResult<'_, Tag> {
     map(
         preceded(
             char_tag('#'),
-            take_while(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
+            take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
         ),
         |s: Span<'_>| Tag((*s.fragment()).into()),
     )
     .parse(input)
 }
 
+// Local patch vs upstream 2.6.0: `take_while1`, so a bare `^` is a syntax
+// error rather than an empty link. See VENDOR.md.
 pub(super) fn parse_link(input: Span<'_>) -> IResult<'_, Link> {
     map(
         preceded(
             char_tag('^'),
-            take_while(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '.'),
+            take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '.'),
         ),
         |s: Span<'_>| Link((*s.fragment()).into()),
     )
@@ -318,7 +322,12 @@ pub(super) fn parse_tag_or_link(input: Span<'_>) -> IResult<'_, TagOrLink> {
     .parse(input)
 }
 
-fn tags_and_links(input: Span<'_>) -> IResult<'_, (HashSet<Tag>, HashSet<Link>)> {
+// Local patch vs upstream 2.6.0: `pub(super)`, so `directive` can read the
+// tags and links beancount allows on directives other than transactions.
+// See VENDOR.md.
+pub(super) fn tags_and_links(
+    input: Span<'_>,
+) -> IResult<'_, (HashSet<Tag>, HashSet<Link>)> {
     let mut tags_and_links_iter = iterator(input, preceded(space0, parse_tag_or_link));
     let (tags, links) = tags_and_links_iter.by_ref().fold(
         (HashSet::new(), HashSet::new()),

@@ -1,0 +1,3 @@
+; `plugins` is not a keyword — `plugin` is. A near miss at the top level is an
+; error, not a line to skip past.
+plugins "beancount.plugins.auto_accounts"

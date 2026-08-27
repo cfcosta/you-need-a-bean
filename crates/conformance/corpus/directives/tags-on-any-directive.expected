@@ -1,0 +1,20 @@
+directive line=7 2026-01-01 document
+  account Assets:Cash
+  path "statements/january.pdf"
+  tag scanned
+  link audit-2026
+directive line=8 2026-01-02 note
+  account Assets:Cash
+  comment "called the bank"
+  tag followup
+directive line=9 2026-01-03 open
+  account Assets:Bank:Checking
+  tag new-account
+directive line=10 2026-01-04 balance
+  account Assets:Cash
+  amount 100.00 USD
+  tag reconciled
+  meta source string "statement"
+directive line=12 2026-01-05 close
+  account Assets:Bank:Checking
+  link migration

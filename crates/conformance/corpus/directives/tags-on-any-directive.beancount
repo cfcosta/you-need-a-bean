@@ -1,0 +1,12 @@
+; Tags and links are not a transaction-only feature: beancount takes them on
+; any directive line, and `#scanned` on a `document` is routine practice.
+; They sit after the directive's own arguments and before its metadata.
+;
+; The parser used to read them only on transactions, so a line like the first
+; one below matched no rule at all and disappeared down the catch-all.
+2026-01-01 document Assets:Cash "statements/january.pdf" #scanned ^audit-2026
+2026-01-02 note Assets:Cash "called the bank" #followup
+2026-01-03 open Assets:Bank:Checking #new-account
+2026-01-04 balance Assets:Cash 100.00 USD #reconciled
+  source: "statement"
+2026-01-05 close Assets:Bank:Checking ^migration

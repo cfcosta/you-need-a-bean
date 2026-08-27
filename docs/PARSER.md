@@ -3,7 +3,7 @@
 The app reads beancount through the vendored `beancount-parser` crate in
 `vendor/beancount-parser` (upstream 2.6.0 plus the patches in
 `vendor/beancount-parser/VENDOR.md`). It is a nom recursive-descent parser
-carrying two local fixes and a handful of behaviours nobody chose.
+carrying a set of local fixes and a handful of behaviours nobody chose.
 
 `crates/conformance` exists so that crate can be replaced. It pins what the
 parser does — not how — in enough detail that a from-scratch rewrite can be
@@ -23,6 +23,7 @@ line-oriented text:
 ```text
 option "operating_currency" "USD"
 include "months/2026-01.beancount"
+plugin "beancount.plugins.auto" "config"
 directive line=7 2026-01-15 txn
   flag *
   payee "Whole Foods"
@@ -56,6 +57,9 @@ What the format guarantees:
   `1.50 USD` and `1.5 USD` stay distinct.
 - **Line numbers are part of the answer.** Every directive carries the line
   its header sits on. The CLI shows them to users.
+- **Every directive ends the same way.** Its tags, then its links, then its
+  metadata, whatever kind it is. Beancount allows `#tag` and `^link` on any
+  directive, not just a transaction, so the dump renders them uniformly.
 - **Errors stop the parse.** The first error emits `error line=N` and nothing
   follows.
 
@@ -67,11 +71,23 @@ inserting blank lines legitimately shifts everything down.
 ### 1. `corpus/` — goldens
 
 `.beancount` files paired with the `.expected` dump they must produce, checked
-by `tests/corpus.rs`. Organised by what they cover: `directives/`, `amounts/`,
-`strings/`, `structure/`, `quirks/`, `errors/`, `real/`.
+by `tests/corpus.rs`. Organised by what they cover:
 
-`quirks/` is the part to read first. Each file explains, in its own comments,
-a behaviour that is surprising and load-bearing.
+| directory | what is in it |
+| --- | --- |
+| `directives/` | one case per directive kind, plus flags and tags |
+| `amounts/` | numbers, currencies, accounts, costs, prices, arithmetic |
+| `strings/` | quoting, escapes, where strings are allowed |
+| `structure/` | whitespace, comments, EOF, `plugin`, `pushmeta`, org-mode lines |
+| `errors/` | every input that must be reported rather than skipped |
+| `quirks/` | permissive behaviours kept on purpose |
+| `real/` | ledgers copied from beancount's own examples |
+
+`errors/` and `quirks/` are the two to read first. `errors/` is where the
+parser's silence used to live: each case is an input that once vanished
+without a word and now names its line. `quirks/` is what is left — behaviours
+that are more permissive than beancount but not *wrong*, each explaining
+itself in its own comments.
 
 To accept a deliberate behaviour change:
 
@@ -91,8 +107,8 @@ two-implementation comparison rather than a tautology.
 
 ### 3. `tests/properties.rs` — randomized differential testing
 
-Seeded generation over the model (`src/generate.rs`, `src/rng.rs`), thousands
-of ledgers per run:
+Generation over the model (`src/generate.rs`), driven by
+[hegeltest](https://crates.io/crates/hegeltest):
 
 | property | what it would catch |
 | --- | --- |
@@ -105,14 +121,26 @@ of ledgers per run:
 | `carriage_returns_are_accepted` | CRLF files |
 | `parsing_is_deterministic` | hash-order leaking into the result |
 
-Failures shrink (`generate::minimize`) and print a seed plus the smallest
-ledger that still disagrees; paste it into `corpus/` and it becomes a
+hegeltest shrinks a failure to a minimal ledger and records it under
+`crates/conformance/.hegel/` (gitignored) so the next run replays it first.
+Each property notes the *source text* on failure rather than a `Debug` dump,
+so a counterexample can be pasted straight into `corpus/` and become a
 permanent case.
 
-The RNG is a 30-line splitmix64 in `src/rng.rs` rather than a property-testing
-framework. That keeps `cargo test` hermetic and dependency-free — the shrinker
-is a hundred lines and the seeds reproduce anywhere, which is the part that
-actually matters.
+Shrinking is the reason for the framework rather than a hand-rolled PRNG. The
+first hegeltest run found a division-by-zero panic in the parser — `1 / 0` in
+a ledger aborted the process — that a uniform random generator would
+essentially never hit, because it requires drawing exactly zero. Boundary
+probing is what a real shrinker does and a seeded PRNG does not.
+
+`src/draw.rs` holds the one trait both drivers implement: hegeltest's
+`TestCase` for the properties, and a 30-line splitmix64 (`draw::Seeded`) for
+the benchmarks, which need a fixed seed to produce a fixed input and so cannot
+use a generator whose answers depend on search state. One generation body
+serves both. Its two conventions matter: `chance` is written so the smallest
+draw means *false*, and `pick` returns the first element for the smallest
+draw, so shrinking removes optional features and the constant tables are
+ordered simplest-first.
 
 `tests/grammar.rs` holds the assertions that read better with a reason
 attached than as a golden: precedence, absent-vs-empty, API equivalence,
@@ -120,30 +148,46 @@ limits, hostile input.
 
 ## Behaviours a rewrite must reproduce (or change on purpose)
 
-Every one of these has a case in `corpus/quirks/` or `corpus/errors/`.
+Every one of these has a case in `corpus/`.
 
-**Silent data loss**
+**Reported, not skipped**
 
-- An unparseable posting line is *skipped*, and so is every posting after it
-  in the same transaction. The transaction survives with fewer legs, which
-  silently changes balances. `bean_core::loader::dropped_posting_warning`
-  exists solely to notice this. → `quirks/dropped-postings`,
-  `quirks/unclosed-cost-drops-postings`
-- A line matching no rule at all is skipped without a warning. Only a line
-  that *starts* like a directive and then goes wrong is an error. →
-  `quirks/junk-lines-are-skipped`
-- `note`, `document`, `query` and `custom` are not modelled, so they vanish
-  entirely — no entry, no error. → `quirks/unmodelled-keywords`
+The parser used to end in a catch-all that discarded any line no rule claimed,
+so the ledger came out short with no error and no warning. Each of these is
+now a syntax error naming its line, and each has a case pinning that.
+
+- A posting line the parser cannot read — and every posting after it in the
+  same transaction. → `errors/unparseable-posting`, `errors/unclosed-cost`
+- A line matching no rule at all. → `errors/junk-line`
+- A top-level keyword the parser does not know. →
+  `errors/unknown-top-level-keyword`
+- `#` or `^` with nothing after it. → `errors/bare-tag-marker`
+
+The line beancount *does* ignore still is: one opening in column 1 with any of
+`*:#!&?%`, so a ledger can double as an org-mode document. →
+`structure/org-mode-lines`
+
+**Everything beancount defines is modelled**
+
+`note`, `document`, `query` and `custom` produce directives;
+`plugin`, `pushmeta` and `popmeta` are read at the top level. This is a
+prerequisite for the section above rather than a feature: a strict catch-all
+is only safe once the parser knows the whole language. → `directives/note`,
+`directives/document`, `directives/query`, `directives/custom`,
+`structure/plugin`, `structure/pushmeta`
+
+Tags and links are read on *any* directive, not just a transaction. →
+`directives/tags-on-any-directive`
+
+`pushmeta` nests: each key holds a stack, the innermost push wins, and a key
+written on the directive itself beats anything pushed.
 
 **Strings**
 
 - Only `\"` and `\\` are escapes; `\n` is a syntax error, not a newline. →
   `errors/unknown-string-escape`
-- **A defect:** an escape works only when at least one ordinary character
-  precedes it. `"\"quoted\""` and `"a\\\\b"` are syntax errors, because the
-  loop in `string()` stops as soon as a literal run comes back empty. →
-  `quirks/escapes-need-a-literal-prefix`, `errors/escape-at-string-start`,
-  `errors/consecutive-escapes`
+- An escape is valid anywhere, including at the start of a string, twice in a
+  row, or as the entire contents. → `strings/escapes`
 
 **Numbers and dates**
 
@@ -157,6 +201,9 @@ Every one of these has a case in `corpus/quirks/` or `corpus/errors/`.
   `quirks/space-after-sign`
 - `*` and `/` bind tighter than `+` and `-`; both fold left. A unary sign
   applies only to a parenthesised group. → `amounts/expressions`
+- Division by zero is a syntax error, not a panic — including when it is
+  reached through arithmetic, as in `1 / (2 - 2)`. → `errors/division-by-zero`,
+  `amounts/division`
 
 **Collections**
 
@@ -165,18 +212,15 @@ Every one of these has a case in `corpus/quirks/` or `corpus/errors/`.
 - Duplicate tags and links collapse. The pushtag stack is a set, so pushing
   twice and popping once removes the tag; popping an unpushed tag is a no-op.
   → `quirks/pushtag-duplicates`, `quirks/poptag-without-pushtag`
-- `#` and `^` with nothing after them are an empty tag and an empty link, not
-  errors. → `quirks/empty-tags`
 
 **Structure**
 
 - A capitalised word after a date matches the *flag* rule, so
   `2026-01-01 Open Assets:Cash` is a hard syntax error. →
   `errors/capital-keyword`
-- A directive on the last line without a trailing newline is fine; a
-  *comment* there is a syntax error, because the fallback rule needs a line
-  ending. → `errors/comment-at-eof-without-newline`,
-  `structure/no-trailing-newline`
+- A directive or a comment on the last line without a trailing newline is
+  fine. → `structure/no-trailing-newline`,
+  `structure/comment-at-eof-without-newline`
 
 **Limits**
 
@@ -186,10 +230,28 @@ Every one of these has a case in `corpus/quirks/` or `corpus/errors/`.
   --example depth` re-measures it). The suite pins a floor of 20 and leaves
   the ceiling to the implementation. → `tests/grammar.rs`
 
-Several of these are defects rather than decisions — the string-escape bug and
-the unbounded recursion in particular. They are pinned so a rewrite *notices*
-them, not to argue they should be preserved. Fixing one means re-blessing its
-golden with an explanation in the commit message.
+What remains in `quirks/` is permissiveness, not error. Range-checked dates,
+commas anywhere, a space after a sign, a posting without an amount, last-write
+-wins metadata: beancount would reject some of these, but rejecting them is a
+*validation* decision that belongs above the parser, where the message can say
+what was expected. The unbounded recursion is the one genuine defect still
+pinned, and it is pinned so a rewrite notices it rather than to argue for it.
+
+## Checking against real ledgers
+
+The corpus pins behaviour on inputs someone thought to write down. This
+answers the other question — whether the parser handles the ledger someone
+actually has:
+
+```sh
+cargo run -p you-need-a-bean-conformance --example check -- examples ~/some-ledger
+```
+
+One line per file: the count of each entry kind, or the line the parse stopped
+on. Run it before and after a rewrite and compare — the totals should be
+identical and no file should regress into an error. It is how the patches
+above were validated, and how many silently-dropped `document` directives
+in a large validation ledger were found.
 
 ## Benchmarks
 
@@ -204,7 +266,7 @@ memory:
 | `shape` | which kind of content is slow — plain, rich, arithmetic, metadata, non-transaction directives |
 | `api` | `parse` vs `parse_iter` vs the conformance `dump` |
 | `real` | the ledgers in `examples/` |
-| `pathological` | one huge transaction, mostly comments, long strings, deep expressions, constant posting drops, an error at the end — the shapes where accidental quadratic behaviour would show |
+| `pathological` | one huge transaction, mostly comments, long strings, deep expressions, a deep `pushmeta` stack, an error at the end — the shapes where accidental quadratic behaviour would show |
 
 `crates/core/benches/pipeline.rs` — what the CLI actually runs: read files,
 follow includes, parse, build the model.

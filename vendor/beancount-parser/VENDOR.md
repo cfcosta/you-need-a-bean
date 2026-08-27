@@ -2,33 +2,116 @@
 
 Source: <https://github.com/jcornaz/beancount-parser>, crates.io release
 2.6.0, license Unlicense (see `UNLICENSE`). Wired into the build through
-`[patch.crates-io]` in the workspace root `Cargo.toml`, so
-`crates/core` keeps depending on plain `beancount-parser = "2.6.0"`.
+`[patch.crates-io]` in the workspace root `Cargo.toml`, so `crates/core`
+keeps depending on plain `beancount-parser = "2.6.0"`.
 
-## Local changes vs upstream
+Everything not listed below is byte-identical to the crates.io release.
+`vendor/` is excluded from the cargo workspace and from treefmt so the
+diff against upstream stays reviewable — do not reformat it. Every patch
+carries a `Local patch vs upstream 2.6.0` comment at its site pointing
+back here. Drop this directory and the `[patch.crates-io]` entry once the
+fixes are released upstream.
 
-`src/amount.rs`: amount expressions accept a unary plus, matching Python
-beancount's grammar.
+Every change here is pinned by a case in `crates/conformance/corpus/`,
+so a rewrite of the parser has to reproduce it. See `docs/PARSER.md`.
 
-- `literal` takes an optional `+` or `-` sign (upstream: `-` only).
-- `negation` handles `+ (…)` as well as `- (…)`.
+## The theme: silence
+
+Upstream's top-level `entry` parser ended in a catch-all that matched and
+discarded *any* line the rules above did not claim. A mistyped directive,
+a posting the transaction parser gave up on, a `document` directive it did
+not model, plain prose — all of it produced no entry, no error and no
+warning. The ledger just came out short, and the only symptom was a
+balance that did not add up.
+
+Most of what follows is one fix seen from different angles: teach the
+parser the syntax beancount actually defines, then make the catch-all
+strict so anything left over is reported.
+
+## Directives upstream did not model
+
+`src/extra.rs` (new file) adds `note`, `document`, `query`, `custom`, and
+the top-level `plugin`, `pushmeta` and `popmeta`. `src/lib.rs` gains
+`DirectiveContent::{Note, Document, Query, Custom}` with the matching
+`as_*` accessors, `Entry::Plugin`, `BeancountFile::plugins`, and
+`RawEntry::{Plugin, PushMeta, PopMeta}`.
+
+These are not exotic. A large validation ledger contained many `document`
+directives, all of which vanished before this.
+
+`src/iterator.rs` grows a `meta_stack` alongside the existing `tag_stack`
+and applies it the same way: `pushmeta`/`popmeta` nest, each key holds a
+stack, the innermost push wins, and a key written on the directive itself
+beats anything pushed. The `Iter` type gained a `D` parameter to hold the
+pushed values.
+
+`src/metadata.rs`: `value` is split out of `entry`, and both it and `key`
+are now `pub(crate)`, so `pushmeta` parses its argument with the same code
+as an ordinary metadata line.
+
+## Tags and links on non-transaction directives
+
+`src/lib.rs`: `Directive` gains `tags` and `links`, and `directive` reads
+them for every kind. `src/transaction.rs`: `tags_and_links` is
+`pub(super)`.
+
+Beancount allows these on any directive — `#scanned` on a `document` is
+routine — but upstream only parsed them after a transaction. Such a line
+matched no rule and went down the catch-all, so the *whole directive*
+disappeared, not just its tags. Both fields are always empty for a
+transaction, whose tags absorb the pushed tag stack and so live on
+`Transaction::tags`.
+
+## The catch-all
+
+`src/lib.rs`: `line` is replaced by `ignored_line`, which is
+`empty_line` (unchanged, renamed) or the new `org_mode_line`. Anything
+else is now a syntax error naming the line.
+
+`org_mode_line` claims a line opening in column 1 with one of `*:#!&?%`,
+which is what beancount itself skips so that a ledger can double as an
+org-mode document.
+
+This is the change that turns every silent drop above into a report, and
+it is why the rest of the patches exist: making the catch-all strict is
+only safe once the parser knows the whole language.
+
+## Empty tags and links
+
+`src/transaction.rs`: `parse_tag` and `parse_link` use `take_while1`
+rather than `take_while`. A bare `#` or `^` is a syntax error instead of a
+tag with an empty name.
+
+## Strings
+
+`src/lib.rs`: `string` loops until the escape parser stops matching,
+rather than until a run of literal characters comes back empty. Upstream's
+condition let an escape parse only when preceded by at least one ordinary
+character and never two in a row, so `"\"quoted\""`, `"a\\\\b"` and
+`"\n"` were all syntax errors.
+
+## Division by zero
+
+`src/amount.rs`: `product` rejects a zero divisor instead of dividing.
+
+`rust_decimal`'s `Div` panics, so `1 / 0` in a ledger — or anything that
+evaluates to it, like `1 / (2 - 2)` — took the whole process down rather
+than reporting a bad line. It is a syntax error now for every `D`, so the
+behaviour does not depend on which decimal type the caller picked. Found
+by the property tests in `crates/conformance` within seconds of pointing
+a shrinking generator at the parser.
+
+## Grammar upstream did not accept
+
+`src/amount.rs`: expressions accept a unary plus, matching Python
+beancount. `literal` takes an optional `+` or `-` (upstream: `-` only),
+and `negation` handles `+ (…)` as well as `- (…)`.
 
 `src/transaction.rs`: costs accept the total form `{{ 700.00 USD }}`
-alongside the per-unit form `{ 5.00 USD }`, matching Python beancount's
-grammar.
+alongside the per-unit `{ 5.00 USD }`. `Cost` gains a `total: bool`
+field; the struct is `#[non_exhaustive]`, so this is not a breaking change
+for downstream readers.
 
-- `cost` recognises `{{ … }}` delimiters.
-- `Cost` gains a `total: bool` field (the struct is `#[non_exhaustive]`,
-  so this is not a breaking change for downstream readers).
-
-Upstream silently drops posting lines it cannot parse (the transaction's
-posting iterator stops, and the leftover lines match the top-level
-comment fallback), so without these patches every `+123.45 USD`-style
-or `{{ … }}`-cost posting vanished from the ledger along with the
-postings after it in the same transaction — no error, just wrong
-balances.
-
-Everything else is byte-identical to the crates.io release. `vendor/` is
-excluded from treefmt so the diff against upstream stays reviewable.
-Drop this directory and the `[patch.crates-io]` entry once the fix is
-released upstream.
+Both were the original reason for vendoring: every `+123.45 USD`-style
+or `{{ … }}`-cost posting used to vanish along with the postings after it
+in the same transaction.

@@ -1,6 +1,0 @@
-directive line=4 2026-01-01 open
-  account Assets:Cash
-directive line=6 2026-01-02 open
-  account Assets:Bank:Checking
-directive line=8 2026-01-03 open
-  account Assets:Cash

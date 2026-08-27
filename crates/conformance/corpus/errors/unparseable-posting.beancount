@@ -1,0 +1,12 @@
+; `US$` is not a currency, so this posting line matches no rule. It used to be
+; skipped — along with every posting after it in the same transaction —
+; leaving a transaction with fewer legs, a silently wrong balance, and nothing
+; in the output to say so. `bean_core`'s loader carried a tripwire
+; (`dropped_posting_warning`) precisely because of it.
+;
+; It is a syntax error now. A ledger that cannot be read is better than a
+; ledger that reads wrong.
+2026-01-15 * "the second leg is unparseable"
+  Expenses:Groceries  42.50 USD
+  Assets:Bank:Checking  -42.50 US$
+  Assets:Cash  0 USD

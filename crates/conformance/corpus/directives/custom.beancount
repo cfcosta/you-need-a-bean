@@ -1,0 +1,8 @@
+; A named directive with a free-form argument list, which is how plugins carry
+; their own configuration. The arguments are typed but not validated, and the
+; order they were written in is the only thing that gives them meaning.
+2026-01-01 custom "budget" Expenses:Groceries "monthly" 400.00 USD
+2026-01-02 custom "fava-option" "language" "en"
+2026-01-03 custom "flags" TRUE FALSE
+2026-01-04 custom "mixed" 2026-06-01 42 USD Assets:Cash
+2026-01-05 custom "empty"

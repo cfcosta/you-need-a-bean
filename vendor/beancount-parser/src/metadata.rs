@@ -125,17 +125,23 @@ fn entry<D: Decimal>(input: Span<'_>) -> IResult<'_, (Key, Value<D>)> {
     let (input, key) = key(input)?;
     let (input, _) = char(':')(input)?;
     let (input, _) = space1(input)?;
-    let (input, value) = alt((
-        string.map(Value::String),
-        amount::expression.map(Value::Number),
-        amount::currency.map(Value::Currency),
-    ))
-    .parse(input)?;
+    let (input, value) = value(input)?;
     let (input, ()) = end_of_line(input)?;
     Ok((input, (key, value)))
 }
 
-fn key(input: Span<'_>) -> IResult<'_, Key> {
+// Local patch vs upstream 2.6.0: `value` split out of `entry`, and both it and
+// `key` made visible to the crate, so `pushmeta` can reuse them. See VENDOR.md.
+pub(crate) fn value<D: Decimal>(input: Span<'_>) -> IResult<'_, Value<D>> {
+    alt((
+        string.map(Value::String),
+        amount::expression.map(Value::Number),
+        amount::currency.map(Value::Currency),
+    ))
+    .parse(input)
+}
+
+pub(crate) fn key(input: Span<'_>) -> IResult<'_, Key> {
     map(
         recognize(preceded(
             satisfy(char::is_lowercase),

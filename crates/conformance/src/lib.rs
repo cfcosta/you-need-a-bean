@@ -18,17 +18,19 @@
 //!    render *both* source text and the dump that parsing it must produce. The
 //!    parser is the thing in the middle; if it drops or mangles anything, the
 //!    two sides disagree.
-//! 3. **Randomized differential testing** ([`generate`]) — seeded generation over
-//!    that AST, with shrinking, so the model is exercised well past what
-//!    hand-written cases reach.
+//! 3. **Randomized differential testing** ([`generate`]) — generation over that
+//!    AST, so the model is exercised well past what hand-written cases reach.
+//!    The choices come from [`draw`], which hegeltest answers when a property
+//!    is searching for a counterexample and a seeded PRNG answers when a
+//!    benchmark needs the same bytes twice.
 //!
 //! `benches/parse.rs` benchmarks the same corpus, so a rewrite can be measured
 //! as well as verified.
 
 pub mod ast;
 pub mod corpus;
+pub mod draw;
 pub mod dump;
 pub mod generate;
-pub mod rng;
 
 pub use crate::dump::{dump, without_line_numbers};

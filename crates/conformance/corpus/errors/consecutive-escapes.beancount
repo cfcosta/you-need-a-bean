@@ -1,3 +1,0 @@
-; See quirks/escapes-need-a-literal-prefix.beancount. Two escapes in a row
-; are a syntax error, because the literal run between them is empty.
-2026-01-01 event "k" "a\\\\b"

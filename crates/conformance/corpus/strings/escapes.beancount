@@ -1,0 +1,16 @@
+; The parser knows exactly two escapes: \" and \\. Both work anywhere in a
+; string — opening it, closing it, next to each other, or alone with no
+; ordinary character to anchor them.
+;
+; That last part is worth a case of its own. The escape loop used to stop as
+; soon as a run of literal characters came back empty, so an escape only
+; parsed with at least one ordinary character in front of it. Three ordinary
+; strings were syntax errors because of it. They are the first three lines
+; below.
+2026-01-01 event "opens with an escape" "\"quoted\""
+2026-01-02 event "two escapes in a row" "a\\\\b"
+2026-01-03 event "nothing but an escape" "\\"
+2026-01-04 event "one escape after text" "a\"b"
+2026-01-05 event "escape at the end" "a\""
+2026-01-06 event "text between escapes" "a\"b\"c"
+2026-01-07 event "both kinds together" "a\\b\"c"

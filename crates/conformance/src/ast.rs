@@ -13,7 +13,7 @@
 //! the literal text *and* its value so `1,234.50` and `+7` can be written
 //! without the model having to re-derive what the parser does with them.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 
 use rust_decimal::Decimal;
@@ -43,6 +43,15 @@ pub enum Entry {
     /// Pops from the tag stack. Popping a tag that was never pushed is a
     /// no-op, matching the parser.
     PopTag(String),
+    Plugin {
+        name: String,
+        config: Option<String>,
+    },
+    /// Pushes a key onto the metadata stack applied to later directives.
+    PushMeta(String, MetaValue),
+    /// Pops the innermost push of a key. Popping a key that was never pushed
+    /// is a no-op, matching the parser.
+    PopMeta(String),
     Directive(Directive),
 }
 
@@ -53,6 +62,12 @@ pub struct Directive {
     /// Metadata attached to the directive itself. Keys must be unique; the
     /// parser keeps a map, so duplicates would collapse.
     pub meta: Vec<(String, MetaValue)>,
+    /// Tags written on the directive line. Left empty for a transaction,
+    /// whose tags absorb the pushed tag stack and so live on [`Txn::tags`].
+    pub tags: Vec<String>,
+    /// Links written on the directive line. Empty for a transaction, for the
+    /// same reason as [`Directive::tags`].
+    pub links: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -86,6 +101,68 @@ pub enum Content {
         name: String,
         value: String,
     },
+    Note {
+        account: String,
+        comment: String,
+    },
+    Document {
+        account: String,
+        path: String,
+    },
+    Query {
+        name: String,
+        query: String,
+    },
+    Custom {
+        name: String,
+        values: Vec<CustomValue>,
+    },
+}
+
+/// One argument of a `custom` directive.
+///
+/// The arguments are read by type, in order, and the types overlap: `TRUE` and
+/// a bare currency lex the same way, and a bare number followed by either of
+/// them lexes as a single amount. Writing a sequence that re-reads as
+/// something else is possible, so the generator does not — see
+/// [`crate::generate`].
+#[derive(Debug, Clone)]
+pub enum CustomValue {
+    Str(String),
+    Date(Date),
+    Bool(bool),
+    Amount(Amount),
+    Num(Num),
+    Account(String),
+    Currency(String),
+}
+
+impl CustomValue {
+    fn render(&self) -> String {
+        match self {
+            CustomValue::Str(text) => quote(text),
+            CustomValue::Date(date) => date.render(),
+            CustomValue::Bool(true) => "TRUE".to_string(),
+            CustomValue::Bool(false) => "FALSE".to_string(),
+            CustomValue::Amount(amount) => amount.render(),
+            CustomValue::Num(number) => number.literal.clone(),
+            CustomValue::Account(account) | CustomValue::Currency(account) => {
+                account.clone()
+            }
+        }
+    }
+
+    fn dump(&self) -> String {
+        match self {
+            CustomValue::Str(text) => format!("string {}", quote(text)),
+            CustomValue::Date(date) => format!("date {}", date.render()),
+            CustomValue::Bool(value) => format!("bool {value}"),
+            CustomValue::Amount(amount) => format!("amount {}", amount.dump()),
+            CustomValue::Num(number) => format!("number {}", number.value),
+            CustomValue::Account(account) => format!("account {account}"),
+            CustomValue::Currency(currency) => format!("currency {currency}"),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -325,6 +402,9 @@ struct Writer {
     line: u32,
     /// Tags currently pushed, applied to every transaction written.
     stack: BTreeSet<String>,
+    /// Metadata currently pushed, applied to every directive written. The
+    /// pushes nest, so each key holds a stack and the innermost one wins.
+    meta_stack: BTreeMap<String, Vec<MetaValue>>,
 }
 
 impl Writer {
@@ -351,6 +431,7 @@ impl Ledger {
             dump: String::new(),
             line: 1,
             stack: BTreeSet::new(),
+            meta_stack: BTreeMap::new(),
         };
         for entry in &self.entries {
             render_entry(&mut w, entry);
@@ -394,6 +475,27 @@ fn render_entry(w: &mut Writer, entry: &Entry) {
         Entry::PopTag(tag) => {
             w.source(&format!("poptag #{tag}"));
             w.stack.remove(tag);
+        }
+        Entry::Plugin { name, config } => {
+            let mut line = format!("plugin {}", quote(name));
+            if let Some(config) = config {
+                let _ = write!(line, " {}", quote(config));
+            }
+            w.source(&line.clone());
+            w.expect(&line);
+        }
+        Entry::PushMeta(key, value) => {
+            w.source(&format!("pushmeta {key}: {}", render_meta_value(value)));
+            w.meta_stack
+                .entry(key.clone())
+                .or_default()
+                .push(value.clone());
+        }
+        Entry::PopMeta(key) => {
+            w.source(&format!("popmeta {key}:"));
+            if let Some(stack) = w.meta_stack.get_mut(key) {
+                stack.pop();
+            }
         }
         Entry::Directive(directive) => render_directive(w, directive),
     }
@@ -444,7 +546,7 @@ fn render_directive(w: &mut Writer, directive: &Directive) {
             for link in links {
                 w.expect(&format!("  link {link}"));
             }
-            render_meta(w, "  ", &directive.meta);
+            render_directive_meta(w, &directive.meta);
             for posting in &txn.postings {
                 render_posting(w, posting);
             }
@@ -461,7 +563,7 @@ fn render_directive(w: &mut Writer, directive: &Directive) {
             if let Some(booking) = booking {
                 let _ = write!(header, " {}", quote(booking));
             }
-            let line = w.source(&header);
+            let line = w.source(&tagged(&header, directive));
             w.expect(&format!("directive line={line} {date} open"));
             w.expect(&format!("  account {account}"));
             for currency in currencies.iter().collect::<BTreeSet<_>>() {
@@ -470,13 +572,14 @@ fn render_directive(w: &mut Writer, directive: &Directive) {
             if let Some(booking) = booking {
                 w.expect(&format!("  booking {}", quote(booking)));
             }
-            render_meta(w, "  ", &directive.meta);
+            render_tail(w, directive);
         }
         Content::Close { account } => {
-            let line = w.source(&format!("{date} close {account}"));
+            let header = format!("{date} close {account}");
+            let line = w.source(&tagged(&header, directive));
             w.expect(&format!("directive line={line} {date} close"));
             w.expect(&format!("  account {account}"));
-            render_meta(w, "  ", &directive.meta);
+            render_tail(w, directive);
         }
         Content::Balance {
             account,
@@ -489,50 +592,115 @@ fn render_directive(w: &mut Writer, directive: &Directive) {
                 let _ = write!(header, " ~ {}", tolerance.render());
             }
             let _ = write!(header, " {}", amount.currency);
-            let line = w.source(&header);
+            let line = w.source(&tagged(&header, directive));
             w.expect(&format!("directive line={line} {date} balance"));
             w.expect(&format!("  account {account}"));
             w.expect(&format!("  amount {}", amount.dump()));
             if let Some(tolerance) = tolerance {
                 w.expect(&format!("  tolerance {}", tolerance.eval()));
             }
-            render_meta(w, "  ", &directive.meta);
+            render_tail(w, directive);
         }
         Content::Pad { account, source } => {
-            let line = w.source(&format!("{date} pad {account} {source}"));
+            let header = format!("{date} pad {account} {source}");
+            let line = w.source(&tagged(&header, directive));
             w.expect(&format!("directive line={line} {date} pad"));
             w.expect(&format!("  account {account}"));
             w.expect(&format!("  source {source}"));
-            render_meta(w, "  ", &directive.meta);
+            render_tail(w, directive);
         }
         Content::Price { currency, amount } => {
-            let line = w.source(&format!(
-                "{date} price {currency} {}",
-                amount.render()
-            ));
+            let header = format!("{date} price {currency} {}", amount.render());
+            let line = w.source(&tagged(&header, directive));
             w.expect(&format!("directive line={line} {date} price"));
             w.expect(&format!("  currency {currency}"));
             w.expect(&format!("  amount {}", amount.dump()));
-            render_meta(w, "  ", &directive.meta);
+            render_tail(w, directive);
         }
         Content::Commodity { currency } => {
-            let line = w.source(&format!("{date} commodity {currency}"));
+            let header = format!("{date} commodity {currency}");
+            let line = w.source(&tagged(&header, directive));
             w.expect(&format!("directive line={line} {date} commodity"));
             w.expect(&format!("  currency {currency}"));
-            render_meta(w, "  ", &directive.meta);
+            render_tail(w, directive);
         }
         Content::Event { name, value } => {
-            let line = w.source(&format!(
-                "{date} event {} {}",
-                quote(name),
-                quote(value)
-            ));
+            let header =
+                format!("{date} event {} {}", quote(name), quote(value));
+            let line = w.source(&tagged(&header, directive));
             w.expect(&format!("directive line={line} {date} event"));
             w.expect(&format!("  name {}", quote(name)));
             w.expect(&format!("  value {}", quote(value)));
-            render_meta(w, "  ", &directive.meta);
+            render_tail(w, directive);
+        }
+        Content::Note { account, comment } => {
+            let header = format!("{date} note {account} {}", quote(comment));
+            let line = w.source(&tagged(&header, directive));
+            w.expect(&format!("directive line={line} {date} note"));
+            w.expect(&format!("  account {account}"));
+            w.expect(&format!("  comment {}", quote(comment)));
+            render_tail(w, directive);
+        }
+        Content::Document { account, path } => {
+            let header = format!("{date} document {account} {}", quote(path));
+            let line = w.source(&tagged(&header, directive));
+            w.expect(&format!("directive line={line} {date} document"));
+            w.expect(&format!("  account {account}"));
+            w.expect(&format!("  path {}", quote(path)));
+            render_tail(w, directive);
+        }
+        Content::Query { name, query } => {
+            let header =
+                format!("{date} query {} {}", quote(name), quote(query));
+            let line = w.source(&tagged(&header, directive));
+            w.expect(&format!("directive line={line} {date} query"));
+            w.expect(&format!("  name {}", quote(name)));
+            w.expect(&format!("  query {}", quote(query)));
+            render_tail(w, directive);
+        }
+        Content::Custom { name, values } => {
+            let mut header = format!("{date} custom {}", quote(name));
+            for value in values {
+                let _ = write!(header, " {}", value.render());
+            }
+            let line = w.source(&tagged(&header, directive));
+            w.expect(&format!("directive line={line} {date} custom"));
+            w.expect(&format!("  name {}", quote(name)));
+            for value in values {
+                w.expect(&format!("  value {}", value.dump()));
+            }
+            render_tail(w, directive);
         }
     }
+}
+
+/// A directive's source line with its tags and links appended, in the order
+/// they were written.
+fn tagged(header: &str, directive: &Directive) -> String {
+    let mut line = header.to_string();
+    for tag in &directive.tags {
+        let _ = write!(line, " #{tag}");
+    }
+    for link in &directive.links {
+        let _ = write!(line, " ^{link}");
+    }
+    line
+}
+
+/// The dump lines every directive ends with: its tags, its links, then its
+/// metadata. Mirrors `dump::tail_to`, which is the thing being pinned.
+fn render_tail(w: &mut Writer, directive: &Directive) {
+    let tags: BTreeSet<&str> =
+        directive.tags.iter().map(String::as_str).collect();
+    for tag in tags {
+        w.expect(&format!("  tag {tag}"));
+    }
+    let links: BTreeSet<&str> =
+        directive.links.iter().map(String::as_str).collect();
+    for link in links {
+        w.expect(&format!("  link {link}"));
+    }
+    render_directive_meta(w, &directive.meta);
 }
 
 fn render_posting(w: &mut Writer, posting: &Posting) {
@@ -612,30 +780,58 @@ fn dump_cost(cost: &Cost) -> String {
     body
 }
 
+fn render_meta_value(value: &MetaValue) -> String {
+    match value {
+        MetaValue::Str(text) => quote(text),
+        MetaValue::Num(expr) => expr.render(),
+        MetaValue::Currency(currency) => currency.clone(),
+    }
+}
+
+fn dump_meta_value(value: &MetaValue) -> String {
+    match value {
+        MetaValue::Str(text) => format!("string {}", quote(text)),
+        MetaValue::Num(expr) => format!("number {}", expr.eval()),
+        MetaValue::Currency(currency) => format!("currency {currency}"),
+    }
+}
+
+/// Metadata on a posting. Nothing is inherited: `pushmeta` reaches directives
+/// only.
 fn render_meta(w: &mut Writer, indent: &str, meta: &[(String, MetaValue)]) {
     for (key, value) in meta {
-        let rendered = match value {
-            MetaValue::Str(text) => quote(text),
-            MetaValue::Num(expr) => expr.render(),
-            MetaValue::Currency(currency) => currency.clone(),
-        };
-        w.source(&format!("{indent}{key}: {rendered}"));
+        w.source(&format!("{indent}{key}: {}", render_meta_value(value)));
     }
     let mut sorted: Vec<(&str, String)> = meta
         .iter()
-        .map(|(key, value)| {
-            let dumped = match value {
-                MetaValue::Str(text) => format!("string {}", quote(text)),
-                MetaValue::Num(expr) => format!("number {}", expr.eval()),
-                MetaValue::Currency(currency) => {
-                    format!("currency {currency}")
-                }
-            };
-            (key.as_str(), dumped)
-        })
+        .map(|(key, value)| (key.as_str(), dump_meta_value(value)))
         .collect();
     sorted.sort_unstable();
     for (key, value) in sorted {
         w.expect(&format!("{indent}meta {key} {value}"));
+    }
+}
+
+/// Metadata on a directive, which also inherits whatever `pushmeta` has left
+/// on the stack. A key the directive sets itself keeps its own value: the
+/// pushed one only fills a gap.
+fn render_directive_meta(w: &mut Writer, meta: &[(String, MetaValue)]) {
+    for (key, value) in meta {
+        w.source(&format!("  {key}: {}", render_meta_value(value)));
+    }
+    let mut sorted: Vec<(String, String)> = meta
+        .iter()
+        .map(|(key, value)| (key.clone(), dump_meta_value(value)))
+        .collect();
+    for (key, stack) in &w.meta_stack {
+        if let Some(value) = stack.last()
+            && !meta.iter().any(|(written, _)| written == key)
+        {
+            sorted.push((key.clone(), dump_meta_value(value)));
+        }
+    }
+    sorted.sort_unstable();
+    for (key, value) in sorted {
+        w.expect(&format!("  meta {key} {value}"));
     }
 }

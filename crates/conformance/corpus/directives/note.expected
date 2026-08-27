@@ -1,0 +1,7 @@
+directive line=2 2026-01-01 note
+  account Assets:Cash
+  comment "called the bank about the fee"
+directive line=3 2026-01-02 note
+  account Liabilities:CreditCard
+  comment "statement disputed"
+  meta reference string "TICKET-4412"

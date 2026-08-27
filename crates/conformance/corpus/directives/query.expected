@@ -1,0 +1,6 @@
+directive line=2 2026-01-01 query
+  name "expenses"
+  query "SELECT account, sum(position) WHERE account ~ 'Expenses'"
+directive line=3 2026-01-02 query
+  name "cash"
+  query "SELECT * WHERE account = 'Assets:Cash'"

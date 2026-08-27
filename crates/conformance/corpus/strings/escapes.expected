@@ -1,0 +1,21 @@
+directive line=10 2026-01-01 event
+  name "opens with an escape"
+  value "\"quoted\""
+directive line=11 2026-01-02 event
+  name "two escapes in a row"
+  value "a\\\\b"
+directive line=12 2026-01-03 event
+  name "nothing but an escape"
+  value "\\"
+directive line=13 2026-01-04 event
+  name "one escape after text"
+  value "a\"b"
+directive line=14 2026-01-05 event
+  name "escape at the end"
+  value "a\""
+directive line=15 2026-01-06 event
+  name "text between escapes"
+  value "a\"b\"c"
+directive line=16 2026-01-07 event
+  name "both kinds together"
+  value "a\\b\"c"

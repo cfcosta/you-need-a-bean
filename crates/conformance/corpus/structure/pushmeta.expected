@@ -1,0 +1,11 @@
+directive line=8 2026-01-01 open
+  account Assets:Cash
+  meta project string "renovation"
+directive line=11 2026-01-02 open
+  account Assets:Bank:Checking
+  meta project string "renovation-phase-2"
+directive line=14 2026-01-03 open
+  account Assets:Bank:Savings
+  meta project string "explicit wins over pushed"
+directive line=18 2026-01-04 open
+  account Expenses:Groceries

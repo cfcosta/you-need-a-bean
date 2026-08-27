@@ -1,0 +1,15 @@
+directive line=3 2026-01-01 txn
+  flag *
+  narration "division"
+  posting
+    account Assets:Cash
+    amount 2.50 USD
+  posting
+    account Expenses:Groceries
+    amount 0.25 USD
+  posting
+    account Assets:Bank:Savings
+    amount 33.333333333333333333333333333 USD
+  posting
+    account Liabilities:Loan:Car
+    amount -2.0 USD

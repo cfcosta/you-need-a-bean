@@ -1,0 +1,4 @@
+; Free text attached to an account, on a date.
+2026-01-01 note Assets:Cash "called the bank about the fee"
+2026-01-02 note Liabilities:CreditCard "statement disputed"
+  reference: "TICKET-4412"

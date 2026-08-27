@@ -50,7 +50,7 @@ use std::{
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
-    character::complete::{char, line_ending, not_line_ending, space0, space1},
+    character::complete::{char, line_ending, not_line_ending, one_of, space0, space1},
     combinator::{all_consuming, cut, eof, iterator, map, not, opt, value},
     sequence::{delimited, preceded, terminated},
     Finish, Parser,
@@ -63,6 +63,7 @@ pub use crate::{
     date::Date,
     error::{ConversionError, Error},
     event::Event,
+    extra::{Custom, CustomValue, Document, Note, Plugin, Query},
     transaction::{Cost, Link, Posting, PostingPrice, Tag, Transaction},
 };
 use crate::{
@@ -79,6 +80,7 @@ mod amount;
 mod date;
 mod error;
 mod event;
+mod extra;
 mod iterator;
 pub mod metadata;
 mod transaction;
@@ -235,6 +237,8 @@ pub struct BeancountFile<D> {
     pub includes: Vec<PathBuf>,
     /// List of [`Directive`] found in the file
     pub directives: Vec<Directive<D>>,
+    /// List of `plugin` directives, in declaration order
+    pub plugins: Vec<Plugin>,
 }
 
 impl<D> Default for BeancountFile<D> {
@@ -243,6 +247,7 @@ impl<D> Default for BeancountFile<D> {
             options: Vec::new(),
             includes: Vec::new(),
             directives: Vec::new(),
+            plugins: Vec::new(),
         }
     }
 }
@@ -301,6 +306,7 @@ impl<D> Extend<Entry<D>> for BeancountFile<D> {
                 Entry::Directive(d) => self.directives.push(d),
                 Entry::Option(o) => self.options.push(o),
                 Entry::Include(p) => self.includes.push(p),
+                Entry::Plugin(p) => self.plugins.push(p),
             }
         }
     }
@@ -350,6 +356,16 @@ pub struct Directive<D> {
     ///
     /// See the [`metadata`] module for more
     pub metadata: metadata::Map<D>,
+    /// Set of tags written on the directive line
+    ///
+    /// Always empty for a transaction: a transaction's tags carry the pushed
+    /// tag stack too, so they live on [`Transaction::tags`] instead.
+    pub tags: HashSet<Tag>,
+    /// Set of links written on the directive line
+    ///
+    /// Always empty for a transaction, for the same reason as
+    /// [`Directive::tags`]. See [`Transaction::links`].
+    pub links: HashSet<Link>,
     /// Line number where the directive was found in the input file
     pub line_number: u32,
 }
@@ -377,6 +393,10 @@ pub enum DirectiveContent<D> {
     Pad(Pad),
     Commodity(Currency),
     Event(Event),
+    Note(Note),
+    Document(Document),
+    Query(Query),
+    Custom(Custom<D>),
 }
 
 impl<D> DirectiveContent<D> {
@@ -443,6 +463,38 @@ impl<D> DirectiveContent<D> {
             _ => None,
         }
     }
+
+    /// Returns `Some` if the directive content is a note
+    pub fn as_note(&self) -> Option<&Note> {
+        match self {
+            DirectiveContent::Note(note) => Some(note),
+            _ => None,
+        }
+    }
+
+    /// Returns `Some` if the directive content is a document
+    pub fn as_document(&self) -> Option<&Document> {
+        match self {
+            DirectiveContent::Document(document) => Some(document),
+            _ => None,
+        }
+    }
+
+    /// Returns `Some` if the directive content is a query
+    pub fn as_query(&self) -> Option<&Query> {
+        match self {
+            DirectiveContent::Query(query) => Some(query),
+            _ => None,
+        }
+    }
+
+    /// Returns `Some` if the directive content is a custom directive
+    pub fn as_custom(&self) -> Option<&Custom<D>> {
+        match self {
+            DirectiveContent::Custom(custom) => Some(custom),
+            _ => None,
+        }
+    }
 }
 
 type Span<'a> = nom_locate::LocatedSpan<&'a str>;
@@ -458,6 +510,7 @@ pub enum Entry<D> {
     Directive(Directive<D>),
     Option(BeanOption),
     Include(PathBuf),
+    Plugin(Plugin),
 }
 impl<D> Entry<D> {
     /// Returns `Some` if the entry is a directive
@@ -483,14 +536,25 @@ impl<D> Entry<D> {
             _ => None,
         }
     }
+
+    /// Returns `Some` if the entry is a plugin
+    pub fn as_plugin(&self) -> Option<&Plugin> {
+        match self {
+            Entry::Plugin(plugin) => Some(plugin),
+            _ => None,
+        }
+    }
 }
 
 enum RawEntry<D> {
     Directive(Directive<D>),
     Option(BeanOption),
     Include(PathBuf),
+    Plugin(Plugin),
     PushTag(Tag),
     PopTag(Tag),
+    PushMeta(metadata::Key, metadata::Value<D>),
+    PopMeta(metadata::Key),
     Comment,
 }
 
@@ -511,8 +575,10 @@ fn entry<D: Decimal>(input: Span<'_>) -> IResult<'_, RawEntry<D>> {
         directive.map(RawEntry::Directive),
         option.map(|(name, value)| RawEntry::Option(BeanOption { name, value })),
         include.map(|p| RawEntry::Include(p)),
+        terminated(extra::plugin, end_of_line).map(RawEntry::Plugin),
         tag_stack_operation,
-        line.map(|()| RawEntry::Comment),
+        meta_stack_operation,
+        ignored_line.map(|()| RawEntry::Comment),
     ))
     .parse(input)
 }
@@ -521,12 +587,12 @@ fn directive<D: Decimal>(input: Span<'_>) -> IResult<'_, Directive<D>> {
     let (input, position) = position(input)?;
     let (input, date) = date::parse(input)?;
     let (input, _) = cut(space1).parse(input)?;
-    let (input, (content, metadata)) = alt((
+    let (input, (content, (tags, links), metadata)) = alt((
         map(transaction::parse, |(t, m)| {
-            (DirectiveContent::Transaction(t), m)
+            (DirectiveContent::Transaction(t), <(HashSet<Tag>, HashSet<Link>)>::default(), m)
         }),
         (
-            terminated(
+            (
                 alt((
                     map(
                         preceded(tag("price"), cut(preceded(space1, amount::price))),
@@ -556,11 +622,35 @@ fn directive<D: Decimal>(input: Span<'_>) -> IResult<'_, Directive<D>> {
                         preceded(tag("event"), cut(preceded(space1, event::parse))),
                         DirectiveContent::Event,
                     ),
+                    map(
+                        preceded(tag("note"), cut(preceded(space1, extra::note))),
+                        DirectiveContent::Note,
+                    ),
+                    map(
+                        preceded(tag("document"), cut(preceded(space1, extra::document))),
+                        DirectiveContent::Document,
+                    ),
+                    map(
+                        preceded(tag("query"), cut(preceded(space1, extra::query))),
+                        DirectiveContent::Query,
+                    ),
+                    map(
+                        preceded(tag("custom"), cut(preceded(space1, extra::custom))),
+                        DirectiveContent::Custom,
+                    ),
                 )),
-                end_of_line,
+                // Local patch vs upstream 2.6.0. Beancount allows tags and
+                // links on directives other than transactions — `#scanned` on
+                // a `document` is routine. Upstream parsed neither, so such a
+                // line matched no rule and disappeared down the catch-all.
+                // See VENDOR.md.
+                terminated(transaction::tags_and_links, end_of_line),
             ),
             metadata::parse,
-        ),
+        )
+            .map(|((content, tags_and_links), metadata)| {
+                (content, tags_and_links, metadata)
+            }),
     ))
     .parse(input)?;
     Ok((
@@ -569,6 +659,8 @@ fn directive<D: Decimal>(input: Span<'_>) -> IResult<'_, Directive<D>> {
             date,
             content,
             metadata,
+            tags,
+            links,
             line_number: position.location_line(),
         },
     ))
@@ -596,6 +688,15 @@ fn tag_stack_operation<D>(input: Span<'_>) -> IResult<'_, RawEntry<D>> {
     .parse(input)
 }
 
+fn meta_stack_operation<D: Decimal>(input: Span<'_>) -> IResult<'_, RawEntry<D>> {
+    alt((
+        terminated(extra::pushmeta, end_of_line)
+            .map(|(key, value)| RawEntry::PushMeta(key, value)),
+        terminated(extra::popmeta, end_of_line).map(RawEntry::PopMeta),
+    ))
+    .parse(input)
+}
+
 fn end_of_line(input: Span<'_>) -> IResult<'_, ()> {
     let (input, _) = space0(input)?;
     let (input, _) = opt(comment).parse(input)?;
@@ -609,9 +710,23 @@ fn comment(input: Span<'_>) -> IResult<'_, ()> {
     Ok((input, ()))
 }
 
-fn line(input: Span<'_>) -> IResult<'_, ()> {
+// Local patch vs upstream 2.6.0. Upstream's catch-all was `line`, which
+// matched and discarded ANY line the rules above did not claim: a mistyped
+// directive, a posting the transaction parser gave up on, plain prose. No
+// entry, no error, no warning — the ledger just came out short. The catch-all
+// is now this, which claims only lines beancount itself ignores, so anything
+// else is reported as a syntax error. See VENDOR.md.
+fn ignored_line(input: Span<'_>) -> IResult<'_, ()> {
+    alt((empty_line, org_mode_line)).parse(input)
+}
+
+// So that a ledger can double as an org-mode document, beancount ignores a
+// line opening with one of these. `entry` is only ever applied at the start of
+// a line, so matching here is matching in column 1.
+fn org_mode_line(input: Span<'_>) -> IResult<'_, ()> {
+    let (input, _) = one_of("*:#!&?%")(input)?;
     let (input, _) = not_line_ending(input)?;
-    let (input, _) = line_ending(input)?;
+    let (input, _) = alt((line_ending, eof)).parse(input)?;
     Ok((input, ()))
 }
 
@@ -620,12 +735,17 @@ fn empty_line(input: Span<'_>) -> IResult<'_, ()> {
     end_of_line(input)
 }
 
+// Local patch vs upstream 2.6.0: loop until the escape parser stops matching,
+// rather than until a literal run comes back empty. Upstream's condition let an
+// escape parse only when preceded by at least one ordinary character, and never
+// two in a row, so a string opening with an escape, two adjacent escapes, or a
+// string holding nothing but one escape were all syntax errors. See VENDOR.md.
 fn string(input: Span<'_>) -> IResult<'_, String> {
     let (input, _) = char('"')(input)?;
     let mut string = String::new();
     let mut take_data = take_while(|c: char| c != '"' && c != '\\');
     let (mut input, mut part) = take_data.parse(input)?;
-    while !part.fragment().is_empty() {
+    loop {
         string.push_str(part.fragment());
         let (new_input, escaped) =
             opt(alt((value('"', tag("\\\"")), value('\\', tag("\\\\"))))).parse_complete(input)?;

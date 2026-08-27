@@ -15,6 +15,10 @@ bench = false
 
 [dependencies]
 beancount-parser = "2.6.0"
+# A dependency rather than a dev-dependency: `draw::Draw` is implemented for
+# hegeltest's `TestCase` in the library, so the generators are shared by the
+# property tests instead of living inside one of them.
+hegeltest = "0.32.2"
 rust_decimal = "1.42.1"
 
 [dev-dependencies]

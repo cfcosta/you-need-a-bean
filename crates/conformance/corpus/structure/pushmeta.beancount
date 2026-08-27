@@ -1,0 +1,18 @@
+; `pushmeta` puts a key/value on a stack; every directive parsed after it
+; carries that key until a matching `popmeta`. Directives that set the key
+; themselves keep their own value — the pushed one only fills a gap.
+;
+; The pushes nest, so each key holds a stack of its own and the innermost push
+; wins.
+pushmeta project: "renovation"
+2026-01-01 open Assets:Cash
+
+pushmeta project: "renovation-phase-2"
+2026-01-02 open Assets:Bank:Checking
+popmeta project:
+
+2026-01-03 open Assets:Bank:Savings
+  project: "explicit wins over pushed"
+popmeta project:
+
+2026-01-04 open Expenses:Groceries

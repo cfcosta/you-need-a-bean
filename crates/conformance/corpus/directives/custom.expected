@@ -1,0 +1,20 @@
+directive line=4 2026-01-01 custom
+  name "budget"
+  value account Expenses:Groceries
+  value string "monthly"
+  value amount 400.00 USD
+directive line=5 2026-01-02 custom
+  name "fava-option"
+  value string "language"
+  value string "en"
+directive line=6 2026-01-03 custom
+  name "flags"
+  value bool true
+  value bool false
+directive line=7 2026-01-04 custom
+  name "mixed"
+  value date 2026-06-01
+  value amount 42 USD
+  value account Assets:Cash
+directive line=8 2026-01-05 custom
+  name "empty"

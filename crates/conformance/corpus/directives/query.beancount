@@ -1,0 +1,3 @@
+; A named BQL query stored in the ledger. The query text is not interpreted.
+2026-01-01 query "expenses" "SELECT account, sum(position) WHERE account ~ 'Expenses'"
+2026-01-02 query "cash" "SELECT * WHERE account = 'Assets:Cash'"

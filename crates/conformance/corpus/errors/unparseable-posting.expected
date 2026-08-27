@@ -1,0 +1,7 @@
+directive line=9 2026-01-15 txn
+  flag *
+  narration "the second leg is unparseable"
+  posting
+    account Expenses:Groceries
+    amount 42.50 USD
+error line=11

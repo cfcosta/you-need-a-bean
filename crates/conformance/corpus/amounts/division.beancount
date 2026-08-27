@@ -1,0 +1,7 @@
+; Division that does not divide by zero, so the boundary is visible from both
+; sides. See errors/division-by-zero.beancount.
+2026-01-01 * "division"
+  Assets:Cash          10 / 4 USD
+  Expenses:Groceries   1 / (2 + 2) USD
+  Assets:Bank:Savings  100 / 3 USD
+  Liabilities:Loan:Car -1 / 0.5 USD

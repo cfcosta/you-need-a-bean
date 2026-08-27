@@ -1,0 +1,6 @@
+; Same shape as unparseable-posting, from the other direction: an unclosed `{`
+; runs off the end of the line. It used to take out every posting in the
+; transaction and leave a legless directive behind.
+2026-01-15 * "unclosed brace"
+  Assets:Investments:Broker  10 VTSAX {400.00 USD
+  Assets:Cash -4000.00 USD

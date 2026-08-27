@@ -1,0 +1,5 @@
+; An external file attached to an account. The path is kept as written —
+; resolving it against the ledger's directory is the loader's job, not the
+; parser's.
+2026-01-01 document Assets:Cash "/receipts/2026-01.pdf"
+2026-01-02 document Assets:Bank:Checking "statements/january.pdf"

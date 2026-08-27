@@ -1,0 +1,2 @@
+plugin "beancount.plugins.auto_accounts"
+plugin "beancount.plugins.forecast" "{'interval': 'monthly'}"

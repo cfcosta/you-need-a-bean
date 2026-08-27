@@ -1,8 +1,0 @@
-; A line that starts with nothing the grammar recognises is skipped, not
-; reported. Only a line that *starts* like a directive and then goes wrong
-; is an error. This is why a typo in a ledger can go unnoticed for months.
-2026-01-01 open Assets:Cash
-this is not beancount
-2026-01-02 open Assets:Bank:Checking
-   indented junk that is not a posting
-2026-01-03 open Assets:Cash

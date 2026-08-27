@@ -1,0 +1,9 @@
+; A line the grammar does not recognise used to be skipped rather than
+; reported, so only a line that *started* like a directive and then went wrong
+; was ever an error. That is how a typo lives in a ledger for months.
+;
+; The catch-all now claims only the lines beancount itself ignores (see
+; structure/org-mode-lines.beancount); anything else stops the parse.
+2026-01-01 open Assets:Cash
+this is not beancount
+2026-01-02 open Assets:Bank:Checking

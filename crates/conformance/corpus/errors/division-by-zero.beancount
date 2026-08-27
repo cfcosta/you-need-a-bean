@@ -1,0 +1,5 @@
+; Dividing by zero used to panic — `rust_decimal`'s `Div` does — so one
+; mistyped character took the whole program down rather than reporting a bad
+; line. The divisor is evaluated first, so `1 / (2 - 2)` is caught too.
+2026-01-01 * "divide by zero"
+  Assets:Cash  1 / 0 USD

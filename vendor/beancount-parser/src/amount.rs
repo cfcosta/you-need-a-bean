@@ -127,14 +127,31 @@ fn sum<D: Decimal>(input: Span<'_>) -> IResult<'_, D> {
 }
 
 fn product<D: Decimal>(input: Span<'_>) -> IResult<'_, D> {
+    let start = input;
     let (input, value) = atom(input)?;
     let mut iter = iterator(input, (delimited(space0, one_of("*/"), space0), atom));
-    let value = iter.by_ref().fold(value, |a, (op, b)| match op {
-        '*' => a * b,
-        '/' => a / b,
-        op => unreachable!("unsupported operator: {}", op),
-    });
+    let terms: Vec<(char, D)> = iter.by_ref().collect();
     let (input, ()) = iter.finish()?;
+    let mut value = value;
+    for (op, b) in terms {
+        value = match op {
+            '*' => value * b,
+            // Local patch vs upstream 2.6.0. `rust_decimal`'s `Div` panics on
+            // a zero divisor, so `1 / 0` in a ledger — or anything that
+            // evaluates to it, like `1 / (2 - 2)` — took the whole process
+            // down instead of reporting a bad line. It is a syntax error now,
+            // for every `D`, so the behaviour does not depend on which decimal
+            // type the caller picked. See VENDOR.md.
+            '/' if b == D::default() => {
+                return Err(nom::Err::Failure(nom::error::Error::new(
+                    start,
+                    nom::error::ErrorKind::Verify,
+                )));
+            }
+            '/' => value / b,
+            op => unreachable!("unsupported operator: {}", op),
+        };
+    }
     Ok((input, value))
 }
 

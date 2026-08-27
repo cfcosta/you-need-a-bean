@@ -58,23 +58,23 @@ fn zero_match_glob_is_a_warning_not_an_error() {
 }
 
 #[test]
-fn warns_when_posting_like_lines_are_dropped() {
-    // The parser skips lines it cannot read instead of failing; money must
-    // never disappear silently, so the loader flags them.
-    let ledger = load(&fixture("skipped/main.beancount")).unwrap();
-    assert_eq!(ledger.warnings.len(), 1, "warnings: {:?}", ledger.warnings);
-    let warning = &ledger.warnings[0];
-    assert!(warning.contains("main.beancount"), "{warning}");
-    assert!(warning.contains("2 posting"), "{warning}");
-    assert!(warning.contains("line 7"), "{warning}");
-    assert!(warning.contains("Expenses:Stuff"), "{warning}");
-
-    // The intact transaction still loads normally.
-    assert_eq!(ledger.directives.len(), 4);
+fn unparseable_posting_is_an_error() {
+    // Money must never disappear silently. A posting the parser cannot read
+    // used to be skipped along with the rest of its transaction, which the
+    // loader could only detect after the fact; it is a syntax error now, and
+    // the error names the line.
+    let err = load(&fixture("unparseable/main.beancount")).unwrap_err();
+    match err {
+        LoadError::Syntax { path, message } => {
+            assert!(path.to_string_lossy().contains("main.beancount"));
+            assert!(message.contains('7'), "{message}");
+        }
+        other => panic!("expected Syntax error, got {other:?}"),
+    }
 }
 
 #[test]
-fn clean_ledgers_load_without_posting_warnings() {
+fn clean_ledgers_load_without_warnings() {
     let ledger = load(&fixture("model/main.beancount")).unwrap();
     assert!(
         ledger.warnings.is_empty(),

@@ -1,23 +1,29 @@
-//! Seeded generation of ledgers, for differential testing and benchmarks.
+//! Generation of ledgers, for differential testing and benchmarks.
 //!
 //! Generation goes through [`crate::ast`], so every generated file comes with
-//! the dump it must parse to — no oracle needed beyond the model itself.
-//! Everything is driven by [`crate::rng::Rng`], so a seed reproduces a file
-//! exactly, on any machine, forever. That matters twice over: a failing
-//! property prints a seed that reproduces, and a benchmark measures the same
-//! bytes run to run.
+//! the dump it must parse to — no oracle needed beyond the model itself. Every
+//! choice goes through [`Draw`], so the same code builds the ledgers a
+//! property shrinks and the ledgers a benchmark times. See [`crate::draw`].
 //!
-//! [`minimize`] shrinks a failing ledger by repeatedly trying smaller
-//! candidates, which keeps counterexamples readable without a property-testing
-//! framework (and without the Python runtime one would drag in).
+//! What is *not* generated matters as much as what is. Anything whose written
+//! form could be read back as something else is left to the corpus, where the
+//! intent can be stated in prose: duplicate metadata keys (the parser keeps a
+//! map), and a bare number in a `custom` directive followed by a currency or a
+//! boolean (`42 USD` and `42 TRUE` both re-read as one amount). A generator
+//! that emitted those would be reporting parser bugs that are really model
+//! bugs.
+//!
+//! Division by a zero divisor is left out for a different reason: it is a
+//! syntax error, and the model has no way to say "this line does not parse".
+//! It is in the corpus as `errors/division-by-zero`.
 
 use rust_decimal::Decimal;
 
 use crate::ast::{
-    Amount, Content, Cost, Date, Directive, Entry, Expr, Flag, Ledger,
-    MetaValue, Num, Posting, Price, Txn,
+    Amount, Content, Cost, CustomValue, Date, Directive, Entry, Expr, Flag,
+    Ledger, MetaValue, Num, Posting, Price, Txn,
 };
-use crate::rng::Rng;
+use crate::draw::{Draw, Seeded};
 
 /// What kind of ledger to build. Benchmarks use these to separate "the parser
 /// got slower at transactions" from "the parser got slower at arithmetic".
@@ -132,23 +138,48 @@ const META_KEYS: &[&str] =
 
 const BOOKINGS: &[&str] = &["STRICT", "FIFO", "LIFO", "NONE", "AVERAGE"];
 
-/// Build a ledger from a seed.
+/// Disjoint from [`META_KEYS`], so a pushed key can never collide with one a
+/// directive writes for itself. Which of the two wins is worth pinning, but in
+/// the corpus, where the case can say so.
+const PUSHED_META_KEYS: &[&str] = &["project", "book", "filed-by"];
+
+const DOCUMENTS: &[&str] =
+    &["statement.pdf", "receipts/2026-01.pdf", "a b.pdf"];
+
+const QUERIES: &[&str] = &[
+    "SELECT account, sum(position)",
+    "SELECT * WHERE account ~ 'Expenses'",
+];
+
+/// Build a ledger from a seed. The entry point for benchmarks, which need
+/// the same bytes on every run.
 #[must_use]
-pub fn ledger(seed: u64, config: Config) -> Ledger {
-    let mut rng = Rng::new(seed);
+pub fn seeded(seed: u64, config: Config) -> Ledger {
+    ledger(&mut Seeded::new(seed), config)
+}
+
+/// Build a ledger, asking `rng` for every choice.
+pub fn ledger(rng: &mut impl Draw, config: Config) -> Ledger {
     let mut entries = Vec::with_capacity(config.directives * 3);
 
     entries.push(Entry::Option {
         name: "title".to_string(),
-        value: format!("generated ledger {seed}"),
+        value: "generated ledger".to_string(),
     });
     entries.push(Entry::Option {
         name: "operating_currency".to_string(),
         value: "USD".to_string(),
     });
     entries.push(Entry::Blank);
+    if config.shape == Shape::Rich {
+        entries.push(Entry::Plugin {
+            name: "beancount.plugins.auto_accounts".to_string(),
+            config: rng.chance(1, 2).then(|| "{}".to_string()),
+        });
+    }
 
     let mut pushed: Vec<String> = Vec::new();
+    let mut pushed_meta: Vec<String> = Vec::new();
     for i in 0..config.directives {
         // Punctuate with the noise a real file carries, so the benchmark is
         // not measuring an unrealistically dense file.
@@ -169,16 +200,35 @@ pub fn ledger(seed: u64, config: Config) -> Ledger {
             let tag = pushed.remove(rng.below(pushed.len()));
             entries.push(Entry::PopTag(tag));
         }
-        entries.push(Entry::Directive(directive(&mut rng, config, i)));
+        if config.shape == Shape::Rich && rng.chance(1, 16) {
+            // The key is unique across the stack for the same reason metadata
+            // keys are unique within a directive: the parser keeps a map, so a
+            // second push of a live key would decide the directive's metadata
+            // by which push happened to be innermost.
+            let key = (*rng.pick(PUSHED_META_KEYS)).to_string();
+            if !pushed_meta.contains(&key) {
+                let value = MetaValue::Str(format!("pushed {i}"));
+                entries.push(Entry::PushMeta(key.clone(), value));
+                pushed_meta.push(key);
+            }
+        }
+        if !pushed_meta.is_empty() && rng.chance(1, 8) {
+            let key = pushed_meta.remove(rng.below(pushed_meta.len()));
+            entries.push(Entry::PopMeta(key));
+        }
+        entries.push(Entry::Directive(directive(rng, config, i)));
     }
     for tag in pushed {
         entries.push(Entry::PopTag(tag));
+    }
+    for key in pushed_meta {
+        entries.push(Entry::PopMeta(key));
     }
 
     Ledger { entries }
 }
 
-fn directive(rng: &mut Rng, config: Config, index: usize) -> Directive {
+fn directive(rng: &mut impl Draw, config: Config, index: usize) -> Directive {
     let date = date(index);
     let content = match config.shape {
         Shape::Plain | Shape::Arithmetic | Shape::Metadata => {
@@ -209,16 +259,31 @@ fn directive(rng: &mut Rng, config: Config, index: usize) -> Directive {
         _ if rng.chance(1, 4) => meta(rng, 1),
         _ => Vec::new(),
     };
+    // A transaction writes its own tags, which absorb the pushed stack; every
+    // other kind takes them here. Keeping both sides from filling this in is
+    // what makes the dump's uniform rendering meaningful.
+    let taggable = config.shape == Shape::Rich
+        && !matches!(content, Content::Transaction(_));
     Directive {
         date,
         content,
         meta,
+        tags: if taggable && rng.chance(1, 3) {
+            vec![(*rng.pick(TAGS)).to_string()]
+        } else {
+            Vec::new()
+        },
+        links: if taggable && rng.chance(1, 4) {
+            vec![(*rng.pick(LINKS)).to_string()]
+        } else {
+            Vec::new()
+        },
     }
 }
 
-fn non_transaction(rng: &mut Rng) -> Content {
+fn non_transaction(rng: &mut impl Draw) -> Content {
     let account = (*rng.pick(ACCOUNTS)).to_string();
-    match rng.below(7) {
+    match rng.below(11) {
         0 => Content::Open {
             account,
             currencies: match rng.below(3) {
@@ -252,14 +317,64 @@ fn non_transaction(rng: &mut Rng) -> Content {
         5 => Content::Commodity {
             currency: (*rng.pick(CURRENCIES)).to_string(),
         },
-        _ => Content::Event {
+        6 => Content::Event {
             name: "location".to_string(),
             value: (*rng.pick(&["Zürich", "São Paulo", "Lisbon"])).to_string(),
+        },
+        7 => Content::Note {
+            account,
+            comment: format!("note {}", rng.below(1000)),
+        },
+        8 => Content::Document {
+            account,
+            path: (*rng.pick(DOCUMENTS)).to_string(),
+        },
+        9 => Content::Query {
+            name: format!("q{}", rng.below(100)),
+            query: (*rng.pick(QUERIES)).to_string(),
+        },
+        _ => Content::Custom {
+            name: (*rng.pick(&["budget", "fava-option", "flags"])).to_string(),
+            values: custom_values(rng),
         },
     }
 }
 
-fn txn(rng: &mut Rng, config: Config) -> Txn {
+/// A `custom` directive's arguments.
+///
+/// The one rule: a bare number goes last or not at all. `custom` arguments are
+/// read by type from a single line, and `42 USD` reads as one amount rather
+/// than a number beside a currency — so a number followed by anything that
+/// lexes as a currency describes a file whose meaning is not what the model
+/// says it is.
+fn custom_values(rng: &mut impl Draw) -> Vec<CustomValue> {
+    let count = rng.below(4);
+    let mut values = Vec::with_capacity(count);
+    for i in 0..count {
+        let last = i + 1 == count;
+        let choices = if last { 6 } else { 5 };
+        values.push(match rng.below(choices) {
+            0 => CustomValue::Str(format!("v{i}")),
+            1 => CustomValue::Account((*rng.pick(ACCOUNTS)).to_string()),
+            2 => CustomValue::Date(date(rng.below(400))),
+            3 => CustomValue::Bool(rng.chance(1, 2)),
+            4 => CustomValue::Amount(Amount {
+                value: Expr::lit(Num::plain(Decimal::new(
+                    rng.between(1, 90_000),
+                    2,
+                ))),
+                currency: (*rng.pick(CURRENCIES)).to_string(),
+            }),
+            _ => CustomValue::Num(Num::plain(Decimal::new(
+                rng.between(-10_000, 10_000),
+                2,
+            ))),
+        });
+    }
+    values
+}
+
+fn txn(rng: &mut impl Draw, config: Config) -> Txn {
     let rich = config.shape == Shape::Rich;
     let narration = match config.shape {
         Shape::Plain => Some("payment".to_string()),
@@ -320,7 +435,7 @@ fn txn(rng: &mut Rng, config: Config) -> Txn {
     }
 }
 
-fn posting(rng: &mut Rng, config: Config, last: bool) -> Posting {
+fn posting(rng: &mut impl Draw, config: Config, last: bool) -> Posting {
     let rich = config.shape == Shape::Rich;
     let bare = last && config.shape == Shape::Realistic && rng.chance(1, 3);
     let amount = (!bare).then(|| amount(rng, config.shape));
@@ -368,7 +483,7 @@ fn posting(rng: &mut Rng, config: Config, last: bool) -> Posting {
     }
 }
 
-fn meta(rng: &mut Rng, count: usize) -> Vec<(String, MetaValue)> {
+fn meta(rng: &mut impl Draw, count: usize) -> Vec<(String, MetaValue)> {
     let mut used: Vec<String> = Vec::new();
     let mut out = Vec::new();
     for _ in 0..count {
@@ -394,7 +509,7 @@ fn meta(rng: &mut Rng, count: usize) -> Vec<(String, MetaValue)> {
     out
 }
 
-fn amount(rng: &mut Rng, shape: Shape) -> Amount {
+fn amount(rng: &mut impl Draw, shape: Shape) -> Amount {
     Amount {
         value: match shape {
             Shape::Arithmetic => expr(rng, 2),
@@ -405,7 +520,7 @@ fn amount(rng: &mut Rng, shape: Shape) -> Amount {
     }
 }
 
-fn number(rng: &mut Rng) -> Num {
+fn number(rng: &mut impl Draw) -> Num {
     let value = Decimal::new(rng.between(-2_000_000, 2_000_000), 2);
     match rng.below(8) {
         0 => Num::grouped(value),
@@ -415,7 +530,7 @@ fn number(rng: &mut Rng) -> Num {
 }
 
 /// An expression tree of at most `depth` nested levels.
-fn expr(rng: &mut Rng, depth: usize) -> Expr {
+fn expr(rng: &mut impl Draw, depth: usize) -> Expr {
     if depth == 0 {
         return Expr::lit(number(rng));
     }
@@ -443,6 +558,12 @@ fn expr(rng: &mut Rng, depth: usize) -> Expr {
                     } else {
                         Expr::lit(number(rng))
                     };
+                    // A zero divisor does not parse, and the model has no way
+                    // to say so. Evaluate rather than inspect: `(2 - 2)` is
+                    // zero too.
+                    if op == '/' && rhs.eval().is_zero() {
+                        return ('*', rhs);
+                    }
                     (op, rhs)
                 })
                 .collect();

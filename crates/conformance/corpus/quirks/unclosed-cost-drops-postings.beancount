@@ -1,6 +1,0 @@
-; An unclosed `{` makes the posting line unparseable, which takes out that
-; posting and every posting after it — leaving a transaction with no legs at
-; all and no error to show for it.
-2026-01-15 * "unclosed brace"
-  Assets:Investments:Broker  10 VTSAX {400.00 USD
-  Assets:Cash -4000.00 USD

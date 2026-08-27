@@ -11,6 +11,7 @@
 //! ```text
 //! option "operating_currency" "USD"
 //! include "months/2026-01.beancount"
+//! plugin "beancount.plugins.auto" "config"
 //! directive line=7 2026-01-15 txn
 //!   flag *
 //!   payee "Whole Foods"
@@ -32,8 +33,14 @@
 //! - Sets and maps the parser stores unordered — tags, links, `open`
 //!   currencies, metadata — are emitted sorted by their string form, so the
 //!   dump never depends on hash iteration order.
+//! - Every directive ends with its tags, then its links, then its metadata,
+//!   whatever kind it is. A transaction's tags come from the transaction (they
+//!   absorb the pushed tag stack); every other kind's come from the directive
+//!   line itself. The dump does not distinguish the two.
 //! - Absent optional fields print no line at all. Every present one prints,
-//!   including empty strings (`payee ""`), so presence is never ambiguous.
+//!   including empty strings (`payee ""`), so presence is never ambiguous. The
+//!   one field that shares a line with another is a plugin's config, which is
+//!   still unambiguous because both are quoted.
 //! - Numbers print as [`rust_decimal::Decimal`] does, which preserves the
 //!   scale the input was written with: `10.00` stays `10.00`, and an
 //!   expression prints the value it evaluates to.
@@ -41,11 +48,11 @@
 //!   That mirrors the parser's own iterator, which yields at most one error
 //!   and then stops.
 
-use std::fmt::Write as _;
+use std::{collections::HashSet, fmt::Write as _};
 
 use beancount_parser::{
-    Amount, Cost, Date, Directive, DirectiveContent, Entry, Posting,
-    PostingPrice, metadata, parse_iter,
+    Amount, Cost, CustomValue, Date, Directive, DirectiveContent, Entry, Link,
+    Posting, PostingPrice, Tag, metadata, parse_iter,
 };
 use rust_decimal::Decimal;
 
@@ -69,6 +76,13 @@ pub fn dump(input: &str) -> String {
             Ok(Entry::Include(path)) => {
                 let _ =
                     writeln!(out, "include {}", quote(&path.to_string_lossy()));
+            }
+            Ok(Entry::Plugin(plugin)) => {
+                let _ = write!(out, "plugin {}", quote(&plugin.name));
+                if let Some(config) = &plugin.config {
+                    let _ = write!(out, " {}", quote(config));
+                }
+                let _ = writeln!(out);
             }
             Ok(Entry::Directive(directive)) => {
                 directive_to(&mut out, &directive)
@@ -114,6 +128,10 @@ fn directive_to(out: &mut String, directive: &Directive<Decimal>) {
         DirectiveContent::Pad(_) => "pad",
         DirectiveContent::Commodity(_) => "commodity",
         DirectiveContent::Event(_) => "event",
+        DirectiveContent::Note(_) => "note",
+        DirectiveContent::Document(_) => "document",
+        DirectiveContent::Query(_) => "query",
+        DirectiveContent::Custom(_) => "custom",
         _ => "unknown",
     };
     let _ = writeln!(
@@ -134,19 +152,8 @@ fn directive_to(out: &mut String, directive: &Directive<Decimal>) {
             if let Some(narration) = &txn.narration {
                 let _ = writeln!(out, "  narration {}", quote(narration));
             }
-            let mut tags: Vec<&str> =
-                txn.tags.iter().map(AsRef::as_ref).collect();
-            tags.sort_unstable();
-            for tag in tags {
-                let _ = writeln!(out, "  tag {tag}");
-            }
-            let mut links: Vec<&str> =
-                txn.links.iter().map(AsRef::as_ref).collect();
-            links.sort_unstable();
-            for link in links {
-                let _ = writeln!(out, "  link {link}");
-            }
-            metadata_to(out, "  ", &directive.metadata);
+            tags_and_links_to(out, &txn.tags, &txn.links);
+            tail_to(out, directive);
             for posting in &txn.postings {
                 posting_to(out, posting);
             }
@@ -160,14 +167,13 @@ fn directive_to(out: &mut String, directive: &Directive<Decimal>) {
                 let _ = writeln!(out, "  currency {currency}");
             }
             if let Some(booking) = &open.booking_method {
-                let _ =
-                    writeln!(out, "  booking {}", quote(&booking.to_string()));
+                let _ = writeln!(out, "  booking {}", quote(booking.as_ref()));
             }
-            metadata_to(out, "  ", &directive.metadata);
+            tail_to(out, directive);
         }
         DirectiveContent::Close(close) => {
             let _ = writeln!(out, "  account {}", close.account);
-            metadata_to(out, "  ", &directive.metadata);
+            tail_to(out, directive);
         }
         DirectiveContent::Balance(balance) => {
             let _ = writeln!(out, "  account {}", balance.account);
@@ -175,30 +181,79 @@ fn directive_to(out: &mut String, directive: &Directive<Decimal>) {
             if let Some(tolerance) = &balance.tolerance {
                 let _ = writeln!(out, "  tolerance {tolerance}");
             }
-            metadata_to(out, "  ", &directive.metadata);
+            tail_to(out, directive);
         }
         DirectiveContent::Pad(pad) => {
             let _ = writeln!(out, "  account {}", pad.account);
             let _ = writeln!(out, "  source {}", pad.source_account);
-            metadata_to(out, "  ", &directive.metadata);
+            tail_to(out, directive);
         }
         DirectiveContent::Price(price) => {
             let _ = writeln!(out, "  currency {}", price.currency);
             let _ = writeln!(out, "  amount {}", amount(&price.amount));
-            metadata_to(out, "  ", &directive.metadata);
+            tail_to(out, directive);
         }
         DirectiveContent::Commodity(currency) => {
             let _ = writeln!(out, "  currency {currency}");
-            metadata_to(out, "  ", &directive.metadata);
+            tail_to(out, directive);
         }
         DirectiveContent::Event(event) => {
             let _ = writeln!(out, "  name {}", quote(&event.name));
             let _ = writeln!(out, "  value {}", quote(&event.value));
-            metadata_to(out, "  ", &directive.metadata);
+            tail_to(out, directive);
+        }
+        DirectiveContent::Note(note) => {
+            let _ = writeln!(out, "  account {}", note.account);
+            let _ = writeln!(out, "  comment {}", quote(&note.comment));
+            tail_to(out, directive);
+        }
+        DirectiveContent::Document(document) => {
+            let _ = writeln!(out, "  account {}", document.account);
+            let _ = writeln!(out, "  path {}", quote(&document.path));
+            tail_to(out, directive);
+        }
+        DirectiveContent::Query(query) => {
+            let _ = writeln!(out, "  name {}", quote(&query.name));
+            let _ = writeln!(out, "  query {}", quote(&query.query));
+            tail_to(out, directive);
+        }
+        DirectiveContent::Custom(custom) => {
+            let _ = writeln!(out, "  name {}", quote(&custom.name));
+            // Order is meaning here, so these are emitted as written.
+            for value in &custom.values {
+                let _ = writeln!(out, "  value {}", custom_value(value));
+            }
+            tail_to(out, directive);
         }
         _ => {
-            metadata_to(out, "  ", &directive.metadata);
+            tail_to(out, directive);
         }
+    }
+}
+
+/// Every directive ends the same way: the tags and links written on its line,
+/// then its metadata. A transaction's own tags are rendered by its arm instead,
+/// because they absorb the pushed tag stack and so live on the `Transaction`;
+/// `directive.tags` is empty for one.
+fn tail_to(out: &mut String, directive: &Directive<Decimal>) {
+    tags_and_links_to(out, &directive.tags, &directive.links);
+    metadata_to(out, "  ", &directive.metadata);
+}
+
+fn tags_and_links_to(
+    out: &mut String,
+    tags: &HashSet<Tag>,
+    links: &HashSet<Link>,
+) {
+    let mut tags: Vec<&str> = tags.iter().map(AsRef::as_ref).collect();
+    tags.sort_unstable();
+    for tag in tags {
+        let _ = writeln!(out, "  tag {tag}");
+    }
+    let mut links: Vec<&str> = links.iter().map(AsRef::as_ref).collect();
+    links.sort_unstable();
+    for link in links {
+        let _ = writeln!(out, "  link {link}");
     }
 }
 
@@ -242,6 +297,19 @@ fn metadata_value(value: &metadata::Value<Decimal>) -> String {
         metadata::Value::String(text) => format!("string {}", quote(text)),
         metadata::Value::Number(number) => format!("number {number}"),
         metadata::Value::Currency(currency) => format!("currency {currency}"),
+        _ => "unknown".to_string(),
+    }
+}
+
+fn custom_value(value: &CustomValue<Decimal>) -> String {
+    match value {
+        CustomValue::String(text) => format!("string {}", quote(text)),
+        CustomValue::Date(value) => format!("date {}", date(*value)),
+        CustomValue::Bool(value) => format!("bool {value}"),
+        CustomValue::Amount(value) => format!("amount {}", amount(value)),
+        CustomValue::Number(number) => format!("number {number}"),
+        CustomValue::Account(account) => format!("account {account}"),
+        CustomValue::Currency(currency) => format!("currency {currency}"),
         _ => "unknown".to_string(),
     }
 }

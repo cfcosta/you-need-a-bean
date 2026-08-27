@@ -1,0 +1,6 @@
+directive line=4 2026-01-01 document
+  account Assets:Cash
+  path "/receipts/2026-01.pdf"
+directive line=5 2026-01-02 document
+  account Assets:Bank:Checking
+  path "statements/january.pdf"
