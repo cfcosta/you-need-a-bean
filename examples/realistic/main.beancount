@@ -1,0 +1,35 @@
+;; A ledger with the shape of a lived-in one: two years of it, a business
+;; and a household sharing a chart of accounts, a portfolio with a cost
+;; basis, and the loose ends a real ledger always has.
+;;
+;; Everything in it is invented. The merchants, the clients, the tickers
+;; and every amount are made up, and no part of it is taken from anyone's
+;; actual books. It exists so the app can be shown, and so the reports
+;; have something to report on.
+;;
+;;     cargo run -- examples/realistic/main.beancount
+;;
+;; Deliberately in here, because a report with nothing to find looks the
+;; same as a report that is broken:
+;;
+;;   - subscriptions on a stable cadence, two of which raise their price
+;;     mid-run, and one nobody has cancelled
+;;   - power bills that swing with the season
+;;   - a renovation tagged across five months and four categories
+;;   - two trips, one of them charged in euro and settled later
+;;   - a portfolio bought with a recorded cost, plus staking rewards and
+;;     an airdrop that arrived with none
+;;   - gold that stopped being quoted in mid-2025 and is still held
+;;   - a token no market ever priced
+;;   - a handful of `!` charges nobody has looked at yet
+
+option "title" "Realistic Example"
+option "operating_currency" "USD"
+
+;; Regenerate with: python3 examples/realistic/build.py
+
+include "accounts.beancount"
+include "prices.beancount"
+include "2024.beancount"
+include "2025.beancount"
+include "2026.beancount"

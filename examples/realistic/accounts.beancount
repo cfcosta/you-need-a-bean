@@ -1,0 +1,209 @@
+;; What the commodities are, and what every account is called.
+;;
+;; `name:` is the label the UI shows. `ynab:` overrides where an account
+;; sits — budget, tracking or hidden — for the cases the currency alone
+;; does not settle. `income:` says whether money from a source arrives
+;; without work, which is the difference between a FIRE number and a
+;; wish.
+
+2023-12-01 commodity USD
+  name: "US Dollar"
+  asset-class: "cash"
+2023-12-01 commodity EUR
+  name: "Euro"
+  asset-class: "cash"
+2023-12-01 commodity VSTX
+  name: "Total US Market Index"
+  asset-class: "us-equity"
+2023-12-01 commodity VINX
+  name: "Developed International Index"
+  asset-class: "intl-equity"
+2023-12-01 commodity VEMX
+  name: "Emerging Markets Index"
+  asset-class: "intl-equity"
+2023-12-01 commodity VBDX
+  name: "Aggregate Bond Index"
+  asset-class: "bonds"
+2023-12-01 commodity VREX
+  name: "REIT Index"
+  asset-class: "real-estate"
+2023-12-01 commodity GLDT
+  name: "Gold Bullion Trust"
+  asset-class: "commodities"
+2023-12-01 commodity BTC
+  name: "Bitcoin"
+  asset-class: "crypto"
+2023-12-01 commodity ETH
+  name: "Ether"
+  asset-class: "crypto"
+2023-12-01 commodity MESH
+  name: "Mesh Protocol Token"
+  asset-class: "crypto"
+
+2023-12-01 open Assets:Bank:Checking              USD
+  name: "Checking"
+2023-12-01 open Assets:Bank:Savings               USD
+  name: "Savings"
+2023-12-01 open Assets:Bank:Business              USD
+  name: "Business Account"
+2023-12-01 open Assets:Cash:Wallet                USD
+  name: "Cash"
+2023-12-01 open Assets:Prepaid:Transit            USD
+  name: "Transit Card"
+2023-12-01 open Assets:Prepaid:Games              USD
+  name: "Game Wallet"
+2023-12-01 open Assets:Broker:Cash                USD
+  name: "Brokerage Cash"
+  ynab: "tracking"
+2023-12-01 open Assets:Broker:VSTX                VSTX
+  name: "US Market"
+2023-12-01 open Assets:Broker:VINX                VINX
+  name: "International"
+2023-12-01 open Assets:Broker:VEMX                VEMX
+  name: "Emerging Markets"
+2023-12-01 open Assets:Broker:VBDX                VBDX
+  name: "Bonds"
+2023-12-01 open Assets:Broker:VREX                VREX
+  name: "Real Estate"
+2023-12-01 open Assets:Retirement:VSTX            VSTX
+  name: "Retirement — US Market"
+2023-12-01 open Assets:Retirement:VBDX            VBDX
+  name: "Retirement — Bonds"
+2023-12-01 open Assets:Vault:GLDT                 GLDT
+  name: "Gold"
+2023-12-01 open Assets:Crypto:BTC                 BTC
+  name: "Bitcoin"
+2023-12-01 open Assets:Crypto:ETH                 ETH
+  name: "Ether"
+2023-12-01 open Assets:Crypto:MESH                MESH
+  name: "Mesh Token"
+2023-12-01 open Assets:Old:Sunset                 USD
+  name: "Closed Account"
+  ynab: "hidden"
+2023-12-01 open Liabilities:Card:Everyday         USD
+  name: "Everyday Card"
+2023-12-01 open Liabilities:Card:Travel           USD, EUR
+  name: "Travel Card"
+2023-12-01 open Liabilities:Loan:Car              USD
+  name: "Car Loan"
+2023-12-01 open Income:Halloran                   USD
+  name: "Halloran Systems"
+  income: "active"
+2023-12-01 open Income:Cartwright                 USD
+  name: "Cartwright Group"
+  income: "active"
+2023-12-01 open Income:Projects                   USD
+  name: "Project Work"
+  income: "active"
+2023-12-01 open Income:Royalties                  USD
+  name: "Course Royalties"
+  income: "passive"
+2023-12-01 open Income:Investments:Dividends      USD
+  name: "Dividends"
+  income: "passive"
+2023-12-01 open Income:Investments:Interest       USD
+  name: "Interest"
+  income: "passive"
+2023-12-01 open Income:Investments:Gains          USD
+  name: "Realized Gains"
+  income: "passive"
+2023-12-01 open Income:Investments:Staking        ETH
+  name: "Staking Rewards"
+  income: "passive"
+2023-12-01 open Income:Investments:Airdrops       MESH
+  name: "Airdrops"
+  income: "passive"
+2023-12-01 open Equity:Opening-Balances           USD
+
+2023-12-01 open Expenses:Home:Rent                USD
+  name: "Rent"
+2023-12-01 open Expenses:Home:Utilities:Power     USD
+  name: "Power"
+2023-12-01 open Expenses:Home:Utilities:Water     USD
+  name: "Water"
+2023-12-01 open Expenses:Home:Utilities:Internet  USD
+  name: "Internet"
+2023-12-01 open Expenses:Home:Utilities:Phone     USD
+  name: "Phone"
+2023-12-01 open Expenses:Home:Maintenance         USD
+  name: "Maintenance"
+2023-12-01 open Expenses:Home:Furnishing          USD
+  name: "Furnishing"
+2023-12-01 open Expenses:Food:Groceries           USD
+  name: "Groceries"
+2023-12-01 open Expenses:Food:Dining              USD
+  name: "Dining Out"
+2023-12-01 open Expenses:Food:Coffee              USD
+  name: "Coffee"
+2023-12-01 open Expenses:Food:Delivery            USD
+  name: "Delivery"
+2023-12-01 open Expenses:Transport:Transit        USD
+  name: "Transit"
+2023-12-01 open Expenses:Transport:Rideshare      USD
+  name: "Rideshare"
+2023-12-01 open Expenses:Transport:Fuel           USD
+  name: "Fuel"
+2023-12-01 open Expenses:Transport:Parking        USD
+  name: "Parking"
+2023-12-01 open Expenses:Transport:Service        USD
+  name: "Car Service"
+2023-12-01 open Expenses:Health:Insurance         USD
+  name: "Health Insurance"
+2023-12-01 open Expenses:Health:Pharmacy          USD
+  name: "Pharmacy"
+2023-12-01 open Expenses:Health:Dental            USD
+  name: "Dental"
+2023-12-01 open Expenses:Health:Gym               USD
+  name: "Gym"
+2023-12-01 open Expenses:Subscriptions:Streaming  USD
+  name: "Streaming"
+2023-12-01 open Expenses:Subscriptions:Music      USD
+  name: "Music"
+2023-12-01 open Expenses:Subscriptions:News       USD
+  name: "News"
+2023-12-01 open Expenses:Subscriptions:Cloud      USD
+  name: "Cloud Storage"
+2023-12-01 open Expenses:Shopping:Clothes         USD
+  name: "Clothes"
+2023-12-01 open Expenses:Shopping:Electronics     USD
+  name: "Electronics"
+2023-12-01 open Expenses:Shopping:Household       USD
+  name: "Household"
+2023-12-01 open Expenses:Shopping:Books           USD
+  name: "Books"
+2023-12-01 open Expenses:Entertainment:Games      USD
+  name: "Games"
+2023-12-01 open Expenses:Entertainment:Events     USD
+  name: "Events"
+2023-12-01 open Expenses:Entertainment:Movies     USD
+  name: "Movies"
+2023-12-01 open Expenses:Travel:Flights           USD
+  name: "Flights"
+2023-12-01 open Expenses:Travel:Lodging           USD
+  name: "Lodging"
+2023-12-01 open Expenses:Travel:Local             USD
+  name: "Travel — Local"
+2023-12-01 open Expenses:Business:Software        USD
+  name: "Business Software"
+2023-12-01 open Expenses:Business:Accounting      USD
+  name: "Accounting"
+2023-12-01 open Expenses:Business:Hardware        USD
+  name: "Business Hardware"
+2023-12-01 open Expenses:Business:Coworking       USD
+  name: "Coworking"
+2023-12-01 open Expenses:Taxes:Income             USD
+  name: "Income Tax"
+2023-12-01 open Expenses:Taxes:SelfEmployment     USD
+  name: "Self-Employment Tax"
+2023-12-01 open Expenses:Financial:Fees           USD
+  name: "Bank Fees"
+2023-12-01 open Expenses:Financial:Interest       USD
+  name: "Loan Interest"
+2023-12-01 open Expenses:Gifts                    USD
+  name: "Gifts"
+2023-12-01 open Expenses:Charity                  USD
+  name: "Charity"
+2023-12-01 open Expenses:Misc                     USD
+  name: "Miscellaneous"
+2023-12-01 open Expenses:Uncategorized            USD
+  name: "Uncategorized"

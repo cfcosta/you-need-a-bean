@@ -1,0 +1,2843 @@
+;; 2026
+
+2026-01-01 balance Assets:Bank:Checking                25977.10 USD
+
+2026-01-01 balance Assets:Bank:Savings                 55131.24 USD
+
+2026-01-01 balance Assets:Bank:Business                56597.30 USD
+
+2026-01-01 balance Liabilities:Card:Everyday               0.00 USD
+
+2026-01-01 * "Ridgeline Properties" "monthly rent"
+  Expenses:Home:Rent                           2595.00 USD
+  Assets:Bank:Checking
+
+2026-01-01 * "Halloran Systems" "monthly retainer" ^inv-2026-01
+  Assets:Bank:Business                        18200.00 USD
+  Income:Halloran
+
+2026-01-02 * "Forge IDE" "monthly plan"
+  Expenses:Business:Software                     25.00 USD
+  Liabilities:Card:Everyday
+
+2026-01-02 * "The Annex" "coworking desk"
+  Expenses:Business:Coworking                   300.00 USD
+  Assets:Bank:Business
+
+2026-01-03 * "Streamflix" "monthly plan"
+  Expenses:Subscriptions:Streaming               17.99 USD
+  Liabilities:Card:Everyday
+
+2026-01-03 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                       102.39 USD
+  Liabilities:Card:Everyday
+
+2026-01-03 * "Pike & Ash" "dinner out"
+  Expenses:Food:Dining                          105.36 USD
+  Liabilities:Card:Everyday
+
+2026-01-03 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   29.08 USD
+  Liabilities:Card:Everyday
+
+2026-01-03 * "Cartwright Group" "advisory retainer"
+  Assets:Bank:Business                         3500.00 USD
+  Income:Cartwright
+
+2026-01-04 * "Meridian Health" "monthly premium"
+  Expenses:Health:Insurance                     412.00 USD
+  Assets:Bank:Checking
+
+2026-01-04 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.95 USD
+  Assets:Prepaid:Transit
+
+2026-01-05 * "Tunebox" "monthly plan"
+  Expenses:Subscriptions:Music                   10.99 USD
+  Liabilities:Card:Everyday
+
+2026-01-05 * "Third Rail Coffee" "filter coffee"
+  Expenses:Food:Coffee                            4.46 USD
+  Liabilities:Card:Everyday
+
+2026-01-05 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                   34.53 USD
+  Liabilities:Card:Everyday
+
+2026-01-05 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.38 USD
+  Assets:Prepaid:Transit
+
+2026-01-05 * "owner draw"
+  Assets:Bank:Checking                        18300.00 USD
+  Assets:Bank:Business
+
+2026-01-06 * "Fiberline" "monthly bill"
+  Expenses:Home:Utilities:Internet               79.00 USD
+  Assets:Bank:Checking
+
+2026-01-06 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                       134.50 USD
+  Liabilities:Card:Everyday
+
+2026-01-06 * "Ember Coffee" "cold brew"
+  Expenses:Food:Coffee                            5.51 USD
+  Liabilities:Card:Everyday
+
+2026-01-06 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.65 USD
+  Assets:Prepaid:Transit
+
+2026-01-06 * "transfer to brokerage"
+  Assets:Broker:Cash                           8000.00 USD
+  Assets:Bank:Checking
+
+2026-01-07 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                   35.15 USD
+  Liabilities:Card:Everyday
+
+2026-01-07 * "CityTransit" "card top-up"
+  Assets:Prepaid:Transit                         60.00 USD
+  Assets:Bank:Checking
+
+2026-01-08 * "PixelPress" "monthly plan"
+  Expenses:Subscriptions:News                    12.00 USD
+  Liabilities:Card:Everyday
+
+2026-01-08 * "Meridian Roasters" "cold brew"
+  Expenses:Food:Coffee                            4.45 USD
+  Liabilities:Card:Everyday
+
+2026-01-08 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   35.45 USD
+  Liabilities:Card:Everyday
+
+2026-01-08 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.77 USD
+  Assets:Prepaid:Transit
+
+2026-01-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VSTX                           37.3105 VSTX {125.97 USD}
+  Assets:Broker:Cash
+
+2026-01-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VINX                           21.8341 VINX {84.73 USD}
+  Assets:Broker:Cash
+
+2026-01-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VBDX                           16.6305 VBDX {69.15 USD}
+  Assets:Broker:Cash
+
+2026-01-08 ! "unrecognised card charge"
+  Expenses:Uncategorized                         40.21 USD
+  Liabilities:Card:Everyday
+
+2026-01-09 * "Gridworks Power" "monthly bill"
+  Expenses:Home:Utilities:Power                 194.45 USD
+  Assets:Bank:Checking
+
+2026-01-09 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.93 USD
+  Assets:Prepaid:Transit
+
+2026-01-10 * "Harvest Lane" "weekly shop"
+  Expenses:Food:Groceries                       140.12 USD
+  Liabilities:Card:Everyday
+
+2026-01-10 * "Ember Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            7.72 USD
+  Liabilities:Card:Everyday
+
+2026-01-10 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   28.00 USD
+  Liabilities:Card:Everyday
+
+2026-01-10 * "The Lantern Hall" "tickets"
+  Expenses:Entertainment:Events                 101.58 USD
+  Liabilities:Card:Everyday
+
+2026-01-10 * "retirement contribution"
+  Assets:Broker:Cash                           1800.00 USD
+  Assets:Bank:Checking
+
+2026-01-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VSTX                       10.3199 VSTX {125.97 USD}
+  Assets:Broker:Cash
+
+2026-01-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VBDX                        7.2307 VBDX {69.15 USD}
+  Assets:Broker:Cash
+
+2026-01-11 * "Clearwater Utility" "monthly bill"
+  Expenses:Home:Utilities:Water                  41.84 USD
+  Assets:Bank:Checking
+
+2026-01-11 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   20.27 USD
+  Liabilities:Card:Everyday
+
+2026-01-11 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        48.99 USD
+  Liabilities:Card:Everyday
+
+2026-01-11 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.34 USD
+  Assets:Prepaid:Transit
+
+2026-01-11 * "Pixelforge Store" "a game"
+  Expenses:Entertainment:Games                   61.71 USD
+  Assets:Prepaid:Games
+
+2026-01-11 * "Lightfoot Press" "course royalties"
+  Assets:Bank:Business                          302.59 USD
+  Income:Royalties
+
+2026-01-12 * "Nimbus Drive" "monthly plan"
+  Expenses:Subscriptions:Cloud                    9.99 USD
+  Liabilities:Card:Everyday
+
+2026-01-12 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            6.20 USD
+  Liabilities:Card:Everyday
+
+2026-01-13 * "Harborline Bank" "cash withdrawal"
+  Assets:Cash:Wallet                            200.00 USD
+  Assets:Bank:Checking
+
+2026-01-14 * "Cellmark" "monthly bill"
+  Expenses:Home:Utilities:Phone                  45.00 USD
+  Assets:Bank:Checking
+
+2026-01-14 * "Third Rail Coffee" "filter coffee"
+  Expenses:Food:Coffee                            8.09 USD
+  Liabilities:Card:Everyday
+
+2026-01-14 * "Trattoria Verde" "dinner"
+  Expenses:Food:Dining                          115.06 USD
+  Liabilities:Card:Everyday
+
+2026-01-14 * "Grand Marquee" "cinema"
+  Expenses:Entertainment:Movies                  45.32 USD
+  Liabilities:Card:Everyday
+
+2026-01-15 * "Sentry Books" "bookkeeping retainer"
+  Expenses:Business:Accounting                  180.00 USD
+  Assets:Bank:Business
+
+2026-01-15 * "Nori House" "late lunch"
+  Expenses:Food:Dining                          137.87 USD
+  Liabilities:Card:Everyday
+
+2026-01-15 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         29.04 USD
+  Liabilities:Card:Everyday
+
+2026-01-15 * "Wellspring Pharmacy" "sundries"
+  Expenses:Health:Pharmacy                       21.76 USD
+  Liabilities:Card:Everyday
+
+2026-01-15 * "cash"
+  Expenses:Misc                                  34.58 USD
+  Assets:Cash:Wallet
+
+2026-01-16 * "Meridian Roasters" "espresso and a bun"
+  Expenses:Food:Coffee                            7.10 USD
+  Liabilities:Card:Everyday
+
+2026-01-16 * "Revenue Service" "estimated tax"
+  Expenses:Taxes:Income                       16500.00 USD
+  Expenses:Taxes:SelfEmployment                4500.00 USD
+  Assets:Bank:Business
+
+2026-01-16 document Expenses:Taxes:Income "documents/2026/01/2026-01-16-estimated-tax.html"
+
+2026-01-17 * "Photobank" "monthly plan"
+  Expenses:Subscriptions:Cloud                    8.99 USD
+  Liabilities:Card:Everyday
+
+2026-01-17 * "Copper Spoon" "dinner out"
+  Expenses:Food:Dining                          124.98 USD
+  Liabilities:Card:Everyday
+
+2026-01-17 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.49 USD
+  Assets:Prepaid:Transit
+
+2026-01-18 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                          426.71 USD
+  Expenses:Financial:Interest                    38.29 USD
+  Assets:Bank:Checking
+
+2026-01-18 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   35.09 USD
+  Liabilities:Card:Everyday
+
+2026-01-18 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      2.90 USD
+  Assets:Prepaid:Transit
+
+2026-01-18 * "Homestead Supply" "hardware"
+  Expenses:Shopping:Household                   107.17 USD
+  Liabilities:Card:Everyday
+
+2026-01-18 * "Northwind Apparel" "shoes"
+  Expenses:Shopping:Clothes                     251.24 USD
+  Liabilities:Card:Everyday
+
+2026-01-19 * "Meridian Roasters" "flat white"
+  Expenses:Food:Coffee                            9.30 USD
+  Liabilities:Card:Everyday
+
+2026-01-19 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.41 USD
+  Assets:Prepaid:Transit
+
+2026-01-19 * "Wellspring Pharmacy" "prescription"
+  Expenses:Health:Pharmacy                       46.49 USD
+  Liabilities:Card:Everyday
+
+2026-01-19 * "Tidewater Hardware" "cleaning supplies"
+  Expenses:Shopping:Household                    88.07 USD
+  Liabilities:Card:Everyday
+
+2026-01-19 * "Pixelforge Store" "a game on sale"
+  Expenses:Entertainment:Games                   22.87 USD
+  Assets:Prepaid:Games
+
+2026-01-19 * "transfer to savings"
+  Assets:Bank:Savings                          1200.00 USD
+  Assets:Bank:Checking
+
+2026-01-20 * "Harvest Lane" "weekly shop"
+  Expenses:Food:Groceries                       176.20 USD
+  Liabilities:Card:Everyday
+
+2026-01-20 * "Meridian Roasters" "flat white"
+  Expenses:Food:Coffee                            8.75 USD
+  Liabilities:Card:Everyday
+
+2026-01-20 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.90 USD
+  Assets:Prepaid:Transit
+
+2026-01-20 * "Open Harbor Fund" "monthly giving"
+  Expenses:Charity                              150.00 USD
+  Assets:Bank:Checking
+
+2026-01-21 * "IronWorks Gym" "monthly plan"
+  Expenses:Health:Gym                            65.00 USD
+  Liabilities:Card:Everyday
+
+2026-01-21 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         60.22 USD
+  Liabilities:Card:Everyday
+
+2026-01-21 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        59.84 USD
+  Liabilities:Card:Everyday
+
+2026-01-21 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.41 USD
+  Assets:Prepaid:Transit
+
+2026-01-21 * "cash"
+  Expenses:Misc                                  29.33 USD
+  Assets:Cash:Wallet
+
+2026-01-22 * "Tideworks Staking" "staking reward"
+  Assets:Crypto:ETH                             0.0537 ETH
+  Income:Investments:Staking
+
+2026-01-23 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            6.21 USD
+  Liabilities:Card:Everyday
+
+2026-01-23 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                   27.71 USD
+  Liabilities:Card:Everyday
+
+2026-01-23 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.94 USD
+  Assets:Prepaid:Transit
+
+2026-01-24 * "Meridian Roasters" "cold brew"
+  Expenses:Food:Coffee                            8.02 USD
+  Liabilities:Card:Everyday
+
+2026-01-25 * "Third Rail Coffee" "filter coffee"
+  Expenses:Food:Coffee                            7.06 USD
+  Liabilities:Card:Everyday
+
+2026-01-26 * "Tidewater Hardware" "cleaning supplies"
+  Expenses:Shopping:Household                   110.95 USD
+  Liabilities:Card:Everyday
+
+2026-01-26 * "Harborline Bank" "statement payment" #autopay
+  Liabilities:Card:Everyday                    2525.47 USD
+  Assets:Bank:Checking
+
+2026-01-28 * "Harborline Bank" "savings interest"
+  Assets:Bank:Savings                           198.47 USD
+  Income:Investments:Interest
+
+2026-02-01 * "Ridgeline Properties" "monthly rent"
+  Expenses:Home:Rent                           2595.00 USD
+  Assets:Bank:Checking
+
+2026-02-01 * "Halloran Systems" "monthly retainer" ^inv-2026-02
+  Assets:Bank:Business                        18200.00 USD
+  Income:Halloran
+
+2026-02-01 document Assets:Bank:Business "documents/2026/02/2026-02-01-invoice-halloran.html"
+
+2026-02-02 * "Forge IDE" "monthly plan"
+  Expenses:Business:Software                     25.00 USD
+  Liabilities:Card:Everyday
+
+2026-02-02 * "The Annex" "coworking desk"
+  Expenses:Business:Coworking                   300.00 USD
+  Assets:Bank:Business
+
+2026-02-02 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            6.72 USD
+  Liabilities:Card:Everyday
+
+2026-02-02 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         32.17 USD
+  Liabilities:Card:Everyday
+
+2026-02-03 * "Streamflix" "monthly plan"
+  Expenses:Subscriptions:Streaming               17.99 USD
+  Liabilities:Card:Everyday
+
+2026-02-03 * "Loop Rides" "ride across town"
+  Expenses:Transport:Rideshare                   18.42 USD
+  Liabilities:Card:Everyday
+
+2026-02-03 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.29 USD
+  Assets:Prepaid:Transit
+
+2026-02-03 * "Cartwright Group" "advisory retainer"
+  Assets:Bank:Business                         3500.00 USD
+  Income:Cartwright
+
+2026-02-04 * "Meridian Health" "monthly premium"
+  Expenses:Health:Insurance                     412.00 USD
+  Assets:Bank:Checking
+
+2026-02-04 * "Marketvale" "weekly shop"
+  Expenses:Food:Groceries                       195.28 USD
+  Liabilities:Card:Everyday
+
+2026-02-04 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            7.30 USD
+  Liabilities:Card:Everyday
+
+2026-02-05 * "Tunebox" "monthly plan"
+  Expenses:Subscriptions:Music                   10.99 USD
+  Liabilities:Card:Everyday
+
+2026-02-05 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                   22.94 USD
+  Liabilities:Card:Everyday
+
+2026-02-05 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      6.15 USD
+  Assets:Prepaid:Transit
+
+2026-02-05 * "Wellspring Pharmacy" "prescription"
+  Expenses:Health:Pharmacy                       63.95 USD
+  Liabilities:Card:Everyday
+
+2026-02-05 * "owner draw"
+  Assets:Bank:Checking                        18300.00 USD
+  Assets:Bank:Business
+
+2026-02-06 * "Fiberline" "monthly bill"
+  Expenses:Home:Utilities:Internet               79.00 USD
+  Assets:Bank:Checking
+
+2026-02-06 * "transfer to brokerage"
+  Assets:Broker:Cash                           8000.00 USD
+  Assets:Bank:Checking
+
+2026-02-07 * "Marketvale" "weekly shop"
+  Expenses:Food:Groceries                       159.65 USD
+  Liabilities:Card:Everyday
+
+2026-02-07 * "Swiftplate" "friday takeaway"
+  Expenses:Food:Delivery                         56.84 USD
+  Liabilities:Card:Everyday
+
+2026-02-07 * "CityTransit" "card top-up"
+  Assets:Prepaid:Transit                         60.00 USD
+  Assets:Bank:Checking
+
+2026-02-08 * "PixelPress" "monthly plan"
+  Expenses:Subscriptions:News                    12.00 USD
+  Liabilities:Card:Everyday
+
+2026-02-08 * "Ember Coffee" "cold brew"
+  Expenses:Food:Coffee                            7.34 USD
+  Liabilities:Card:Everyday
+
+2026-02-08 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        59.80 USD
+  Liabilities:Card:Everyday
+
+2026-02-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VSTX                           36.8108 VSTX {127.68 USD}
+  Assets:Broker:Cash
+
+2026-02-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VINX                           22.1716 VINX {83.44 USD}
+  Assets:Broker:Cash
+
+2026-02-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VBDX                           16.6667 VBDX {69.00 USD}
+  Assets:Broker:Cash
+
+2026-02-09 * "Gridworks Power" "monthly bill"
+  Expenses:Home:Utilities:Power                 170.32 USD
+  Assets:Bank:Checking
+
+2026-02-09 * "Meridian Roasters" "cold brew"
+  Expenses:Food:Coffee                            5.25 USD
+  Liabilities:Card:Everyday
+
+2026-02-09 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VEMX                            9.8695 VEMX {62.82 USD}
+  Assets:Broker:Cash
+
+2026-02-10 * "Pike & Ash" "lunch"
+  Expenses:Food:Dining                           59.75 USD
+  Liabilities:Card:Everyday
+
+2026-02-10 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   20.59 USD
+  Liabilities:Card:Everyday
+
+2026-02-10 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      2.68 USD
+  Assets:Prepaid:Transit
+
+2026-02-10 * "retirement contribution"
+  Assets:Broker:Cash                           1800.00 USD
+  Assets:Bank:Checking
+
+2026-02-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VSTX                       10.1817 VSTX {127.68 USD}
+  Assets:Broker:Cash
+
+2026-02-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VBDX                        7.2464 VBDX {69.00 USD}
+  Assets:Broker:Cash
+
+2026-02-11 * "Clearwater Utility" "monthly bill"
+  Expenses:Home:Utilities:Water                  53.98 USD
+  Assets:Bank:Checking
+
+2026-02-11 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            8.63 USD
+  Liabilities:Card:Everyday
+
+2026-02-11 * "Nori House" "late lunch"
+  Expenses:Food:Dining                          109.01 USD
+  Liabilities:Card:Everyday
+
+2026-02-11 * "Loop Rides" "ride across town"
+  Expenses:Transport:Rideshare                   36.06 USD
+  Liabilities:Card:Everyday
+
+2026-02-11 * "Lightfoot Press" "course royalties"
+  Assets:Bank:Business                          391.07 USD
+  Income:Royalties
+
+2026-02-12 * "Nimbus Drive" "monthly plan"
+  Expenses:Subscriptions:Cloud                   11.99 USD
+  Liabilities:Card:Everyday
+
+2026-02-13 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   19.28 USD
+  Liabilities:Card:Everyday
+
+2026-02-13 * "Harborline Bank" "cash withdrawal"
+  Assets:Cash:Wallet                            200.00 USD
+  Assets:Bank:Checking
+
+2026-02-14 * "Cellmark" "monthly bill"
+  Expenses:Home:Utilities:Phone                  45.00 USD
+  Assets:Bank:Checking
+
+2026-02-14 * "Homestead Supply" "cleaning supplies"
+  Expenses:Shopping:Household                   108.57 USD
+  Liabilities:Card:Everyday
+
+2026-02-14 * "Foundry Goods" "trousers"
+  Expenses:Shopping:Clothes                     249.41 USD
+  Liabilities:Card:Everyday
+
+2026-02-15 * "Sentry Books" "bookkeeping retainer"
+  Expenses:Business:Accounting                  180.00 USD
+  Assets:Bank:Business
+
+2026-02-15 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                        99.83 USD
+  Liabilities:Card:Everyday
+
+2026-02-15 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         35.88 USD
+  Liabilities:Card:Everyday
+
+2026-02-16 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      2.43 USD
+  Assets:Prepaid:Transit
+
+2026-02-17 * "Photobank" "monthly plan"
+  Expenses:Subscriptions:Cloud                    8.99 USD
+  Liabilities:Card:Everyday
+
+2026-02-17 ! "unrecognised card charge"
+  Expenses:Uncategorized                        178.61 USD
+  Liabilities:Card:Everyday
+
+2026-02-18 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                          428.59 USD
+  Expenses:Financial:Interest                    36.41 USD
+  Assets:Bank:Checking
+
+2026-02-18 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.81 USD
+  Assets:Prepaid:Transit
+
+2026-02-18 * "Voltcart" "workstation" #new-laptop
+  Expenses:Business:Hardware                   3450.00 USD
+  Assets:Bank:Business
+
+2026-02-19 * "Meridian Roasters" "espresso and a bun"
+  Expenses:Food:Coffee                            6.91 USD
+  Liabilities:Card:Everyday
+
+2026-02-19 * "Pike & Ash" "dinner out"
+  Expenses:Food:Dining                          139.01 USD
+  Liabilities:Card:Everyday
+
+2026-02-19 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         29.51 USD
+  Liabilities:Card:Everyday
+
+2026-02-19 * "cash"
+  Expenses:Misc                                  40.94 USD
+  Assets:Cash:Wallet
+
+2026-02-19 * "transfer to savings"
+  Assets:Bank:Savings                          1200.00 USD
+  Assets:Bank:Checking
+
+2026-02-20 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.28 USD
+  Assets:Prepaid:Transit
+
+2026-02-20 * "Open Harbor Fund" "monthly giving"
+  Expenses:Charity                              150.00 USD
+  Assets:Bank:Checking
+
+2026-02-21 * "IronWorks Gym" "monthly plan"
+  Expenses:Health:Gym                            65.00 USD
+  Liabilities:Card:Everyday
+
+2026-02-21 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   16.88 USD
+  Liabilities:Card:Everyday
+
+2026-02-21 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        65.79 USD
+  Liabilities:Card:Everyday
+
+2026-02-22 * "Harvest Lane" "weekly shop"
+  Expenses:Food:Groceries                       172.91 USD
+  Liabilities:Card:Everyday
+
+2026-02-22 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.09 USD
+  Assets:Prepaid:Transit
+
+2026-02-22 * "Homestead Supply" "hardware"
+  Expenses:Shopping:Household                    32.12 USD
+  Liabilities:Card:Everyday
+
+2026-02-22 * "Tideworks Staking" "staking reward"
+  Assets:Crypto:ETH                             0.0569 ETH
+  Income:Investments:Staking
+
+2026-02-23 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            5.16 USD
+  Liabilities:Card:Everyday
+
+2026-02-23 * "Loop Rides" "ride across town"
+  Expenses:Transport:Rideshare                   31.79 USD
+  Liabilities:Card:Everyday
+
+2026-02-23 * "cash"
+  Expenses:Misc                                  27.29 USD
+  Assets:Cash:Wallet
+
+2026-02-25 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         55.76 USD
+  Liabilities:Card:Everyday
+
+2026-02-26 * "Harborline Bank" "statement payment" #autopay
+  Liabilities:Card:Everyday                    2380.74 USD
+  Assets:Bank:Checking
+
+2026-02-27 * "Third Rail Coffee" "filter coffee"
+  Expenses:Food:Coffee                            6.11 USD
+  Liabilities:Card:Everyday
+
+2026-02-27 * "Trattoria Verde" "dinner"
+  Expenses:Food:Dining                           77.62 USD
+  Liabilities:Card:Everyday
+
+2026-02-27 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                   27.93 USD
+  Liabilities:Card:Everyday
+
+2026-02-27 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.77 USD
+  Assets:Prepaid:Transit
+
+2026-02-28 * "Harborline Bank" "savings interest"
+  Assets:Bank:Savings                           203.51 USD
+  Income:Investments:Interest
+
+2026-03-01 * "Ridgeline Properties" "monthly rent"
+  Expenses:Home:Rent                           2595.00 USD
+  Assets:Bank:Checking
+
+2026-03-01 * "Halloran Systems" "monthly retainer" ^inv-2026-03
+  Assets:Bank:Business                        18200.00 USD
+  Income:Halloran
+
+2026-03-02 * "Forge IDE" "monthly plan"
+  Expenses:Business:Software                     25.00 USD
+  Liabilities:Card:Everyday
+
+2026-03-02 * "The Annex" "coworking desk"
+  Expenses:Business:Coworking                   300.00 USD
+  Assets:Bank:Business
+
+2026-03-03 * "Streamflix" "monthly plan"
+  Expenses:Subscriptions:Streaming               17.99 USD
+  Liabilities:Card:Everyday
+
+2026-03-03 * "Ember Coffee" "flat white"
+  Expenses:Food:Coffee                            4.87 USD
+  Liabilities:Card:Everyday
+
+2026-03-03 * "The Blue Kettle" "supper"
+  Expenses:Food:Dining                          122.43 USD
+  Liabilities:Card:Everyday
+
+2026-03-03 * "Cartwright Group" "advisory retainer"
+  Assets:Bank:Business                         3500.00 USD
+  Income:Cartwright
+
+2026-03-04 * "Meridian Health" "monthly premium"
+  Expenses:Health:Insurance                     412.00 USD
+  Assets:Bank:Checking
+
+2026-03-04 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        65.28 USD
+  Liabilities:Card:Everyday
+
+2026-03-04 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.57 USD
+  Assets:Prepaid:Transit
+
+2026-03-05 * "Tunebox" "monthly plan"
+  Expenses:Subscriptions:Music                   10.99 USD
+  Liabilities:Card:Everyday
+
+2026-03-05 * "owner draw"
+  Assets:Bank:Checking                        18300.00 USD
+  Assets:Bank:Business
+
+2026-03-06 * "Fiberline" "monthly bill"
+  Expenses:Home:Utilities:Internet               79.00 USD
+  Assets:Bank:Checking
+
+2026-03-06 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            8.31 USD
+  Liabilities:Card:Everyday
+
+2026-03-06 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.45 USD
+  Assets:Prepaid:Transit
+
+2026-03-06 * "transfer to brokerage"
+  Assets:Broker:Cash                           8000.00 USD
+  Assets:Bank:Checking
+
+2026-03-07 * "Meridian Roasters" "cold brew"
+  Expenses:Food:Coffee                            7.20 USD
+  Liabilities:Card:Everyday
+
+2026-03-07 * "CityTransit" "card top-up"
+  Assets:Prepaid:Transit                         60.00 USD
+  Assets:Bank:Checking
+
+2026-03-07 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.80 USD
+  Assets:Prepaid:Transit
+
+2026-03-07 * "Tidewater Hardware" "cleaning supplies"
+  Expenses:Shopping:Household                    85.06 USD
+  Liabilities:Card:Everyday
+
+2026-03-08 * "PixelPress" "monthly plan"
+  Expenses:Subscriptions:News                    12.00 USD
+  Liabilities:Card:Everyday
+
+2026-03-08 * "Harvest Lane" "weekly shop"
+  Expenses:Food:Groceries                        98.79 USD
+  Liabilities:Card:Everyday
+
+2026-03-08 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            8.83 USD
+  Liabilities:Card:Everyday
+
+2026-03-08 * "Copper Spoon" "dinner"
+  Expenses:Food:Dining                           37.07 USD
+  Liabilities:Card:Everyday
+
+2026-03-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VSTX                           35.4449 VSTX {132.60 USD}
+  Assets:Broker:Cash
+
+2026-03-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VINX                           22.4842 VINX {82.28 USD}
+  Assets:Broker:Cash
+
+2026-03-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VBDX                           16.6233 VBDX {69.18 USD}
+  Assets:Broker:Cash
+
+2026-03-09 * "Gridworks Power" "monthly bill"
+  Expenses:Home:Utilities:Power                 106.25 USD
+  Assets:Bank:Checking
+
+2026-03-10 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            8.90 USD
+  Liabilities:Card:Everyday
+
+2026-03-10 * "Trattoria Verde" "dinner"
+  Expenses:Food:Dining                           58.03 USD
+  Liabilities:Card:Everyday
+
+2026-03-10 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.32 USD
+  Assets:Prepaid:Transit
+
+2026-03-10 * "retirement contribution"
+  Assets:Broker:Cash                           1800.00 USD
+  Assets:Bank:Checking
+
+2026-03-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VSTX                        9.8039 VSTX {132.60 USD}
+  Assets:Broker:Cash
+
+2026-03-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VBDX                        7.2275 VBDX {69.18 USD}
+  Assets:Broker:Cash
+
+2026-03-11 * "Clearwater Utility" "monthly bill"
+  Expenses:Home:Utilities:Water                  44.61 USD
+  Assets:Bank:Checking
+
+2026-03-11 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         53.23 USD
+  Liabilities:Card:Everyday
+
+2026-03-11 * "Wellspring Pharmacy" "prescription"
+  Expenses:Health:Pharmacy                       69.48 USD
+  Liabilities:Card:Everyday
+
+2026-03-11 * "Lightfoot Press" "course royalties"
+  Assets:Bank:Business                          838.26 USD
+  Income:Royalties
+
+2026-03-12 * "Nimbus Drive" "monthly plan"
+  Expenses:Subscriptions:Cloud                   11.99 USD
+  Liabilities:Card:Everyday
+
+2026-03-12 * "Ember Coffee" "filter coffee"
+  Expenses:Food:Coffee                            9.21 USD
+  Liabilities:Card:Everyday
+
+2026-03-12 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.52 USD
+  Assets:Prepaid:Transit
+
+2026-03-12 * "Harborline Bank" "account fees"
+  Expenses:Financial:Fees                        24.00 USD
+  Assets:Bank:Checking
+
+2026-03-13 * "Tidewater Hardware" "cleaning supplies"
+  Expenses:Shopping:Household                   129.32 USD
+  Liabilities:Card:Everyday
+
+2026-03-13 * "Harborline Bank" "cash withdrawal"
+  Assets:Cash:Wallet                            200.00 USD
+  Assets:Bank:Checking
+
+2026-03-14 * "Cellmark" "monthly bill"
+  Expenses:Home:Utilities:Phone                  45.00 USD
+  Assets:Bank:Checking
+
+2026-03-14 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            6.60 USD
+  Liabilities:Card:Everyday
+
+2026-03-14 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                    8.62 USD
+  Liabilities:Card:Everyday
+
+2026-03-14 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      6.09 USD
+  Assets:Prepaid:Transit
+
+2026-03-14 * "cash"
+  Expenses:Misc                                  36.38 USD
+  Assets:Cash:Wallet
+
+2026-03-15 * "Sentry Books" "bookkeeping retainer"
+  Expenses:Business:Accounting                  180.00 USD
+  Assets:Bank:Business
+
+2026-03-15 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.84 USD
+  Assets:Prepaid:Transit
+
+2026-03-15 * "Northwind Apparel" "trousers"
+  Expenses:Shopping:Clothes                     209.98 USD
+  Liabilities:Card:Everyday
+
+2026-03-17 * "Photobank" "monthly plan"
+  Expenses:Subscriptions:Cloud                    8.99 USD
+  Liabilities:Card:Everyday
+
+2026-03-17 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   37.99 USD
+  Liabilities:Card:Everyday
+
+2026-03-17 * "Meridian Brokerage" "sell the real estate sleeve"
+  Assets:Broker:VREX                          -87.5108 VREX {115.46 USD} @ 109.25 USD
+  Assets:Broker:Cash                           9560.55 USD
+  Income:Investments:Gains
+
+2026-03-18 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                          430.48 USD
+  Expenses:Financial:Interest                    34.52 USD
+  Assets:Bank:Checking
+
+2026-03-18 * "Harvest Lane" "weekly shop"
+  Expenses:Food:Groceries                        94.23 USD
+  Liabilities:Card:Everyday
+
+2026-03-18 * "Meridian Roasters" "espresso and a bun"
+  Expenses:Food:Coffee                            5.36 USD
+  Liabilities:Card:Everyday
+
+2026-03-18 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.69 USD
+  Assets:Prepaid:Transit
+
+2026-03-18 * "Meridian Brokerage" "reinvest the sleeve"
+  Assets:Broker:VSTX                           36.0504 VSTX {132.60 USD}
+  Assets:Broker:Cash
+
+2026-03-18 * "Meridian Brokerage" "reinvest the sleeve"
+  Assets:Broker:VINX                           57.8545 VINX {82.28 USD}
+  Assets:Broker:Cash
+
+2026-03-19 * "Ember Coffee" "cold brew"
+  Expenses:Food:Coffee                            5.08 USD
+  Liabilities:Card:Everyday
+
+2026-03-19 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         31.12 USD
+  Liabilities:Card:Everyday
+
+2026-03-19 * "Pixelforge Store" "expansion"
+  Expenses:Entertainment:Games                   50.77 USD
+  Assets:Prepaid:Games
+
+2026-03-19 * "transfer to savings"
+  Assets:Bank:Savings                          1200.00 USD
+  Assets:Bank:Checking
+
+2026-03-20 * "Open Harbor Fund" "monthly giving"
+  Expenses:Charity                              150.00 USD
+  Assets:Bank:Checking
+
+2026-03-21 * "IronWorks Gym" "monthly plan"
+  Expenses:Health:Gym                            65.00 USD
+  Liabilities:Card:Everyday
+
+2026-03-21 * "Marketvale" "weekly shop"
+  Expenses:Food:Groceries                        98.73 USD
+  Liabilities:Card:Everyday
+
+2026-03-21 * "cash"
+  Expenses:Misc                                  16.45 USD
+  Assets:Cash:Wallet
+
+2026-03-21 * "Rowan Dental" "cleaning"
+  Expenses:Health:Dental                        390.01 USD
+  Liabilities:Card:Everyday
+
+2026-03-22 * "Third Rail Coffee" "flat white"
+  Expenses:Food:Coffee                            4.35 USD
+  Liabilities:Card:Everyday
+
+2026-03-22 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   34.30 USD
+  Liabilities:Card:Everyday
+
+2026-03-22 * "Marginalia Books" "books"
+  Expenses:Shopping:Books                        57.90 USD
+  Liabilities:Card:Everyday
+
+2026-03-22 * "Tideworks Staking" "staking reward"
+  Assets:Crypto:ETH                             0.0401 ETH
+  Income:Investments:Staking
+
+2026-03-23 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         26.31 USD
+  Liabilities:Card:Everyday
+
+2026-03-23 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   18.52 USD
+  Liabilities:Card:Everyday
+
+2026-03-23 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        51.22 USD
+  Liabilities:Card:Everyday
+
+2026-03-24 * "Meridian Brokerage" "quarterly dividends"
+  Assets:Broker:Cash                           1454.98 USD
+  Income:Investments:Dividends
+
+2026-03-25 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                       186.81 USD
+  Liabilities:Card:Everyday
+
+2026-03-25 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.95 USD
+  Assets:Prepaid:Transit
+
+2026-03-26 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            7.09 USD
+  Liabilities:Card:Everyday
+
+2026-03-26 * "Harborline Bank" "statement payment" #autopay
+  Liabilities:Card:Everyday                    2280.57 USD
+  Assets:Bank:Checking
+
+2026-03-26 document Liabilities:Card:Everyday "documents/2026/03/2026-03-26-everyday-card.csv"
+
+2026-03-27 * "Pike & Ash" "lunch"
+  Expenses:Food:Dining                           88.38 USD
+  Liabilities:Card:Everyday
+
+2026-03-27 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.85 USD
+  Assets:Prepaid:Transit
+
+2026-03-27 * "cash"
+  Expenses:Misc                                  16.52 USD
+  Assets:Cash:Wallet
+
+2026-03-28 * "Harborline Bank" "savings interest"
+  Assets:Bank:Savings                           208.56 USD
+  Income:Investments:Interest
+
+2026-04-01 * "Ridgeline Properties" "monthly rent"
+  Expenses:Home:Rent                           2595.00 USD
+  Assets:Bank:Checking
+
+2026-04-01 * "Halloran Systems" "monthly retainer" ^inv-2026-04
+  Assets:Bank:Business                        18200.00 USD
+  Income:Halloran
+
+2026-04-02 * "Forge IDE" "monthly plan"
+  Expenses:Business:Software                     25.00 USD
+  Liabilities:Card:Everyday
+
+2026-04-02 * "The Annex" "coworking desk"
+  Expenses:Business:Coworking                   300.00 USD
+  Assets:Bank:Business
+
+2026-04-02 * "Ember Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            5.22 USD
+  Liabilities:Card:Everyday
+
+2026-04-02 * "The Blue Kettle" "lunch"
+  Expenses:Food:Dining                           94.68 USD
+  Liabilities:Card:Everyday
+
+2026-04-03 * "Streamflix" "monthly plan"
+  Expenses:Subscriptions:Streaming               17.99 USD
+  Liabilities:Card:Everyday
+
+2026-04-03 * "Third Rail Coffee" "filter coffee"
+  Expenses:Food:Coffee                            8.68 USD
+  Liabilities:Card:Everyday
+
+2026-04-03 * "Swiftplate" "friday takeaway"
+  Expenses:Food:Delivery                         45.11 USD
+  Liabilities:Card:Everyday
+
+2026-04-03 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.61 USD
+  Assets:Prepaid:Transit
+
+2026-04-03 * "Cartwright Group" "advisory retainer"
+  Assets:Bank:Business                         3500.00 USD
+  Income:Cartwright
+
+2026-04-04 * "Meridian Health" "monthly premium"
+  Expenses:Health:Insurance                     412.00 USD
+  Assets:Bank:Checking
+
+2026-04-04 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                       159.55 USD
+  Liabilities:Card:Everyday
+
+2026-04-04 * "Third Rail Coffee" "flat white"
+  Expenses:Food:Coffee                            6.03 USD
+  Liabilities:Card:Everyday
+
+2026-04-05 * "Tunebox" "monthly plan"
+  Expenses:Subscriptions:Music                   10.99 USD
+  Liabilities:Card:Everyday
+
+2026-04-05 * "Loop Rides" "ride across town"
+  Expenses:Transport:Rideshare                   20.11 USD
+  Liabilities:Card:Everyday
+
+2026-04-05 * "owner draw"
+  Assets:Bank:Checking                        18300.00 USD
+  Assets:Bank:Business
+
+2026-04-06 * "Fiberline" "monthly bill"
+  Expenses:Home:Utilities:Internet               79.00 USD
+  Assets:Bank:Checking
+
+2026-04-06 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   37.71 USD
+  Liabilities:Card:Everyday
+
+2026-04-06 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.89 USD
+  Assets:Prepaid:Transit
+
+2026-04-06 * "transfer to brokerage"
+  Assets:Broker:Cash                           8000.00 USD
+  Assets:Bank:Checking
+
+2026-04-07 * "Saltbox" "dinner out"
+  Expenses:Food:Dining                           61.96 USD
+  Liabilities:Card:Everyday
+
+2026-04-07 * "CityTransit" "card top-up"
+  Assets:Prepaid:Transit                         60.00 USD
+  Assets:Bank:Checking
+
+2026-04-07 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.49 USD
+  Assets:Prepaid:Transit
+
+2026-04-08 * "PixelPress" "monthly plan"
+  Expenses:Subscriptions:News                    12.00 USD
+  Liabilities:Card:Everyday
+
+2026-04-08 * "Trattoria Verde" "lunch"
+  Expenses:Food:Dining                          105.37 USD
+  Liabilities:Card:Everyday
+
+2026-04-08 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        47.24 USD
+  Liabilities:Card:Everyday
+
+2026-04-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VSTX                           35.7279 VSTX {131.55 USD}
+  Assets:Broker:Cash
+
+2026-04-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VINX                           22.1318 VINX {83.59 USD}
+  Assets:Broker:Cash
+
+2026-04-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VBDX                           16.8178 VBDX {68.38 USD}
+  Assets:Broker:Cash
+
+2026-04-09 * "Gridworks Power" "monthly bill"
+  Expenses:Home:Utilities:Power                 116.74 USD
+  Assets:Bank:Checking
+
+2026-04-09 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            7.30 USD
+  Liabilities:Card:Everyday
+
+2026-04-09 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                   27.50 USD
+  Liabilities:Card:Everyday
+
+2026-04-09 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.71 USD
+  Assets:Prepaid:Transit
+
+2026-04-10 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            6.84 USD
+  Liabilities:Card:Everyday
+
+2026-04-10 * "Wellspring Pharmacy" "sundries"
+  Expenses:Health:Pharmacy                       13.22 USD
+  Liabilities:Card:Everyday
+
+2026-04-10 * "retirement contribution"
+  Assets:Broker:Cash                           1800.00 USD
+  Assets:Bank:Checking
+
+2026-04-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VSTX                        9.8822 VSTX {131.55 USD}
+  Assets:Broker:Cash
+
+2026-04-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VBDX                        7.3121 VBDX {68.38 USD}
+  Assets:Broker:Cash
+
+2026-04-11 * "Clearwater Utility" "monthly bill"
+  Expenses:Home:Utilities:Water                  51.20 USD
+  Assets:Bank:Checking
+
+2026-04-11 * "Loop Rides" "ride across town"
+  Expenses:Transport:Rideshare                   32.90 USD
+  Liabilities:Card:Everyday
+
+2026-04-11 * "Lightfoot Press" "course royalties"
+  Assets:Bank:Business                          541.83 USD
+  Income:Royalties
+
+2026-04-12 * "Nimbus Drive" "monthly plan"
+  Expenses:Subscriptions:Cloud                   11.99 USD
+  Liabilities:Card:Everyday
+
+2026-04-12 * "Marketvale" "weekly shop"
+  Expenses:Food:Groceries                       199.09 USD
+  Liabilities:Card:Everyday
+
+2026-04-13 * "Corner Grocer" "weekly shop"
+  Expenses:Food:Groceries                       145.83 USD
+  Liabilities:Card:Everyday
+
+2026-04-13 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.03 USD
+  Assets:Prepaid:Transit
+
+2026-04-13 * "Harborline Bank" "cash withdrawal"
+  Assets:Cash:Wallet                            200.00 USD
+  Assets:Bank:Checking
+
+2026-04-14 * "Cellmark" "monthly bill"
+  Expenses:Home:Utilities:Phone                  45.00 USD
+  Assets:Bank:Checking
+
+2026-04-14 * "Pike & Ash" "dinner out"
+  Expenses:Food:Dining                          137.87 USD
+  Liabilities:Card:Everyday
+
+2026-04-14 * "cash"
+  Expenses:Misc                                  25.62 USD
+  Assets:Cash:Wallet
+
+2026-04-15 * "Sentry Books" "bookkeeping retainer"
+  Expenses:Business:Accounting                  180.00 USD
+  Assets:Bank:Business
+
+2026-04-15 * "Loop Rides" "ride across town"
+  Expenses:Transport:Rideshare                   19.65 USD
+  Liabilities:Card:Everyday
+
+2026-04-15 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.79 USD
+  Assets:Prepaid:Transit
+
+2026-04-16 * "Third Rail Coffee" "flat white"
+  Expenses:Food:Coffee                            5.40 USD
+  Liabilities:Card:Everyday
+
+2026-04-16 * "The Blue Kettle" "supper"
+  Expenses:Food:Dining                          137.46 USD
+  Liabilities:Card:Everyday
+
+2026-04-16 * "cash"
+  Expenses:Misc                                  38.61 USD
+  Assets:Cash:Wallet
+
+2026-04-16 * "Revenue Service" "estimated tax"
+  Expenses:Taxes:Income                       16500.00 USD
+  Expenses:Taxes:SelfEmployment                4500.00 USD
+  Assets:Bank:Business
+
+2026-04-16 document Expenses:Taxes:Income "documents/2026/04/2026-04-16-estimated-tax.html"
+
+2026-04-17 * "Photobank" "monthly plan"
+  Expenses:Subscriptions:Cloud                    8.99 USD
+  Liabilities:Card:Everyday
+
+2026-04-18 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                          432.37 USD
+  Expenses:Financial:Interest                    32.63 USD
+  Assets:Bank:Checking
+
+2026-04-18 * "Corner Grocer" "weekly shop"
+  Expenses:Food:Groceries                       177.66 USD
+  Liabilities:Card:Everyday
+
+2026-04-18 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         58.31 USD
+  Liabilities:Card:Everyday
+
+2026-04-19 * "Tidewater Hardware" "hardware"
+  Expenses:Shopping:Household                    48.23 USD
+  Liabilities:Card:Everyday
+
+2026-04-19 * "transfer to savings"
+  Assets:Bank:Savings                          1200.00 USD
+  Assets:Bank:Checking
+
+2026-04-20 * "The Blue Kettle" "dinner out"
+  Expenses:Food:Dining                           71.06 USD
+  Liabilities:Card:Everyday
+
+2026-04-20 * "Open Harbor Fund" "monthly giving"
+  Expenses:Charity                              150.00 USD
+  Assets:Bank:Checking
+
+2026-04-21 * "IronWorks Gym" "monthly plan"
+  Expenses:Health:Gym                            65.00 USD
+  Liabilities:Card:Everyday
+
+2026-04-21 * "Meridian Roasters" "espresso and a bun"
+  Expenses:Food:Coffee                            7.35 USD
+  Liabilities:Card:Everyday
+
+2026-04-21 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         43.85 USD
+  Liabilities:Card:Everyday
+
+2026-04-22 * "Nori House" "late lunch"
+  Expenses:Food:Dining                          100.48 USD
+  Liabilities:Card:Everyday
+
+2026-04-22 * "Homestead Supply" "hardware"
+  Expenses:Shopping:Household                    71.85 USD
+  Liabilities:Card:Everyday
+
+2026-04-22 * "Tideworks Staking" "staking reward"
+  Assets:Crypto:ETH                             0.0429 ETH
+  Income:Investments:Staking
+
+2026-04-23 * "Swiftplate" "friday takeaway"
+  Expenses:Food:Delivery                         35.39 USD
+  Liabilities:Card:Everyday
+
+2026-04-23 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.98 USD
+  Assets:Prepaid:Transit
+
+2026-04-23 * "cash"
+  Expenses:Misc                                  29.32 USD
+  Assets:Cash:Wallet
+
+2026-04-25 * "Meridian Roasters" "cold brew"
+  Expenses:Food:Coffee                            4.21 USD
+  Liabilities:Card:Everyday
+
+2026-04-25 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        65.34 USD
+  Liabilities:Card:Everyday
+
+2026-04-26 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         49.17 USD
+  Liabilities:Card:Everyday
+
+2026-04-26 * "Wellspring Pharmacy" "prescription"
+  Expenses:Health:Pharmacy                       67.43 USD
+  Liabilities:Card:Everyday
+
+2026-04-26 * "Halcyon Service" "annual service"
+  Expenses:Transport:Service                    604.54 USD
+  Liabilities:Card:Everyday
+
+2026-04-26 * "Harborline Bank" "statement payment" #autopay
+  Liabilities:Card:Everyday                    2881.55 USD
+  Assets:Bank:Checking
+
+2026-04-27 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      6.17 USD
+  Assets:Prepaid:Transit
+
+2026-04-28 * "Harborline Bank" "savings interest"
+  Assets:Bank:Savings                           213.63 USD
+  Income:Investments:Interest
+
+2026-05-01 * "Ridgeline Properties" "monthly rent"
+  Expenses:Home:Rent                           2595.00 USD
+  Assets:Bank:Checking
+
+2026-05-01 * "Halloran Systems" "monthly retainer" ^inv-2026-05
+  Assets:Bank:Business                        18200.00 USD
+  Income:Halloran
+
+2026-05-02 * "Forge IDE" "monthly plan"
+  Expenses:Business:Software                     25.00 USD
+  Liabilities:Card:Everyday
+
+2026-05-02 * "The Annex" "coworking desk"
+  Expenses:Business:Coworking                   300.00 USD
+  Assets:Bank:Business
+
+2026-05-02 * "Meridian Roasters" "flat white"
+  Expenses:Food:Coffee                            8.83 USD
+  Liabilities:Card:Everyday
+
+2026-05-03 * "Streamflix" "monthly plan"
+  Expenses:Subscriptions:Streaming               17.99 USD
+  Liabilities:Card:Everyday
+
+2026-05-03 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                        95.77 USD
+  Liabilities:Card:Everyday
+
+2026-05-03 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            8.24 USD
+  Liabilities:Card:Everyday
+
+2026-05-03 * "Copper Spoon" "lunch"
+  Expenses:Food:Dining                          102.03 USD
+  Liabilities:Card:Everyday
+
+2026-05-03 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   33.96 USD
+  Liabilities:Card:Everyday
+
+2026-05-03 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      2.62 USD
+  Assets:Prepaid:Transit
+
+2026-05-03 * "Cartwright Group" "advisory retainer"
+  Assets:Bank:Business                         3500.00 USD
+  Income:Cartwright
+
+2026-05-04 * "Meridian Health" "monthly premium"
+  Expenses:Health:Insurance                     412.00 USD
+  Assets:Bank:Checking
+
+2026-05-04 * "Copper Spoon" "late lunch"
+  Expenses:Food:Dining                          147.80 USD
+  Liabilities:Card:Everyday
+
+2026-05-04 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         37.41 USD
+  Liabilities:Card:Everyday
+
+2026-05-04 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        54.98 USD
+  Liabilities:Card:Everyday
+
+2026-05-05 * "Tunebox" "monthly plan"
+  Expenses:Subscriptions:Music                   10.99 USD
+  Liabilities:Card:Everyday
+
+2026-05-05 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         24.10 USD
+  Liabilities:Card:Everyday
+
+2026-05-05 * "owner draw"
+  Assets:Bank:Checking                        18300.00 USD
+  Assets:Bank:Business
+
+2026-05-06 * "Fiberline" "monthly bill"
+  Expenses:Home:Utilities:Internet               79.00 USD
+  Assets:Bank:Checking
+
+2026-05-06 * "Corner Grocer" "weekly shop"
+  Expenses:Food:Groceries                       198.01 USD
+  Liabilities:Card:Everyday
+
+2026-05-06 * "Saltbox" "supper"
+  Expenses:Food:Dining                           61.67 USD
+  Liabilities:Card:Everyday
+
+2026-05-06 * "transfer to brokerage"
+  Assets:Broker:Cash                           8000.00 USD
+  Assets:Bank:Checking
+
+2026-05-07 * "CityTransit" "card top-up"
+  Assets:Prepaid:Transit                         60.00 USD
+  Assets:Bank:Checking
+
+2026-05-08 * "PixelPress" "monthly plan"
+  Expenses:Subscriptions:News                    12.00 USD
+  Liabilities:Card:Everyday
+
+2026-05-08 * "Tidewater Hardware" "kitchen bits"
+  Expenses:Shopping:Household                   128.41 USD
+  Liabilities:Card:Everyday
+
+2026-05-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VSTX                           36.2962 VSTX {129.49 USD}
+  Assets:Broker:Cash
+
+2026-05-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VINX                           22.2249 VINX {83.24 USD}
+  Assets:Broker:Cash
+
+2026-05-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VBDX                           16.6691 VBDX {68.99 USD}
+  Assets:Broker:Cash
+
+2026-05-09 * "Gridworks Power" "monthly bill"
+  Expenses:Home:Utilities:Power                  97.27 USD
+  Assets:Bank:Checking
+
+2026-05-09 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            6.17 USD
+  Liabilities:Card:Everyday
+
+2026-05-09 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   18.19 USD
+  Liabilities:Card:Everyday
+
+2026-05-09 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VEMX                           11.1271 VEMX {55.72 USD}
+  Assets:Broker:Cash
+
+2026-05-09 * "Meridian Air" "Kyoto, outbound" ^trip-kyoto
+  Expenses:Travel:Flights                      1940.00 USD
+  Liabilities:Card:Travel
+
+2026-05-09 document Expenses:Travel:Flights "documents/2026/05/2026-05-09-kyoto-itinerary.html"
+
+2026-05-10 * "Ember Coffee" "flat white"
+  Expenses:Food:Coffee                            7.02 USD
+  Liabilities:Card:Everyday
+
+2026-05-10 * "Saltbox" "dinner"
+  Expenses:Food:Dining                           40.22 USD
+  Liabilities:Card:Everyday
+
+2026-05-10 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.27 USD
+  Assets:Prepaid:Transit
+
+2026-05-10 * "retirement contribution"
+  Assets:Broker:Cash                           1800.00 USD
+  Assets:Bank:Checking
+
+2026-05-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VSTX                       10.0394 VSTX {129.49 USD}
+  Assets:Broker:Cash
+
+2026-05-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VBDX                        7.2474 VBDX {68.99 USD}
+  Assets:Broker:Cash
+
+2026-05-11 * "Clearwater Utility" "monthly bill"
+  Expenses:Home:Utilities:Water                  50.23 USD
+  Assets:Bank:Checking
+
+2026-05-11 * "Ember Coffee" "cold brew"
+  Expenses:Food:Coffee                            4.37 USD
+  Liabilities:Card:Everyday
+
+2026-05-11 * "Lightfoot Press" "course royalties"
+  Assets:Bank:Business                          694.31 USD
+  Income:Royalties
+
+2026-05-11 * "Ryokan Kitano" "lodging, six nights" ^trip-kyoto
+  Expenses:Travel:Lodging                      2310.00 USD
+  Liabilities:Card:Travel
+
+2026-05-12 * "Nimbus Drive" "monthly plan"
+  Expenses:Subscriptions:Cloud                   11.99 USD
+  Liabilities:Card:Everyday
+
+2026-05-12 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                    8.82 USD
+  Liabilities:Card:Everyday
+
+2026-05-12 * "Kamo Line" "rail pass" ^trip-kyoto
+  Expenses:Travel:Local                         288.00 USD
+  Liabilities:Card:Travel
+
+2026-05-13 * "Ember Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            8.77 USD
+  Liabilities:Card:Everyday
+
+2026-05-13 * "Pike & Ash" "lunch"
+  Expenses:Food:Dining                           31.97 USD
+  Liabilities:Card:Everyday
+
+2026-05-13 * "Harborline Bank" "cash withdrawal"
+  Assets:Cash:Wallet                            200.00 USD
+  Assets:Bank:Checking
+
+2026-05-13 * "Northwind Apparel" "trousers"
+  Expenses:Shopping:Clothes                     148.59 USD
+  Liabilities:Card:Everyday
+
+2026-05-13 * "Higashi Kitchen" "dinner" ^trip-kyoto
+  Expenses:Food:Dining                          164.00 USD
+  Liabilities:Card:Travel
+
+2026-05-14 * "Cellmark" "monthly bill"
+  Expenses:Home:Utilities:Phone                  45.00 USD
+  Assets:Bank:Checking
+
+2026-05-14 * "Swiftplate" "friday takeaway"
+  Expenses:Food:Delivery                         45.51 USD
+  Liabilities:Card:Everyday
+
+2026-05-15 * "Sentry Books" "bookkeeping retainer"
+  Expenses:Business:Accounting                  180.00 USD
+  Assets:Bank:Business
+
+2026-05-15 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         37.54 USD
+  Liabilities:Card:Everyday
+
+2026-05-15 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.15 USD
+  Assets:Prepaid:Transit
+
+2026-05-15 * "Nishiki Market" "lunch" ^trip-kyoto
+  Expenses:Food:Dining                           72.00 USD
+  Liabilities:Card:Travel
+
+2026-05-16 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.70 USD
+  Assets:Prepaid:Transit
+
+2026-05-16 * "Kurodani Temple" "entry" ^trip-kyoto
+  Expenses:Entertainment:Events                  46.00 USD
+  Liabilities:Card:Travel
+
+2026-05-17 * "Photobank" "monthly plan"
+  Expenses:Subscriptions:Cloud                    8.99 USD
+  Liabilities:Card:Everyday
+
+2026-05-17 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                   18.28 USD
+  Liabilities:Card:Everyday
+
+2026-05-17 * "cash"
+  Expenses:Misc                                  22.56 USD
+  Assets:Cash:Wallet
+
+2026-05-18 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                          434.27 USD
+  Expenses:Financial:Interest                    30.73 USD
+  Assets:Bank:Checking
+
+2026-05-18 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         28.07 USD
+  Liabilities:Card:Everyday
+
+2026-05-19 * "transfer to savings"
+  Assets:Bank:Savings                          1200.00 USD
+  Assets:Bank:Checking
+
+2026-05-20 * "Meridian Roasters" "espresso and a bun"
+  Expenses:Food:Coffee                            8.46 USD
+  Liabilities:Card:Everyday
+
+2026-05-20 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   35.01 USD
+  Liabilities:Card:Everyday
+
+2026-05-20 * "Open Harbor Fund" "monthly giving"
+  Expenses:Charity                              150.00 USD
+  Assets:Bank:Checking
+
+2026-05-21 * "IronWorks Gym" "monthly plan"
+  Expenses:Health:Gym                            65.00 USD
+  Liabilities:Card:Everyday
+
+2026-05-21 * "Copper Spoon" "lunch"
+  Expenses:Food:Dining                           70.18 USD
+  Liabilities:Card:Everyday
+
+2026-05-21 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.09 USD
+  Assets:Prepaid:Transit
+
+2026-05-22 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            6.82 USD
+  Liabilities:Card:Everyday
+
+2026-05-22 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.97 USD
+  Assets:Prepaid:Transit
+
+2026-05-22 * "Wellspring Pharmacy" "prescription"
+  Expenses:Health:Pharmacy                       72.34 USD
+  Liabilities:Card:Everyday
+
+2026-05-22 * "Tideworks Staking" "staking reward"
+  Assets:Crypto:ETH                             0.0469 ETH
+  Income:Investments:Staking
+
+2026-05-23 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            4.34 USD
+  Liabilities:Card:Everyday
+
+2026-05-23 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      2.69 USD
+  Assets:Prepaid:Transit
+
+2026-05-23 * "cash"
+  Expenses:Misc                                  35.54 USD
+  Assets:Cash:Wallet
+
+2026-05-24 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                       196.99 USD
+  Liabilities:Card:Everyday
+
+2026-05-24 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   10.53 USD
+  Liabilities:Card:Everyday
+
+2026-05-24 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        47.13 USD
+  Liabilities:Card:Everyday
+
+2026-05-24 * "Homestead Supply" "cleaning supplies"
+  Expenses:Shopping:Household                   129.52 USD
+  Liabilities:Card:Everyday
+
+2026-05-25 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.73 USD
+  Assets:Prepaid:Transit
+
+2026-05-25 * "Pixelforge Store" "a game on sale"
+  Expenses:Entertainment:Games                   58.52 USD
+  Assets:Prepaid:Games
+
+2026-05-26 * "The Lantern Hall" "tickets"
+  Expenses:Entertainment:Events                 128.33 USD
+  Liabilities:Card:Everyday
+
+2026-05-26 * "Harborline Bank" "statement payment" #autopay
+  Liabilities:Card:Everyday                    2468.23 USD
+  Assets:Bank:Checking
+
+2026-05-27 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                       192.47 USD
+  Liabilities:Card:Everyday
+
+2026-05-27 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            8.46 USD
+  Liabilities:Card:Everyday
+
+2026-05-27 * "Copper Spoon" "lunch"
+  Expenses:Food:Dining                          100.96 USD
+  Liabilities:Card:Everyday
+
+2026-05-27 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      6.15 USD
+  Assets:Prepaid:Transit
+
+2026-05-27 * "Harborline Bank" "statement payment" #autopay
+  Liabilities:Card:Travel                      4820.00 USD
+  Assets:Bank:Checking
+
+2026-05-28 * "Harborline Bank" "savings interest"
+  Assets:Bank:Savings                           218.72 USD
+  Income:Investments:Interest
+
+2026-05-29 document Assets:Broker:Cash "documents/2026/05/2026-05-29-brokerage.csv"
+
+2026-06-01 * "Ridgeline Properties" "monthly rent"
+  Expenses:Home:Rent                           2595.00 USD
+  Assets:Bank:Checking
+
+2026-06-01 * "Halloran Systems" "monthly retainer" ^inv-2026-06
+  Assets:Bank:Business                        18200.00 USD
+  Income:Halloran
+
+2026-06-01 document Assets:Bank:Business "documents/2026/06/2026-06-01-invoice-halloran.html"
+
+2026-06-02 * "Forge IDE" "monthly plan"
+  Expenses:Business:Software                     25.00 USD
+  Liabilities:Card:Everyday
+
+2026-06-02 * "The Annex" "coworking desk"
+  Expenses:Business:Coworking                   300.00 USD
+  Assets:Bank:Business
+
+2026-06-02 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                       161.86 USD
+  Liabilities:Card:Everyday
+
+2026-06-03 * "Streamflix" "monthly plan"
+  Expenses:Subscriptions:Streaming               17.99 USD
+  Liabilities:Card:Everyday
+
+2026-06-03 * "Meridian Roasters" "espresso and a bun"
+  Expenses:Food:Coffee                            5.84 USD
+  Liabilities:Card:Everyday
+
+2026-06-03 * "Loop Rides" "ride across town"
+  Expenses:Transport:Rideshare                   15.58 USD
+  Liabilities:Card:Everyday
+
+2026-06-03 * "Cartwright Group" "advisory retainer"
+  Assets:Bank:Business                         3500.00 USD
+  Income:Cartwright
+
+2026-06-04 * "Meridian Health" "monthly premium"
+  Expenses:Health:Insurance                     412.00 USD
+  Assets:Bank:Checking
+
+2026-06-04 * "Meridian Roasters" "flat white"
+  Expenses:Food:Coffee                            7.63 USD
+  Liabilities:Card:Everyday
+
+2026-06-04 * "Saltbox" "dinner"
+  Expenses:Food:Dining                          119.20 USD
+  Liabilities:Card:Everyday
+
+2026-06-04 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   19.15 USD
+  Liabilities:Card:Everyday
+
+2026-06-05 * "Tunebox" "monthly plan"
+  Expenses:Subscriptions:Music                   10.99 USD
+  Liabilities:Card:Everyday
+
+2026-06-05 * "Trattoria Verde" "lunch"
+  Expenses:Food:Dining                           43.06 USD
+  Liabilities:Card:Everyday
+
+2026-06-05 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      6.10 USD
+  Assets:Prepaid:Transit
+
+2026-06-05 * "owner draw"
+  Assets:Bank:Checking                        18300.00 USD
+  Assets:Bank:Business
+
+2026-06-06 * "Fiberline" "monthly bill"
+  Expenses:Home:Utilities:Internet               79.00 USD
+  Assets:Bank:Checking
+
+2026-06-06 * "Nori House" "supper"
+  Expenses:Food:Dining                           42.36 USD
+  Liabilities:Card:Everyday
+
+2026-06-06 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        65.14 USD
+  Liabilities:Card:Everyday
+
+2026-06-06 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.32 USD
+  Assets:Prepaid:Transit
+
+2026-06-06 * "transfer to brokerage"
+  Assets:Broker:Cash                           8000.00 USD
+  Assets:Bank:Checking
+
+2026-06-07 * "CityTransit" "card top-up"
+  Assets:Prepaid:Transit                         60.00 USD
+  Assets:Bank:Checking
+
+2026-06-08 * "PixelPress" "monthly plan"
+  Expenses:Subscriptions:News                    12.00 USD
+  Liabilities:Card:Everyday
+
+2026-06-08 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      2.74 USD
+  Assets:Prepaid:Transit
+
+2026-06-08 * "Homestead Supply" "cleaning supplies"
+  Expenses:Shopping:Household                   106.88 USD
+  Liabilities:Card:Everyday
+
+2026-06-08 * "Northwind Apparel" "jacket"
+  Expenses:Shopping:Clothes                     144.17 USD
+  Liabilities:Card:Everyday
+
+2026-06-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VSTX                           34.6378 VSTX {135.69 USD}
+  Assets:Broker:Cash
+
+2026-06-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VINX                           21.5016 VINX {86.04 USD}
+  Assets:Broker:Cash
+
+2026-06-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VBDX                           16.8993 VBDX {68.05 USD}
+  Assets:Broker:Cash
+
+2026-06-09 * "Gridworks Power" "monthly bill"
+  Expenses:Home:Utilities:Power                 120.81 USD
+  Assets:Bank:Checking
+
+2026-06-09 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            4.85 USD
+  Liabilities:Card:Everyday
+
+2026-06-09 * "Homestead Supply" "cleaning supplies"
+  Expenses:Shopping:Household                   116.53 USD
+  Liabilities:Card:Everyday
+
+2026-06-10 * "Third Rail Coffee" "flat white"
+  Expenses:Food:Coffee                            7.58 USD
+  Liabilities:Card:Everyday
+
+2026-06-10 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.49 USD
+  Assets:Prepaid:Transit
+
+2026-06-10 * "Pixelforge Store" "a game on sale"
+  Expenses:Entertainment:Games                   38.79 USD
+  Assets:Prepaid:Games
+
+2026-06-10 * "retirement contribution"
+  Assets:Broker:Cash                           1800.00 USD
+  Assets:Bank:Checking
+
+2026-06-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VSTX                        9.5807 VSTX {135.69 USD}
+  Assets:Broker:Cash
+
+2026-06-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VBDX                        7.3475 VBDX {68.05 USD}
+  Assets:Broker:Cash
+
+2026-06-10 * "Northline Electric" "panel replacement"
+  Expenses:Home:Maintenance                    4260.00 USD
+  Assets:Bank:Checking
+
+2026-06-11 * "Clearwater Utility" "monthly bill"
+  Expenses:Home:Utilities:Water                  53.62 USD
+  Assets:Bank:Checking
+
+2026-06-11 * "Ember Coffee" "flat white"
+  Expenses:Food:Coffee                            5.90 USD
+  Liabilities:Card:Everyday
+
+2026-06-11 * "Lightfoot Press" "course royalties"
+  Assets:Bank:Business                          654.43 USD
+  Income:Royalties
+
+2026-06-12 * "Nimbus Drive" "monthly plan"
+  Expenses:Subscriptions:Cloud                   11.99 USD
+  Liabilities:Card:Everyday
+
+2026-06-12 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   34.06 USD
+  Liabilities:Card:Everyday
+
+2026-06-12 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.24 USD
+  Assets:Prepaid:Transit
+
+2026-06-12 * "Grand Marquee" "cinema"
+  Expenses:Entertainment:Movies                  27.29 USD
+  Liabilities:Card:Everyday
+
+2026-06-12 * "Harborline Bank" "account fees"
+  Expenses:Financial:Fees                        24.00 USD
+  Assets:Bank:Checking
+
+2026-06-13 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   26.63 USD
+  Liabilities:Card:Everyday
+
+2026-06-13 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.79 USD
+  Assets:Prepaid:Transit
+
+2026-06-13 * "Harborline Bank" "cash withdrawal"
+  Assets:Cash:Wallet                            200.00 USD
+  Assets:Bank:Checking
+
+2026-06-14 * "Cellmark" "monthly bill"
+  Expenses:Home:Utilities:Phone                  45.00 USD
+  Assets:Bank:Checking
+
+2026-06-14 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            8.96 USD
+  Liabilities:Card:Everyday
+
+2026-06-14 * "Nori House" "lunch"
+  Expenses:Food:Dining                           60.14 USD
+  Liabilities:Card:Everyday
+
+2026-06-14 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         26.70 USD
+  Liabilities:Card:Everyday
+
+2026-06-14 * "Odeon Row" "tickets"
+  Expenses:Entertainment:Events                 117.50 USD
+  Liabilities:Card:Everyday
+
+2026-06-15 * "Sentry Books" "bookkeeping retainer"
+  Expenses:Business:Accounting                  180.00 USD
+  Assets:Bank:Business
+
+2026-06-15 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                       205.88 USD
+  Liabilities:Card:Everyday
+
+2026-06-15 * "Ember Coffee" "filter coffee"
+  Expenses:Food:Coffee                            8.28 USD
+  Liabilities:Card:Everyday
+
+2026-06-15 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         47.22 USD
+  Liabilities:Card:Everyday
+
+2026-06-15 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.83 USD
+  Assets:Prepaid:Transit
+
+2026-06-16 * "Ember Coffee" "filter coffee"
+  Expenses:Food:Coffee                            4.69 USD
+  Liabilities:Card:Everyday
+
+2026-06-17 * "Photobank" "monthly plan"
+  Expenses:Subscriptions:Cloud                    8.99 USD
+  Liabilities:Card:Everyday
+
+2026-06-17 * "Harvest Lane" "weekly shop"
+  Expenses:Food:Groceries                       151.69 USD
+  Liabilities:Card:Everyday
+
+2026-06-17 * "Copper Spoon" "dinner out"
+  Expenses:Food:Dining                           57.85 USD
+  Liabilities:Card:Everyday
+
+2026-06-18 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                          436.19 USD
+  Expenses:Financial:Interest                    28.81 USD
+  Assets:Bank:Checking
+
+2026-06-18 * "Third Rail Coffee" "filter coffee"
+  Expenses:Food:Coffee                            7.94 USD
+  Liabilities:Card:Everyday
+
+2026-06-18 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      2.81 USD
+  Assets:Prepaid:Transit
+
+2026-06-19 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        62.88 USD
+  Liabilities:Card:Everyday
+
+2026-06-19 * "transfer to savings"
+  Assets:Bank:Savings                          1200.00 USD
+  Assets:Bank:Checking
+
+2026-06-20 * "Ember Coffee" "flat white"
+  Expenses:Food:Coffee                            6.94 USD
+  Liabilities:Card:Everyday
+
+2026-06-20 * "Open Harbor Fund" "monthly giving"
+  Expenses:Charity                              150.00 USD
+  Assets:Bank:Checking
+
+2026-06-21 * "IronWorks Gym" "monthly plan"
+  Expenses:Health:Gym                            65.00 USD
+  Liabilities:Card:Everyday
+
+2026-06-21 * "Marketvale" "weekly shop"
+  Expenses:Food:Groceries                        79.22 USD
+  Liabilities:Card:Everyday
+
+2026-06-21 * "Loop Rides" "ride across town"
+  Expenses:Transport:Rideshare                   13.63 USD
+  Liabilities:Card:Everyday
+
+2026-06-21 * "Tidewater Hardware" "cleaning supplies"
+  Expenses:Shopping:Household                    49.73 USD
+  Liabilities:Card:Everyday
+
+2026-06-21 * "cash"
+  Expenses:Misc                                   9.90 USD
+  Assets:Cash:Wallet
+
+2026-06-22 * "Copper Spoon" "lunch"
+  Expenses:Food:Dining                           52.09 USD
+  Liabilities:Card:Everyday
+
+2026-06-22 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   25.74 USD
+  Liabilities:Card:Everyday
+
+2026-06-22 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.17 USD
+  Assets:Prepaid:Transit
+
+2026-06-22 * "Tideworks Staking" "staking reward"
+  Assets:Crypto:ETH                             0.0346 ETH
+  Income:Investments:Staking
+
+2026-06-23 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                   29.08 USD
+  Liabilities:Card:Everyday
+
+2026-06-23 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.48 USD
+  Assets:Prepaid:Transit
+
+2026-06-23 * "Tidewater Hardware" "roof flashing"
+  Expenses:Home:Maintenance                    1180.00 USD
+  Assets:Bank:Checking
+
+2026-06-24 * "Meridian Brokerage" "quarterly dividends"
+  Assets:Broker:Cash                            684.07 USD
+  Income:Investments:Dividends
+
+2026-06-25 * "Meridian Roasters" "flat white"
+  Expenses:Food:Coffee                            6.65 USD
+  Liabilities:Card:Everyday
+
+2026-06-25 * "cash"
+  Expenses:Misc                                  16.86 USD
+  Assets:Cash:Wallet
+
+2026-06-26 * "Pike & Ash" "supper"
+  Expenses:Food:Dining                          124.00 USD
+  Liabilities:Card:Everyday
+
+2026-06-26 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         49.16 USD
+  Liabilities:Card:Everyday
+
+2026-06-26 * "Wellspring Pharmacy" "sundries"
+  Expenses:Health:Pharmacy                       87.94 USD
+  Liabilities:Card:Everyday
+
+2026-06-26 * "Harborline Bank" "statement payment" #autopay
+  Liabilities:Card:Everyday                    2398.29 USD
+  Assets:Bank:Checking
+
+2026-06-27 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            8.71 USD
+  Liabilities:Card:Everyday
+
+2026-06-27 * "cash"
+  Expenses:Misc                                  22.83 USD
+  Assets:Cash:Wallet
+
+2026-06-28 * "Harborline Bank" "savings interest"
+  Assets:Bank:Savings                           223.83 USD
+  Income:Investments:Interest
+
+2026-07-01 * "Ridgeline Properties" "monthly rent"
+  Expenses:Home:Rent                           2595.00 USD
+  Assets:Bank:Checking
+
+2026-07-01 * "Halloran Systems" "monthly retainer" ^inv-2026-07
+  Assets:Bank:Business                        18200.00 USD
+  Income:Halloran
+
+2026-07-02 * "Forge IDE" "monthly plan"
+  Expenses:Business:Software                     25.00 USD
+  Liabilities:Card:Everyday
+
+2026-07-02 * "The Annex" "coworking desk"
+  Expenses:Business:Coworking                   300.00 USD
+  Assets:Bank:Business
+
+2026-07-02 * "Ember Coffee" "cold brew"
+  Expenses:Food:Coffee                            8.30 USD
+  Liabilities:Card:Everyday
+
+2026-07-03 * "Streamflix" "monthly plan"
+  Expenses:Subscriptions:Streaming               17.99 USD
+  Liabilities:Card:Everyday
+
+2026-07-03 * "Ember Coffee" "filter coffee"
+  Expenses:Food:Coffee                            9.22 USD
+  Liabilities:Card:Everyday
+
+2026-07-03 * "Cartwright Group" "advisory retainer"
+  Assets:Bank:Business                         3500.00 USD
+  Income:Cartwright
+
+2026-07-04 * "Meridian Health" "monthly premium"
+  Expenses:Health:Insurance                     412.00 USD
+  Assets:Bank:Checking
+
+2026-07-04 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            4.83 USD
+  Liabilities:Card:Everyday
+
+2026-07-04 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         30.82 USD
+  Liabilities:Card:Everyday
+
+2026-07-04 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        59.51 USD
+  Liabilities:Card:Everyday
+
+2026-07-05 * "Tunebox" "monthly plan"
+  Expenses:Subscriptions:Music                   10.99 USD
+  Liabilities:Card:Everyday
+
+2026-07-05 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.67 USD
+  Assets:Prepaid:Transit
+
+2026-07-05 * "Wellspring Pharmacy" "prescription"
+  Expenses:Health:Pharmacy                       70.80 USD
+  Liabilities:Card:Everyday
+
+2026-07-05 * "Tidewater Hardware" "hardware"
+  Expenses:Shopping:Household                    39.97 USD
+  Liabilities:Card:Everyday
+
+2026-07-05 * "owner draw"
+  Assets:Bank:Checking                        18300.00 USD
+  Assets:Bank:Business
+
+2026-07-06 * "Fiberline" "monthly bill"
+  Expenses:Home:Utilities:Internet               79.00 USD
+  Assets:Bank:Checking
+
+2026-07-06 * "Trattoria Verde" "dinner"
+  Expenses:Food:Dining                          138.68 USD
+  Liabilities:Card:Everyday
+
+2026-07-06 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         60.35 USD
+  Liabilities:Card:Everyday
+
+2026-07-06 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   19.87 USD
+  Liabilities:Card:Everyday
+
+2026-07-06 * "transfer to brokerage"
+  Assets:Broker:Cash                           8000.00 USD
+  Assets:Bank:Checking
+
+2026-07-07 * "Harvest Lane" "weekly shop"
+  Expenses:Food:Groceries                        74.59 USD
+  Liabilities:Card:Everyday
+
+2026-07-07 * "Meridian Roasters" "cold brew"
+  Expenses:Food:Coffee                            5.49 USD
+  Liabilities:Card:Everyday
+
+2026-07-07 * "CityTransit" "card top-up"
+  Assets:Prepaid:Transit                         60.00 USD
+  Assets:Bank:Checking
+
+2026-07-07 * "Pixelforge Store" "expansion"
+  Expenses:Entertainment:Games                   52.69 USD
+  Assets:Prepaid:Games
+
+2026-07-08 * "PixelPress" "monthly plan"
+  Expenses:Subscriptions:News                    12.00 USD
+  Liabilities:Card:Everyday
+
+2026-07-08 * "Meridian Roasters" "cold brew"
+  Expenses:Food:Coffee                            9.10 USD
+  Liabilities:Card:Everyday
+
+2026-07-08 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         47.37 USD
+  Liabilities:Card:Everyday
+
+2026-07-08 * "Homestead Supply" "cleaning supplies"
+  Expenses:Shopping:Household                   130.77 USD
+  Liabilities:Card:Everyday
+
+2026-07-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VSTX                           35.1928 VSTX {133.55 USD}
+  Assets:Broker:Cash
+
+2026-07-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VINX                           21.6932 VINX {85.28 USD}
+  Assets:Broker:Cash
+
+2026-07-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VBDX                           17.1055 VBDX {67.23 USD}
+  Assets:Broker:Cash
+
+2026-07-09 * "Gridworks Power" "monthly bill"
+  Expenses:Home:Utilities:Power                 172.27 USD
+  Assets:Bank:Checking
+
+2026-07-09 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            4.25 USD
+  Liabilities:Card:Everyday
+
+2026-07-09 * "Pike & Ash" "dinner"
+  Expenses:Food:Dining                           90.01 USD
+  Liabilities:Card:Everyday
+
+2026-07-09 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.45 USD
+  Assets:Prepaid:Transit
+
+2026-07-10 * "Marketvale" "weekly shop"
+  Expenses:Food:Groceries                       173.84 USD
+  Liabilities:Card:Everyday
+
+2026-07-10 * "Tidewater Hardware" "cleaning supplies"
+  Expenses:Shopping:Household                    51.95 USD
+  Liabilities:Card:Everyday
+
+2026-07-10 * "retirement contribution"
+  Assets:Broker:Cash                           1800.00 USD
+  Assets:Bank:Checking
+
+2026-07-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VSTX                        9.7342 VSTX {133.55 USD}
+  Assets:Broker:Cash
+
+2026-07-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VBDX                        7.4372 VBDX {67.23 USD}
+  Assets:Broker:Cash
+
+2026-07-11 * "Clearwater Utility" "monthly bill"
+  Expenses:Home:Utilities:Water                  42.59 USD
+  Assets:Bank:Checking
+
+2026-07-11 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.53 USD
+  Assets:Prepaid:Transit
+
+2026-07-11 * "Lightfoot Press" "course royalties"
+  Assets:Bank:Business                          887.58 USD
+  Income:Royalties
+
+2026-07-12 * "Nimbus Drive" "monthly plan"
+  Expenses:Subscriptions:Cloud                   11.99 USD
+  Liabilities:Card:Everyday
+
+2026-07-13 * "Harvest Lane" "weekly shop"
+  Expenses:Food:Groceries                       161.71 USD
+  Liabilities:Card:Everyday
+
+2026-07-13 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   32.42 USD
+  Liabilities:Card:Everyday
+
+2026-07-13 * "Harborline Bank" "cash withdrawal"
+  Assets:Cash:Wallet                            200.00 USD
+  Assets:Bank:Checking
+
+2026-07-14 * "Cellmark" "monthly bill"
+  Expenses:Home:Utilities:Phone                  45.00 USD
+  Assets:Bank:Checking
+
+2026-07-14 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   20.99 USD
+  Liabilities:Card:Everyday
+
+2026-07-14 * "cash"
+  Expenses:Misc                                  31.68 USD
+  Assets:Cash:Wallet
+
+2026-07-15 * "Sentry Books" "bookkeeping retainer"
+  Expenses:Business:Accounting                  180.00 USD
+  Assets:Bank:Business
+
+2026-07-15 * "Ember Coffee" "flat white"
+  Expenses:Food:Coffee                            7.50 USD
+  Liabilities:Card:Everyday
+
+2026-07-15 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   19.35 USD
+  Liabilities:Card:Everyday
+
+2026-07-15 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.48 USD
+  Assets:Prepaid:Transit
+
+2026-07-16 * "Nori House" "late lunch"
+  Expenses:Food:Dining                           99.01 USD
+  Liabilities:Card:Everyday
+
+2026-07-16 * "Pinehurst Labs" "project invoice" ^po-20260716
+  Assets:Bank:Business                        10830.97 USD
+  Income:Projects
+
+2026-07-16 * "Revenue Service" "estimated tax"
+  Expenses:Taxes:Income                       16500.00 USD
+  Expenses:Taxes:SelfEmployment                4500.00 USD
+  Assets:Bank:Business
+
+2026-07-16 document Expenses:Taxes:Income "documents/2026/07/2026-07-16-estimated-tax.html"
+
+2026-07-17 * "Photobank" "monthly plan"
+  Expenses:Subscriptions:Cloud                    8.99 USD
+  Liabilities:Card:Everyday
+
+2026-07-17 * "Pike & Ash" "supper"
+  Expenses:Food:Dining                          137.38 USD
+  Liabilities:Card:Everyday
+
+2026-07-18 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                          438.10 USD
+  Expenses:Financial:Interest                    26.90 USD
+  Assets:Bank:Checking
+
+2026-07-18 * "Pike & Ash" "lunch"
+  Expenses:Food:Dining                           64.61 USD
+  Liabilities:Card:Everyday
+
+2026-07-18 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      6.07 USD
+  Assets:Prepaid:Transit
+
+2026-07-18 * "cash"
+  Expenses:Misc                                  30.29 USD
+  Assets:Cash:Wallet
+
+2026-07-19 * "Corner Grocer" "weekly shop"
+  Expenses:Food:Groceries                        98.61 USD
+  Liabilities:Card:Everyday
+
+2026-07-19 * "Loop Rides" "ride to the desk"
+  Expenses:Transport:Rideshare                   30.67 USD
+  Liabilities:Card:Everyday
+
+2026-07-19 * "transfer to savings"
+  Assets:Bank:Savings                          1200.00 USD
+  Assets:Bank:Checking
+
+2026-07-20 * "Open Harbor Fund" "monthly giving"
+  Expenses:Charity                              150.00 USD
+  Assets:Bank:Checking
+
+2026-07-21 * "IronWorks Gym" "monthly plan"
+  Expenses:Health:Gym                            65.00 USD
+  Liabilities:Card:Everyday
+
+2026-07-21 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.58 USD
+  Assets:Prepaid:Transit
+
+2026-07-21 * "Pixelforge Store" "a game on sale"
+  Expenses:Entertainment:Games                   59.97 USD
+  Assets:Prepaid:Games
+
+2026-07-22 * "Third Rail Coffee" "flat white"
+  Expenses:Food:Coffee                            4.85 USD
+  Liabilities:Card:Everyday
+
+2026-07-22 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   19.43 USD
+  Liabilities:Card:Everyday
+
+2026-07-22 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        58.00 USD
+  Liabilities:Card:Everyday
+
+2026-07-22 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      2.45 USD
+  Assets:Prepaid:Transit
+
+2026-07-22 * "Wellspring Pharmacy" "sundries"
+  Expenses:Health:Pharmacy                       78.92 USD
+  Liabilities:Card:Everyday
+
+2026-07-22 * "cash"
+  Expenses:Misc                                  29.58 USD
+  Assets:Cash:Wallet
+
+2026-07-22 * "Tideworks Staking" "staking reward"
+  Assets:Crypto:ETH                             0.0347 ETH
+  Income:Investments:Staking
+
+2026-07-23 * "Third Rail Coffee" "flat white"
+  Expenses:Food:Coffee                            4.42 USD
+  Liabilities:Card:Everyday
+
+2026-07-23 * "Nori House" "supper"
+  Expenses:Food:Dining                           88.01 USD
+  Liabilities:Card:Everyday
+
+2026-07-24 * "Meridian Roasters" "flat white"
+  Expenses:Food:Coffee                            5.39 USD
+  Liabilities:Card:Everyday
+
+2026-07-24 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.21 USD
+  Assets:Prepaid:Transit
+
+2026-07-25 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            6.00 USD
+  Liabilities:Card:Everyday
+
+2026-07-26 * "Harborline Bank" "statement payment" #autopay
+  Liabilities:Card:Everyday                    2123.81 USD
+  Assets:Bank:Checking
+
+2026-07-26 document Liabilities:Card:Everyday "documents/2026/07/2026-07-26-everyday-card.csv"
+
+2026-07-27 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            4.86 USD
+  Liabilities:Card:Everyday
+
+2026-07-28 * "Harborline Bank" "savings interest"
+  Assets:Bank:Savings                           228.95 USD
+  Income:Investments:Interest
+
+2026-08-01 * "Ridgeline Properties" "monthly rent"
+  Expenses:Home:Rent                           2595.00 USD
+  Assets:Bank:Checking
+
+2026-08-01 * "Halloran Systems" "monthly retainer" ^inv-2026-08
+  Assets:Bank:Business                        18200.00 USD
+  Income:Halloran
+
+2026-08-02 * "Forge IDE" "monthly plan"
+  Expenses:Business:Software                     25.00 USD
+  Liabilities:Card:Everyday
+
+2026-08-02 * "The Annex" "coworking desk"
+  Expenses:Business:Coworking                   300.00 USD
+  Assets:Bank:Business
+
+2026-08-03 * "Streamflix" "monthly plan"
+  Expenses:Subscriptions:Streaming               17.99 USD
+  Liabilities:Card:Everyday
+
+2026-08-03 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            5.23 USD
+  Liabilities:Card:Everyday
+
+2026-08-03 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.13 USD
+  Assets:Prepaid:Transit
+
+2026-08-03 * "Cartwright Group" "advisory retainer"
+  Assets:Bank:Business                         3500.00 USD
+  Income:Cartwright
+
+2026-08-04 * "Meridian Health" "monthly premium"
+  Expenses:Health:Insurance                     412.00 USD
+  Assets:Bank:Checking
+
+2026-08-04 * "Third Rail Coffee" "filter coffee"
+  Expenses:Food:Coffee                            6.99 USD
+  Liabilities:Card:Everyday
+
+2026-08-04 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        44.32 USD
+  Liabilities:Card:Everyday
+
+2026-08-05 * "Tunebox" "monthly plan"
+  Expenses:Subscriptions:Music                   10.99 USD
+  Liabilities:Card:Everyday
+
+2026-08-05 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   21.30 USD
+  Liabilities:Card:Everyday
+
+2026-08-05 * "owner draw"
+  Assets:Bank:Checking                        18300.00 USD
+  Assets:Bank:Business
+
+2026-08-06 * "Fiberline" "monthly bill"
+  Expenses:Home:Utilities:Internet               79.00 USD
+  Assets:Bank:Checking
+
+2026-08-06 * "Ember Coffee" "cold brew"
+  Expenses:Food:Coffee                            6.04 USD
+  Liabilities:Card:Everyday
+
+2026-08-06 * "Nori House" "dinner out"
+  Expenses:Food:Dining                           86.25 USD
+  Liabilities:Card:Everyday
+
+2026-08-06 * "transfer to brokerage"
+  Assets:Broker:Cash                           8000.00 USD
+  Assets:Bank:Checking
+
+2026-08-07 * "CityTransit" "card top-up"
+  Assets:Prepaid:Transit                         60.00 USD
+  Assets:Bank:Checking
+
+2026-08-08 * "PixelPress" "monthly plan"
+  Expenses:Subscriptions:News                    12.00 USD
+  Liabilities:Card:Everyday
+
+2026-08-08 * "Swiftplate" "dinner in"
+  Expenses:Food:Delivery                         52.28 USD
+  Liabilities:Card:Everyday
+
+2026-08-08 * "Homestead Supply" "hardware"
+  Expenses:Shopping:Household                    24.83 USD
+  Liabilities:Card:Everyday
+
+2026-08-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VSTX                           35.6845 VSTX {131.71 USD}
+  Assets:Broker:Cash
+
+2026-08-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VINX                           21.3478 VINX {86.66 USD}
+  Assets:Broker:Cash
+
+2026-08-08 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VBDX                           16.8622 VBDX {68.20 USD}
+  Assets:Broker:Cash
+
+2026-08-09 * "Gridworks Power" "monthly bill"
+  Expenses:Home:Utilities:Power                 140.37 USD
+  Assets:Bank:Checking
+
+2026-08-09 * "Pixelforge Store" "a game on sale"
+  Expenses:Entertainment:Games                   18.33 USD
+  Assets:Prepaid:Games
+
+2026-08-09 * "Voltcart" "gadgets"
+  Expenses:Shopping:Electronics                 194.76 USD
+  Liabilities:Card:Everyday
+
+2026-08-09 * "Meridian Brokerage" "scheduled buy"
+  Assets:Broker:VEMX                           12.5379 VEMX {49.45 USD}
+  Assets:Broker:Cash
+
+2026-08-10 * "Marketvale" "weekly shop"
+  Expenses:Food:Groceries                       133.01 USD
+  Liabilities:Card:Everyday
+
+2026-08-10 * "Halcyon Fuel" "fill-up"
+  Expenses:Transport:Fuel                        57.62 USD
+  Liabilities:Card:Everyday
+
+2026-08-10 * "Wellspring Pharmacy" "prescription"
+  Expenses:Health:Pharmacy                       58.36 USD
+  Liabilities:Card:Everyday
+
+2026-08-10 * "retirement contribution"
+  Assets:Broker:Cash                           1800.00 USD
+  Assets:Bank:Checking
+
+2026-08-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VSTX                        9.8702 VSTX {131.71 USD}
+  Assets:Broker:Cash
+
+2026-08-10 * "Meridian Brokerage" "retirement buy"
+  Assets:Retirement:VBDX                        7.3314 VBDX {68.20 USD}
+  Assets:Broker:Cash
+
+2026-08-11 * "Clearwater Utility" "monthly bill"
+  Expenses:Home:Utilities:Water                  58.11 USD
+  Assets:Bank:Checking
+
+2026-08-11 * "Ember Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            5.64 USD
+  Liabilities:Card:Everyday
+
+2026-08-11 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.20 USD
+  Assets:Prepaid:Transit
+
+2026-08-11 * "Lightfoot Press" "course royalties"
+  Assets:Bank:Business                          411.69 USD
+  Income:Royalties
+
+2026-08-12 * "Nimbus Drive" "monthly plan"
+  Expenses:Subscriptions:Cloud                   11.99 USD
+  Liabilities:Card:Everyday
+
+2026-08-12 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.29 USD
+  Assets:Prepaid:Transit
+
+2026-08-12 * "Wellspring Pharmacy" "prescription"
+  Expenses:Health:Pharmacy                       89.68 USD
+  Liabilities:Card:Everyday
+
+2026-08-12 * "Pixelforge Store" "expansion"
+  Expenses:Entertainment:Games                   51.64 USD
+  Assets:Prepaid:Games
+
+2026-08-13 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                       166.30 USD
+  Liabilities:Card:Everyday
+
+2026-08-13 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      5.45 USD
+  Assets:Prepaid:Transit
+
+2026-08-13 * "Tidewater Hardware" "hardware"
+  Expenses:Shopping:Household                   128.37 USD
+  Liabilities:Card:Everyday
+
+2026-08-13 * "Harborline Bank" "cash withdrawal"
+  Assets:Cash:Wallet                            200.00 USD
+  Assets:Bank:Checking
+
+2026-08-14 * "Cellmark" "monthly bill"
+  Expenses:Home:Utilities:Phone                  45.00 USD
+  Assets:Bank:Checking
+
+2026-08-14 * "Pike & Ash" "late lunch"
+  Expenses:Food:Dining                          124.48 USD
+  Liabilities:Card:Everyday
+
+2026-08-14 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         36.33 USD
+  Liabilities:Card:Everyday
+
+2026-08-15 * "Sentry Books" "bookkeeping retainer"
+  Expenses:Business:Accounting                  180.00 USD
+  Assets:Bank:Business
+
+2026-08-15 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         57.00 USD
+  Liabilities:Card:Everyday
+
+2026-08-15 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.70 USD
+  Assets:Prepaid:Transit
+
+2026-08-15 * "cash"
+  Expenses:Misc                                  35.16 USD
+  Assets:Cash:Wallet
+
+2026-08-16 * "Harvest Lane" "weekly shop"
+  Expenses:Food:Groceries                       184.57 USD
+  Liabilities:Card:Everyday
+
+2026-08-16 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            7.52 USD
+  Liabilities:Card:Everyday
+
+2026-08-16 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      4.72 USD
+  Assets:Prepaid:Transit
+
+2026-08-16 * "cash"
+  Expenses:Misc                                  26.11 USD
+  Assets:Cash:Wallet
+
+2026-08-17 * "Photobank" "monthly plan"
+  Expenses:Subscriptions:Cloud                    8.99 USD
+  Liabilities:Card:Everyday
+
+2026-08-17 * "Third Rail Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            6.51 USD
+  Liabilities:Card:Everyday
+
+2026-08-17 * "Loop Rides" "ride across town"
+  Expenses:Transport:Rideshare                   14.43 USD
+  Liabilities:Card:Everyday
+
+2026-08-17 * "cash"
+  Expenses:Misc                                  33.94 USD
+  Assets:Cash:Wallet
+
+2026-08-18 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                          440.03 USD
+  Expenses:Financial:Interest                    24.97 USD
+  Assets:Bank:Checking
+
+2026-08-19 * "transfer to savings"
+  Assets:Bank:Savings                          1200.00 USD
+  Assets:Bank:Checking
+
+2026-08-20 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            7.53 USD
+  Liabilities:Card:Everyday
+
+2026-08-20 * "Copper Spoon" "supper"
+  Expenses:Food:Dining                           65.97 USD
+  Liabilities:Card:Everyday
+
+2026-08-20 * "cash"
+  Expenses:Misc                                  31.01 USD
+  Assets:Cash:Wallet
+
+2026-08-20 * "Open Harbor Fund" "monthly giving"
+  Expenses:Charity                              150.00 USD
+  Assets:Bank:Checking
+
+2026-08-21 * "IronWorks Gym" "monthly plan"
+  Expenses:Health:Gym                            65.00 USD
+  Liabilities:Card:Everyday
+
+2026-08-21 * "Trattoria Verde" "dinner"
+  Expenses:Food:Dining                          145.07 USD
+  Liabilities:Card:Everyday
+
+2026-08-22 * "Meridian Roasters" "filter coffee"
+  Expenses:Food:Coffee                            6.24 USD
+  Liabilities:Card:Everyday
+
+2026-08-22 * "Loop Rides" "airport run"
+  Expenses:Transport:Rideshare                   24.97 USD
+  Liabilities:Card:Everyday
+
+2026-08-22 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.64 USD
+  Assets:Prepaid:Transit
+
+2026-08-22 * "Tideworks Staking" "staking reward"
+  Assets:Crypto:ETH                             0.0352 ETH
+  Income:Investments:Staking
+
+2026-08-23 * "Green Basket" "weekly shop"
+  Expenses:Food:Groceries                        99.49 USD
+  Liabilities:Card:Everyday
+
+2026-08-23 * "Swiftplate" "delivery"
+  Expenses:Food:Delivery                         32.69 USD
+  Liabilities:Card:Everyday
+
+2026-08-23 * "Pixelforge Store" "expansion"
+  Expenses:Entertainment:Games                   16.00 USD
+  Assets:Prepaid:Games
+
+2026-08-24 * "Third Rail Coffee" "cold brew"
+  Expenses:Food:Coffee                            9.17 USD
+  Liabilities:Card:Everyday
+
+2026-08-24 * "CityTransit" "fare"
+  Expenses:Transport:Transit                      3.78 USD
+  Assets:Prepaid:Transit
+
+2026-08-24 * "Grand Marquee" "cinema"
+  Expenses:Entertainment:Movies                  36.81 USD
+  Liabilities:Card:Everyday
+
+2026-08-25 * "Ember Coffee" "espresso and a bun"
+  Expenses:Food:Coffee                            4.83 USD
+  Liabilities:Card:Everyday
+
+2026-08-25 * "Loop Rides" "ride home"
+  Expenses:Transport:Rideshare                   15.59 USD
+  Liabilities:Card:Everyday
+
+2026-08-25 * "Harborline Bank" "savings interest"
+  Assets:Bank:Savings                           234.10 USD
+  Income:Investments:Interest
+
+2026-08-25 * "Harborline Bank" "statement payment" #autopay
+  Liabilities:Card:Everyday                    2112.14 USD
+  Assets:Bank:Checking

@@ -1,0 +1,313 @@
+;; Month-end quotes.
+;;
+;; Gold stops here in June 2025 and is still held afterwards, on purpose:
+;; a position priced three years ago is worse than one never priced at
+;; all, because it still looks like a number. The mesh token is never
+;; quoted at all.
+
+2024-01-31 price VSTX        104.35 USD
+2024-01-31 price VINX         63.07 USD
+2024-01-31 price VEMX         43.02 USD
+2024-01-31 price VBDX         70.81 USD
+2024-01-31 price VREX         85.46 USD
+2024-01-31 price GLDT        192.03 USD
+2024-01-31 price BTC       54564.16 USD
+2024-01-31 price ETH        3473.29 USD
+2024-01-31 price EUR         1.0733 USD
+
+2024-02-29 price VSTX        108.52 USD
+2024-02-29 price VINX         64.34 USD
+2024-02-29 price VEMX         42.96 USD
+2024-02-29 price VBDX         69.84 USD
+2024-02-29 price VREX         87.29 USD
+2024-02-29 price GLDT        190.45 USD
+2024-02-29 price BTC       65081.19 USD
+2024-02-29 price ETH        3359.36 USD
+2024-02-29 price EUR         1.0851 USD
+
+2024-03-31 price VSTX        107.73 USD
+2024-03-31 price VINX         67.16 USD
+2024-03-31 price VEMX         44.33 USD
+2024-03-31 price VBDX         69.14 USD
+2024-03-31 price VREX         91.61 USD
+2024-03-31 price GLDT        186.12 USD
+2024-03-31 price BTC       67225.72 USD
+2024-03-31 price ETH         2885.9 USD
+2024-03-31 price EUR          1.076 USD
+
+2024-04-30 price VSTX        107.66 USD
+2024-04-30 price VINX         66.93 USD
+2024-04-30 price VEMX         44.88 USD
+2024-04-30 price VBDX         70.69 USD
+2024-04-30 price VREX         90.99 USD
+2024-04-30 price GLDT        189.67 USD
+2024-04-30 price BTC       76702.74 USD
+2024-04-30 price ETH        2722.11 USD
+2024-04-30 price EUR         1.0638 USD
+
+2024-05-31 price VSTX        103.17 USD
+2024-05-31 price VINX         66.42 USD
+2024-05-31 price VEMX         48.82 USD
+2024-05-31 price VBDX         70.97 USD
+2024-05-31 price VREX         89.91 USD
+2024-05-31 price GLDT         186.6 USD
+2024-05-31 price BTC       64917.94 USD
+2024-05-31 price ETH        2836.86 USD
+2024-05-31 price EUR         1.0348 USD
+
+2024-06-30 price VSTX        108.07 USD
+2024-06-30 price VINX         68.13 USD
+2024-06-30 price VEMX         49.16 USD
+2024-06-30 price VBDX         71.14 USD
+2024-06-30 price VREX         92.43 USD
+2024-06-30 price GLDT        189.99 USD
+2024-06-30 price BTC       76577.91 USD
+2024-06-30 price ETH        3014.72 USD
+2024-06-30 price EUR         1.0278 USD
+
+2024-07-31 price VSTX        107.84 USD
+2024-07-31 price VINX         66.38 USD
+2024-07-31 price VEMX         51.29 USD
+2024-07-31 price VBDX         70.36 USD
+2024-07-31 price VREX         89.35 USD
+2024-07-31 price GLDT        193.88 USD
+2024-07-31 price BTC       91491.26 USD
+2024-07-31 price ETH        3029.25 USD
+2024-07-31 price EUR         1.0151 USD
+
+2024-08-31 price VSTX        108.13 USD
+2024-08-31 price VINX         69.91 USD
+2024-08-31 price VEMX         50.93 USD
+2024-08-31 price VBDX         71.29 USD
+2024-08-31 price VREX         94.78 USD
+2024-08-31 price GLDT         189.7 USD
+2024-08-31 price BTC       89170.09 USD
+2024-08-31 price ETH        3517.82 USD
+2024-08-31 price EUR         1.0275 USD
+
+2024-09-30 price VSTX        106.27 USD
+2024-09-30 price VINX         72.59 USD
+2024-09-30 price VEMX         51.81 USD
+2024-09-30 price VBDX         72.16 USD
+2024-09-30 price VREX         98.85 USD
+2024-09-30 price GLDT        198.69 USD
+2024-09-30 price BTC       99169.98 USD
+2024-09-30 price ETH        3367.98 USD
+2024-09-30 price EUR         1.0254 USD
+
+2024-10-31 price VSTX        104.35 USD
+2024-10-31 price VINX         74.68 USD
+2024-10-31 price VEMX         51.36 USD
+2024-10-31 price VBDX         71.83 USD
+2024-10-31 price VREX        101.98 USD
+2024-10-31 price GLDT        195.95 USD
+2024-10-31 price BTC       89303.83 USD
+2024-10-31 price ETH        3743.94 USD
+2024-10-31 price EUR         1.0125 USD
+
+2024-11-30 price VSTX        103.34 USD
+2024-11-30 price VINX         76.13 USD
+2024-11-30 price VEMX         51.15 USD
+2024-11-30 price VBDX         72.09 USD
+2024-11-30 price VREX        104.07 USD
+2024-11-30 price GLDT        200.05 USD
+2024-11-30 price BTC       95694.53 USD
+2024-11-30 price ETH        4125.93 USD
+2024-11-30 price EUR         0.9781 USD
+
+2024-12-31 price VSTX        100.98 USD
+2024-12-31 price VINX         79.15 USD
+2024-12-31 price VEMX         50.53 USD
+2024-12-31 price VBDX         72.15 USD
+2024-12-31 price VREX        108.72 USD
+2024-12-31 price GLDT        200.22 USD
+2024-12-31 price BTC      113976.31 USD
+2024-12-31 price ETH        3953.66 USD
+2024-12-31 price EUR         0.9707 USD
+
+2025-01-31 price VSTX        104.19 USD
+2025-01-31 price VINX         82.08 USD
+2025-01-31 price VEMX         48.61 USD
+2025-01-31 price VBDX         72.72 USD
+2025-01-31 price VREX        113.22 USD
+2025-01-31 price GLDT         195.1 USD
+2025-01-31 price BTC      103665.34 USD
+2025-01-31 price ETH        3815.11 USD
+2025-01-31 price EUR         0.9637 USD
+
+2025-02-28 price VSTX        102.69 USD
+2025-02-28 price VINX         83.62 USD
+2025-02-28 price VEMX         49.46 USD
+2025-02-28 price VBDX         73.45 USD
+2025-02-28 price VREX        115.46 USD
+2025-02-28 price GLDT        197.17 USD
+2025-02-28 price BTC      125426.79 USD
+2025-02-28 price ETH        3880.34 USD
+2025-02-28 price EUR         0.9548 USD
+
+2025-03-31 price VSTX         104.0 USD
+2025-03-31 price VINX         86.32 USD
+2025-03-31 price VEMX         50.57 USD
+2025-03-31 price VBDX         73.78 USD
+2025-03-31 price VREX        119.59 USD
+2025-03-31 price GLDT        197.96 USD
+2025-03-31 price BTC      140676.53 USD
+2025-03-31 price ETH        3658.97 USD
+2025-03-31 price EUR           0.96 USD
+
+2025-04-30 price VSTX        107.19 USD
+2025-04-30 price VINX         84.84 USD
+2025-04-30 price VEMX         48.63 USD
+2025-04-30 price VBDX         73.31 USD
+2025-04-30 price VREX        116.81 USD
+2025-04-30 price GLDT         192.9 USD
+2025-04-30 price BTC      146417.31 USD
+2025-04-30 price ETH        4431.75 USD
+2025-04-30 price EUR         0.9255 USD
+
+2025-05-31 price VSTX        109.85 USD
+2025-05-31 price VINX         83.76 USD
+2025-05-31 price VEMX         49.32 USD
+2025-05-31 price VBDX         72.36 USD
+2025-05-31 price VREX        114.73 USD
+2025-05-31 price GLDT        196.75 USD
+2025-05-31 price BTC      147300.36 USD
+2025-05-31 price ETH         4692.7 USD
+2025-05-31 price EUR         0.9429 USD
+
+2025-06-30 price VSTX        109.42 USD
+2025-06-30 price VINX         86.44 USD
+2025-06-30 price VEMX         47.98 USD
+2025-06-30 price VBDX         72.58 USD
+2025-06-30 price VREX         118.8 USD
+2025-06-30 price GLDT        205.17 USD
+2025-06-30 price BTC      163573.01 USD
+2025-06-30 price ETH        4223.43 USD
+2025-06-30 price EUR         0.9308 USD
+
+2025-07-31 price VSTX         107.9 USD
+2025-07-31 price VINX         83.63 USD
+2025-07-31 price VEMX         49.98 USD
+2025-07-31 price VBDX         72.82 USD
+2025-07-31 price VREX        113.87 USD
+2025-07-31 price BTC      162822.69 USD
+2025-07-31 price ETH         4680.9 USD
+2025-07-31 price EUR         0.9282 USD
+
+2025-08-31 price VSTX        110.62 USD
+2025-08-31 price VINX         87.24 USD
+2025-08-31 price VEMX         48.96 USD
+2025-08-31 price VBDX         72.23 USD
+2025-08-31 price VREX        119.44 USD
+2025-08-31 price BTC      146698.61 USD
+2025-08-31 price ETH        4048.63 USD
+2025-08-31 price EUR         0.9303 USD
+
+2025-09-30 price VSTX        114.92 USD
+2025-09-30 price VINX         86.72 USD
+2025-09-30 price VEMX         50.52 USD
+2025-09-30 price VBDX         71.46 USD
+2025-09-30 price VREX        118.26 USD
+2025-09-30 price BTC      155176.77 USD
+2025-09-30 price ETH        4183.93 USD
+2025-09-30 price EUR         0.9459 USD
+
+2025-10-31 price VSTX        118.07 USD
+2025-10-31 price VINX         88.84 USD
+2025-10-31 price VEMX         53.71 USD
+2025-10-31 price VBDX         71.01 USD
+2025-10-31 price VREX        121.39 USD
+2025-10-31 price BTC      138860.75 USD
+2025-10-31 price ETH        4039.97 USD
+2025-10-31 price EUR         0.9651 USD
+
+2025-11-30 price VSTX        123.66 USD
+2025-11-30 price VINX         88.22 USD
+2025-11-30 price VEMX         55.02 USD
+2025-11-30 price VBDX          70.6 USD
+2025-11-30 price VREX        120.05 USD
+2025-11-30 price BTC      143486.68 USD
+2025-11-30 price ETH        4737.98 USD
+2025-11-30 price EUR          0.955 USD
+
+2025-12-31 price VSTX        123.59 USD
+2025-12-31 price VINX         85.41 USD
+2025-12-31 price VEMX         60.39 USD
+2025-12-31 price VBDX         69.65 USD
+2025-12-31 price VREX        115.17 USD
+2025-12-31 price BTC      152762.32 USD
+2025-12-31 price ETH        5453.03 USD
+2025-12-31 price EUR         0.9553 USD
+
+2026-01-31 price VSTX        125.97 USD
+2026-01-31 price VINX         84.73 USD
+2026-01-31 price VEMX         63.14 USD
+2026-01-31 price VBDX         69.15 USD
+2026-01-31 price VREX        113.76 USD
+2026-01-31 price BTC      151261.67 USD
+2026-01-31 price ETH        4505.34 USD
+2026-01-31 price EUR         0.9631 USD
+
+2026-02-28 price VSTX        127.68 USD
+2026-02-28 price VINX         83.44 USD
+2026-02-28 price VEMX         62.82 USD
+2026-02-28 price VBDX          69.0 USD
+2026-02-28 price VREX         111.4 USD
+2026-02-28 price BTC      166888.88 USD
+2026-02-28 price ETH        4661.47 USD
+2026-02-28 price EUR         0.9557 USD
+
+2026-03-31 price VSTX         132.6 USD
+2026-03-31 price VINX         82.28 USD
+2026-03-31 price VEMX         63.62 USD
+2026-03-31 price VBDX         69.18 USD
+2026-03-31 price VREX        109.25 USD
+2026-03-31 price BTC      154392.54 USD
+2026-03-31 price ETH        4145.18 USD
+2026-03-31 price EUR         0.9437 USD
+
+2026-04-30 price VSTX        131.55 USD
+2026-04-30 price VINX         83.59 USD
+2026-04-30 price VEMX         60.16 USD
+2026-04-30 price VBDX         68.38 USD
+2026-04-30 price VREX        111.03 USD
+2026-04-30 price BTC      136920.25 USD
+2026-04-30 price ETH        3430.53 USD
+2026-04-30 price EUR         0.9266 USD
+
+2026-05-31 price VSTX        129.49 USD
+2026-05-31 price VINX         83.24 USD
+2026-05-31 price VEMX         55.72 USD
+2026-05-31 price VBDX         68.99 USD
+2026-05-31 price VREX        110.18 USD
+2026-05-31 price BTC      111028.43 USD
+2026-05-31 price ETH        4759.14 USD
+2026-05-31 price EUR         0.9426 USD
+
+2026-06-30 price VSTX        135.69 USD
+2026-06-30 price VINX         86.04 USD
+2026-06-30 price VEMX         53.72 USD
+2026-06-30 price VBDX         68.05 USD
+2026-06-30 price VREX         114.3 USD
+2026-06-30 price BTC      112450.43 USD
+2026-06-30 price ETH         5006.3 USD
+2026-06-30 price EUR         0.9273 USD
+
+2026-07-31 price VSTX        133.55 USD
+2026-07-31 price VINX         85.28 USD
+2026-07-31 price VEMX         50.17 USD
+2026-07-31 price VBDX         67.23 USD
+2026-07-31 price VREX        112.79 USD
+2026-07-31 price BTC      100277.66 USD
+2026-07-31 price ETH         4701.7 USD
+2026-07-31 price EUR         0.9201 USD
+
+2026-08-25 price VSTX        131.71 USD
+2026-08-25 price VINX         86.66 USD
+2026-08-25 price VEMX         49.45 USD
+2026-08-25 price VBDX          68.2 USD
+2026-08-25 price VREX        114.67 USD
+2026-08-25 price BTC        98551.0 USD
+2026-08-25 price ETH        5306.45 USD
+2026-08-25 price EUR         0.9255 USD
+
