@@ -1,4 +1,10 @@
-import type { CashflowPoint, NetWorthPoint, ReportsView } from "../api";
+import type {
+  CashflowPoint,
+  Growth,
+  GrowthPoint,
+  NetWorthPoint,
+  ReportsView,
+} from "../api";
 import { fmt, fmtCompact, monthName, monthShort, windowLabel } from "../format";
 
 /** "2026-08" plus n months. */
@@ -15,6 +21,19 @@ function duration(months: number): string {
   if (y === 0) return `${m} mo`;
   if (m === 0) return `${y} yr`;
   return `${y} yr ${m} mo`;
+}
+
+/** How long the current stash takes on its own, with nothing more saved. */
+function coastLabel(months: number | null | undefined): string {
+  if (months == null) return "never on its own";
+  if (months === 0) return "already there";
+  return duration(months);
+}
+
+/** ["ADA"] → "ADA"; ["ADA","SOL","BTC"] → "ADA, SOL and BTC". */
+function listOf(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
 const monthYear = (m: string) => `${monthShort(m)} ${m.slice(0, 4)}`;
@@ -56,14 +75,42 @@ function NetWorthChart({
   const n = points.length;
   const last = points[n - 1];
   if (last == null) return <div className="empty">no months to chart</div>;
-  const [min, max] = bounds(points.map((p) => p.net));
+  // The stack has to fit inside the frame, not just the net line: gross
+  // assets sit above it and debt below.
+  const [min, max] = bounds(
+    points.flatMap((p) => [p.net, p.assets, p.liabilities]),
+  );
   const x = (i: number) =>
     n === 1 ? W / 2 : PAD + (i * (W - 2 * PAD)) / (n - 1);
   const y = (v: number) => TOP + ((max - v) * (H - TOP - BOT)) / (max - min);
   const line = points
-    .map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.net).toFixed(1)}`)
+    .map(
+      (p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.net).toFixed(1)}`,
+    )
     .join("");
-  const area = `${line}L${x(n - 1).toFixed(1)},${y(0).toFixed(1)}L${x(0).toFixed(1)},${y(0).toFixed(1)}Z`;
+
+  /** A filled band between two per-point levels: out along the top,
+   * back along the bottom. */
+  const band = (
+    lo: (p: NetWorthPoint) => number,
+    hi: (p: NetWorthPoint) => number,
+  ) => {
+    const out = points
+      .map(
+        (p, i) =>
+          `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(hi(p)).toFixed(1)}`,
+      )
+      .join("");
+    const back = points
+      .map((p, i) => ({ p, i }))
+      .reverse()
+      .map(({ p, i }) => `L${x(i).toFixed(1)},${y(lo(p)).toFixed(1)}`)
+      .join("");
+    return `${out}${back}Z`;
+  };
+  const zero = () => 0;
+  const anyHoldings = points.some((p) => Math.abs(p.holdings) > 0.005);
+  const anyDebt = points.some((p) => Math.abs(p.liabilities) > 0.005);
 
   // Years as x labels on long ranges, every third month on short ones.
   const labels: { i: number; text: string }[] = [];
@@ -84,52 +131,85 @@ function NetWorthChart({
   const slot = n > 1 ? (W - 2 * PAD) / (n - 1) : W;
 
   return (
-    <svg
-      className="chart-svg"
-      viewBox={`0 0 ${W} ${H}`}
-      role="img"
-      aria-label={`Net worth by month, converted to ${cur}`}
-    >
-      {ticks(min, max, 3)
-        .filter((v) => Math.abs(v) > 1e-9)
-        .map((v) => (
-          <g key={v}>
-            <line x1={PAD} x2={W - PAD} y1={y(v)} y2={y(v)} className="grid" />
-            <text x={PAD} y={y(v) - 3} className="axis">
-              {fmtCompact(v, cur)}
-            </text>
-          </g>
-        ))}
-      <line x1={PAD} x2={W - PAD} y1={y(0)} y2={y(0)} className="grid zero" />
-      <path d={area} className="nw-area" />
-      <path d={line} className="nw-line" />
-      <circle cx={x(n - 1)} cy={y(last.net)} r="3" className="nw-dot" />
-      <text
-        x={W - PAD}
-        y={y(last.net) - 7}
-        textAnchor="end"
-        className="cap"
+    <>
+      <svg
+        className="chart-svg"
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label={`Net worth by month, converted to ${cur}`}
       >
-        {fmtCompact(last.net, cur)}
-      </text>
-      {labels.map((l) => (
-        <text key={l.i} x={x(l.i)} y={H - 5} textAnchor="middle" className="axis">
-          {l.text}
+        {ticks(min, max, 3)
+          .filter((v) => Math.abs(v) > 1e-9)
+          .map((v) => (
+            <g key={v}>
+              <line x1={PAD} x2={W - PAD} y1={y(v)} y2={y(v)} className="grid" />
+              <text x={PAD} y={y(v) - 3} className="axis">
+                {fmtCompact(v, cur)}
+              </text>
+            </g>
+          ))}
+        <path d={band(zero, (p) => p.cash)} className="nw-cash" />
+        {anyHoldings && (
+          <path
+            d={band(
+              (p) => p.cash,
+              (p) => p.assets,
+            )}
+            className="nw-holdings"
+          />
+        )}
+        {anyDebt && (
+          <path d={band((p) => p.liabilities, zero)} className="nw-debt" />
+        )}
+        <line x1={PAD} x2={W - PAD} y1={y(0)} y2={y(0)} className="grid zero" />
+        <path d={line} className="nw-line" />
+        <circle cx={x(n - 1)} cy={y(last.net)} r="3" className="nw-dot" />
+        <text x={W - PAD} y={y(last.net) - 7} textAnchor="end" className="cap">
+          {fmtCompact(last.net, cur)}
         </text>
-      ))}
-      {points.map((p, i) => (
-        <rect
-          key={p.month}
-          x={x(i) - slot / 2}
-          y={0}
-          width={slot}
-          height={H}
-          fill="transparent"
-        >
-          <title>{`${monthName(p.month)}\nnet ${fmt(p.net, cur)}\nassets ${fmt(p.assets, cur)} · liabilities ${fmt(p.liabilities, cur)}`}</title>
-        </rect>
-      ))}
-    </svg>
+        {labels.map((l) => (
+          <text
+            key={l.i}
+            x={x(l.i)}
+            y={H - 5}
+            textAnchor="middle"
+            className="axis"
+          >
+            {l.text}
+          </text>
+        ))}
+        {points.map((p, i) => (
+          <rect
+            key={p.month}
+            x={x(i) - slot / 2}
+            y={0}
+            width={slot}
+            height={H}
+            fill="transparent"
+          >
+            <title>{`${monthName(p.month)}\nnet ${fmt(p.net, cur)}\ncash ${fmt(p.cash, cur)} · holdings ${fmt(p.holdings, cur)} · debt ${fmt(p.liabilities, cur)}`}</title>
+          </rect>
+        ))}
+      </svg>
+      <div className="key">
+        <span className="key-item">
+          <i className="sw cash" />
+          cash {fmtCompact(last.cash, cur)}
+        </span>
+        {anyHoldings && (
+          <span className="key-item">
+            <i className="sw holdings" />
+            holdings {fmtCompact(last.holdings, cur)}
+          </span>
+        )}
+        {anyDebt && (
+          <span className="key-item">
+            <i className="sw debt" />
+            debt {fmtCompact(last.liabilities, cur)}
+          </span>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -339,6 +419,187 @@ function SavingsRateChart({
   );
 }
 
+function GrowthChart({
+  points,
+  cur,
+  gaps,
+}: {
+  points: GrowthPoint[];
+  cur: string;
+  /** Whether missing prices are riding along in the residual. */
+  gaps: boolean;
+}) {
+  const W = 460;
+  const H = 170;
+  const TOP = 16;
+  const BOT = 20;
+  const PAD = 8;
+  const n = points.length;
+  if (n === 0) return <div className="empty">no months to chart</div>;
+  // Each bar stacks its parts away from zero in whichever direction
+  // each one points, so a month's reach is the sum per side.
+  const [min, max] = bounds(
+    points.flatMap((p) => {
+      const parts = [p.saved, p.market];
+      const side = (keep: (v: number) => boolean) =>
+        parts.filter(keep).reduce((a, b) => a + b, 0);
+      return [side((v) => v > 0), side((v) => v < 0)];
+    }),
+  );
+  const y = (v: number) => TOP + ((max - v) * (H - TOP - BOT)) / (max - min);
+  const slot = (W - 2 * PAD) / n;
+  const bw = Math.max(2, Math.min(22, slot - 2));
+
+  return (
+    <>
+      <svg
+        className="chart-svg"
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label={`What moved net worth each month, converted to ${cur}`}
+      >
+        {ticks(min, max, 3)
+          .filter((v) => Math.abs(v) > 1e-9)
+          .map((v) => (
+            <g key={v}>
+              <line x1={PAD} x2={W - PAD} y1={y(v)} y2={y(v)} className="grid" />
+              <text x={PAD} y={y(v) - 3} className="axis">
+                {fmtCompact(v, cur)}
+              </text>
+            </g>
+          ))}
+        <line x1={PAD} x2={W - PAD} y1={y(0)} y2={y(0)} className="grid zero" />
+        {points.map((p, i) => {
+          const cx = PAD + i * slot + slot / 2;
+          // Running offsets: positives pile up, negatives pile down.
+          let up = 0;
+          let down = 0;
+          const bars = (
+            [
+              ["saved", p.saved],
+              ["market", p.market],
+            ] as const
+          )
+            .filter(([, v]) => Math.abs(v) > 0.005)
+            .map(([kind, v]) => {
+              const base = v >= 0 ? up : down;
+              const tip = base + v;
+              if (v >= 0) up = tip;
+              else down = tip;
+              return { kind, y0: y(base), y1: y(tip) };
+            });
+          const tip = [
+            monthName(p.month),
+            `net worth ${p.delta >= 0 ? "+" : "−"}${fmt(Math.abs(p.delta), cur)}`,
+            `saved ${fmt(p.saved, cur)} · market ${fmt(p.market, cur)}`,
+            ...(p.equity !== 0 ? [`capital in ${fmt(p.equity, cur)}`] : []),
+          ].join("\n");
+          return (
+            <g key={p.month}>
+              {bars.map((b) => (
+                <rect
+                  key={b.kind}
+                  x={cx - bw / 2}
+                  y={Math.min(b.y0, b.y1)}
+                  width={bw}
+                  height={Math.max(1.5, Math.abs(b.y1 - b.y0))}
+                  rx="2"
+                  className={`gr-bar ${b.kind}`}
+                />
+              ))}
+              <rect
+                x={cx - slot / 2}
+                y={0}
+                width={slot}
+                height={H}
+                fill="transparent"
+              >
+                <title>{tip}</title>
+              </rect>
+              {i % 3 === 0 && (
+                <text x={cx} y={H - 5} textAnchor="middle" className="axis">
+                  {monthShort(p.month)}
+                  {p.month.slice(5, 7) === "01" ? ` ${p.month.slice(2, 4)}` : ""}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      <div className="key">
+        <span className="key-item">
+          <i className="sw saved" />
+          you saved
+        </span>
+        <span className="key-item">
+          <i className="sw market" />
+          {gaps ? "market & gaps" : "markets moved"}
+        </span>
+      </div>
+    </>
+  );
+}
+
+function GrowthCard({ growth, cur }: { growth: Growth; cur: string }) {
+  const points = growth.points.slice(-24);
+  const pct = (v: number) =>
+    `${v >= 0 ? "" : "−"}${Math.abs(v * 100).toFixed(1)}%`;
+  // With prices missing, the residual is not the market alone, and
+  // saying otherwise would be the most misleading number on the page.
+  const gaps = growth.unpriced.length > 0;
+  const residual = gaps ? "Market & gaps" : "Markets moved";
+
+  return (
+    <div className="report-card">
+      <h2>What moved net worth</h2>
+      <div className="sub2">
+        saving vs markets, {windowLabel(growth.window)}
+        {points.length < growth.points.length
+          ? ` · chart shows last ${points.length} months`
+          : ""}
+      </div>
+      <div className="fire-stats gr-stats">
+        <div className="fire-stat">
+          <div className="lbl">You saved</div>
+          <div className={`v num ${growth.saved >= 0 ? "ok" : "bad"}`}>
+            {fmt(growth.saved, cur, 0)}
+          </div>
+        </div>
+        <div className="fire-stat">
+          <div className="lbl">{residual}</div>
+          <div className={`v num ${growth.market >= 0 ? "ok" : "bad"}`}>
+            {fmt(growth.market, cur, 0)}
+          </div>
+        </div>
+        <div className="fire-stat">
+          <div className="lbl">Return on the pot</div>
+          <div
+            className="v num"
+            title={
+              gaps
+                ? `not reported while ${listOf(growth.unpriced)} have no price`
+                : undefined
+            }
+          >
+            {growth.implied_return != null ? pct(growth.implied_return) : "—"}
+          </div>
+        </div>
+      </div>
+      <GrowthChart points={points} cur={cur} gaps={gaps} />
+      <div className="fine">
+        Anything net worth did that no transaction explains is counted as the
+        market: prices and exchange rates moving under what you already hold.
+        {gaps
+          ? ` Here it also carries the gaps left by ${listOf(growth.unpriced)}, which have no price — selling one for cash looks like a gain nothing caused.`
+          : ""}
+        {growth.equity !== 0
+          ? ` ${fmt(growth.equity, cur, 0)} arrived through Equity accounts — opening balances and other capital from outside the ledger — and is left out of both bars.`
+          : ""}
+      </div>
+    </div>
+  );
+}
+
 function YearCard({ data, cur }: { data: ReportsView; cur: string }) {
   const groups = data.year.groups;
   const total = groups.reduce((s, g) => s + g.total, 0);
@@ -406,6 +667,17 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
 
   return (
     <section id="reports">
+      {data.unpriced.length > 0 && (
+        <div className="notice">
+          <b>{listOf(data.unpriced)}</b>{" "}
+          {data.unpriced.length === 1 ? "has" : "have"} no price in {cur}, so
+          every amount in {data.unpriced.length === 1 ? "it" : "them"} is
+          missing from these numbers — the balances you hold and the income and
+          spending that passed through {data.unpriced.length === 1 ? "it" : "them"}
+          . Add <code>price</code> directives to bring{" "}
+          {data.unpriced.length === 1 ? "it" : "them"} in.
+        </div>
+      )}
       <div className="report-card">
         <div className="fire-top">
           <div className="fire-main">
@@ -439,6 +711,17 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
               </div>
             </div>
             <div className="fire-stat">
+              <div className="lbl">Runway</div>
+              <div
+                className="v num"
+                title={`${fmt(data.runway.liquid, cur)} in cash, against ${fmt(f.monthly_spend, cur)} a month`}
+              >
+                {data.runway.months != null
+                  ? `${data.runway.months.toFixed(1)} mo`
+                  : "—"}
+              </div>
+            </div>
+            <div className="fire-stat">
               <div className="lbl">4% pays today</div>
               <div className="v num">{fmt(f.swr_monthly, cur)} / mo</div>
             </div>
@@ -465,7 +748,7 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
               </div>
             </div>
             <div className="fire-scenarios">
-              {f.scenarios.map((s) => (
+              {f.scenarios.map((s, i) => (
                 <div key={s.rate} className="scenario">
                   <div className="r">{Math.round(s.rate * 100)}% real return</div>
                   {s.months == null ? (
@@ -488,9 +771,26 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
                       </div>
                     </>
                   )}
+                  <div className="coast">
+                    coasting: {coastLabel(f.coast[i]?.months)}
+                  </div>
                 </div>
               ))}
             </div>
+            {f.steps.length > 0 && (
+              <div className="fire-steps">
+                <span className="lbl">
+                  Saving more, at {Math.round((f.scenarios[1]?.rate ?? 0) * 100)}
+                  %
+                </span>
+                {f.steps.map((s) => (
+                  <span key={s.extra} className="step num">
+                    +{fmt(s.extra, cur, 0)}/mo →{" "}
+                    {s.months == null ? "still never" : duration(s.months)}
+                  </span>
+                ))}
+              </div>
+            )}
           </>
         )}
         <div className="fine">
@@ -509,6 +809,8 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
             </div>
             <NetWorthChart points={data.net_worth} cur={cur} />
           </div>
+
+          <GrowthCard growth={data.growth} cur={cur} />
 
           <div className="report-card">
             <h2>Monthly cashflow</h2>

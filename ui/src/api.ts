@@ -90,6 +90,10 @@ export interface CategoryView {
 export interface NetWorthPoint {
   month: string;
   assets: number;
+  /** The budget-kind slice of `assets`: cash and its equivalents. */
+  cash: number;
+  /** The rest — accounts holding commodities, and hidden ones. */
+  holdings: number;
   liabilities: number;
   net: number;
 }
@@ -106,6 +110,45 @@ export interface FireScenario {
   months: number | null;
 }
 
+/** What saving `extra` more each month does to the middle scenario. */
+export interface SavingsStep {
+  extra: number;
+  months: number | null;
+}
+
+export interface Runway {
+  liquid: number;
+  /** liquid / monthly spend; null without a spend history. */
+  months: number | null;
+  /** The same against fixed costs alone. */
+  lean_months: number | null;
+}
+
+export interface GrowthPoint {
+  month: string;
+  delta: number;
+  /** Income − expenses: the part you saved. */
+  saved: number;
+  /** Capital in through `Equity:*` — opening balances, mostly. */
+  equity: number;
+  /** The rest: prices and rates moving under what you hold. */
+  market: number;
+}
+
+export interface Growth {
+  window: [string, string] | null;
+  saved: number;
+  equity: number;
+  market: number;
+  delta: number;
+  /** `market` over the average net worth held; a period return. Null
+   * while `unpriced` is non-empty — the split it comes from has holes. */
+  implied_return: number | null;
+  /** Commodities with no price, whose gaps land in `market`. */
+  unpriced: string[];
+  points: GrowthPoint[];
+}
+
 export interface Fire {
   window: [string, string] | null;
   monthly_spend: number;
@@ -116,6 +159,12 @@ export interface Fire {
   monthly_savings: number;
   swr_monthly: number;
   scenarios: FireScenario[];
+  /** The same scenarios with nothing further saved — coast FIRE. */
+  coast: FireScenario[];
+  steps: SavingsStep[];
+  /** 25× a year of fixed costs, and progress against it. */
+  lean_number: number | null;
+  lean_progress: number | null;
 }
 
 export interface YearGroup {
@@ -128,6 +177,11 @@ export interface ReportsView {
   net_worth: NetWorthPoint[];
   cashflow: CashflowPoint[];
   fire: Fire;
+  runway: Runway;
+  growth: Growth;
+  /** Commodities nothing prices in the display currency. Every amount
+   * in one of them is missing from every figure on the page. */
+  unpriced: string[];
   year: { window: [string, string] | null; groups: YearGroup[] };
 }
 

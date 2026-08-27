@@ -10,8 +10,12 @@ fn dec(s: &str) -> Decimal {
 }
 
 fn ledger() -> Ledger {
+    fixture("main")
+}
+
+fn fixture(name: &str) -> Ledger {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/reports/main.beancount");
+        .join(format!("tests/fixtures/reports/{name}.beancount"));
     Ledger::build(load(&path).unwrap())
 }
 
@@ -129,4 +133,150 @@ fn months_to_fire_handles_edges() {
     assert_eq!(months_to_fire(0.0, 0.0, 1000.0, 0.05), None);
     // Spending more than returns: never.
     assert_eq!(months_to_fire(1000.0, -50.0, 2000.0, 0.05), None);
+}
+
+#[test]
+fn runway_measures_liquid_cash_against_monthly_spend() {
+    let view = ledger().reports_view((2026, 4, 15), 3, "USD");
+
+    // Checking only: the broker account holds VTI, so it is tracking
+    // and its 2,200 stays out of the runway even though net worth
+    // counts it.
+    assert_eq!(view.runway.liquid, dec("14000.00"));
+    // 14,000 against a 3,333.33 month.
+    assert_eq!(view.runway.months, Some(dec("4.2")));
+    // Fixed costs are not priced yet.
+    assert_eq!(view.runway.lean_months, None);
+}
+
+#[test]
+fn fire_prices_coasting_and_saving_more() {
+    let view = ledger().reports_view((2026, 4, 15), 3, "USD");
+    let fire = &view.fire;
+
+    // Coasting is the same projection with contributions turned off,
+    // so it always lands later than the saving path.
+    let rates: Vec<f64> = fire.coast.iter().map(|s| s.rate).collect();
+    assert_eq!(rates, vec![0.03, 0.05, 0.07]);
+    for (coast, saving) in fire.coast.iter().zip(&fire.scenarios) {
+        match (coast.months, saving.months) {
+            (Some(c), Some(s)) => assert!(c > s, "rate {}", coast.rate),
+            // Never getting there on its own is later still.
+            (None, Some(_)) => {}
+            (c, s) => panic!("rate {}: coast {c:?}, saving {s:?}", coast.rate),
+        }
+    }
+    // 16,200 growing at 3% never reaches a million inside a century.
+    assert_eq!(fire.coast[0].months, None);
+    assert_eq!(
+        fire.coast[2].months,
+        months_to_fire(16200.0, 0.0, 999_999.0, 0.07)
+    );
+
+    // Saving 25% and 50% more, priced at the middle rate.
+    let extra: Vec<Decimal> = fire.steps.iter().map(|s| s.extra).collect();
+    assert_eq!(extra, vec![dec("500.00"), dec("1000.00")]);
+    let middle = fire.scenarios[1].months.unwrap();
+    for step in &fire.steps {
+        assert!(step.months.unwrap() < middle);
+    }
+    assert!(fire.steps[1].months < fire.steps[0].months);
+
+    // No fixed costs priced yet, so there is no lean target.
+    assert_eq!(fire.lean_number, None);
+}
+
+#[test]
+fn net_worth_splits_cash_from_holdings() {
+    let view = ledger().reports_view((2026, 4, 15), 3, "USD");
+
+    // January: 11,000 in checking, 2,000 of VTI at the January price.
+    let jan = &view.net_worth[0];
+    assert_eq!(jan.cash, dec("11000.00"));
+    assert_eq!(jan.holdings, dec("2000.00"));
+    assert_eq!(jan.cash + jan.holdings, jan.assets);
+
+    // March revalues the holding without touching the cash.
+    let mar = &view.net_worth[2];
+    assert_eq!(mar.cash, dec("14000.00"));
+    assert_eq!(mar.holdings, dec("2200.00"));
+}
+
+#[test]
+fn growth_separates_what_you_saved_from_what_the_market_did() {
+    let view = ledger().reports_view((2026, 4, 15), 3, "USD");
+    let points = &view.growth.points;
+
+    // January: net worth 0 → 12,000. 2,000 of it was saved, 10,000
+    // walked in as an opening balance, and the market did nothing.
+    assert_eq!(points[0].month, m("2026-01"));
+    assert_eq!(points[0].delta, dec("12000.00"));
+    assert_eq!(points[0].saved, dec("2000.00"));
+    assert_eq!(points[0].equity, dec("10000.00"));
+    assert_eq!(points[0].market, dec("0"));
+
+    // February: pure saving, no equity, no price move.
+    assert_eq!(points[1].delta, dec("2000.00"));
+    assert_eq!(points[1].saved, dec("2000.00"));
+    assert_eq!(points[1].market, dec("0"));
+
+    // March: saved 2,000 and VTI went 100 → 110 on 20 shares.
+    assert_eq!(points[2].saved, dec("2000.00"));
+    assert_eq!(points[2].market, dec("200.00"));
+    assert_eq!(points[2].delta, dec("2200.00"));
+
+    // April is quiet on every axis.
+    assert_eq!(points[3].delta, dec("0"));
+    assert_eq!(points[3].market, dec("0"));
+
+    // Every month reconciles.
+    for p in points {
+        assert_eq!(p.delta, p.saved + p.equity + p.market, "{}", p.month);
+    }
+
+    // The window totals cover January through March.
+    let g = &view.growth;
+    assert_eq!(g.window, Some((m("2026-01"), m("2026-03"))));
+    assert_eq!(g.saved, dec("6000.00"));
+    assert_eq!(g.equity, dec("10000.00"));
+    assert_eq!(g.market, dec("200.00"));
+    assert_eq!(g.delta, dec("16200.00"));
+    // 200 over the mean of 12,000 / 14,000 / 16,200 — 14,066.67.
+    assert_eq!(g.implied_return, Some(dec("0.0142")));
+}
+
+#[test]
+fn unpriced_commodities_are_named_and_void_the_implied_return() {
+    let view = fixture("unpriced").reports_view((2026, 2, 15), 3, "USD");
+
+    // Nothing prices ADA, so every ADA amount drops out on the way to
+    // USD — on both sides of the ledger.
+    assert_eq!(view.unpriced, vec!["ADA".to_string()]);
+    assert_eq!(view.growth.unpriced, vec!["ADA".to_string()]);
+
+    // The grant never lands as income, but the rent it paid for does
+    // land as spend.
+    let cf = &view.cashflow[0];
+    assert_eq!(cf.income, dec("0"));
+    assert_eq!(cf.expenses, dec("2000.00"));
+
+    // Meanwhile 30,000 walked into checking with no flow to explain it,
+    // so the residual reports a month of pure market gain that never
+    // happened.
+    let g = &view.growth.points[0];
+    assert_eq!(g.delta, dec("28000.00"));
+    assert_eq!(g.saved, dec("-2000.00"));
+    assert_eq!(g.market, dec("30000.00"));
+
+    // Which is exactly why the return is not reported: the inputs it
+    // would be computed from are known to be incomplete.
+    assert_eq!(view.growth.implied_return, None);
+}
+
+#[test]
+fn a_fully_priced_ledger_reports_nothing_unpriced() {
+    let view = ledger().reports_view((2026, 4, 15), 3, "USD");
+    assert!(view.unpriced.is_empty());
+    assert!(view.growth.unpriced.is_empty());
+    assert!(view.growth.implied_return.is_some());
 }

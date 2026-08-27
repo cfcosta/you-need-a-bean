@@ -15,6 +15,7 @@ use axum::routing::get;
 use axum::{Json, Router};
 use bean_core::model::{Day, Ledger, MonthKey, Txn};
 use bean_core::query::{AccountRow, CategoryRow, Group};
+use bean_core::reports::FireScenario;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use serde_json::{Map, Value, json};
@@ -271,6 +272,8 @@ async fn reports(
             json!({
                 "month": p.month.to_string(),
                 "assets": num(p.assets),
+                "cash": num(p.cash),
+                "holdings": num(p.holdings),
                 "liabilities": num(p.liabilities),
                 "net": num(p.net),
             })
@@ -289,13 +292,29 @@ async fn reports(
         })
         .collect();
     let fire = &view.fire;
-    let scenarios: Vec<Value> = fire
-        .scenarios
+    let scenarios = scenarios_json(&fire.scenarios);
+    let coast = scenarios_json(&fire.coast);
+    let steps: Vec<Value> = fire
+        .steps
         .iter()
         .map(|s| {
             json!({
-                "rate": s.rate,
+                "extra": num(s.extra),
                 "months": s.months.map_or(Value::Null, |m| json!(m)),
+            })
+        })
+        .collect();
+    let growth: Vec<Value> = view
+        .growth
+        .points
+        .iter()
+        .map(|p| {
+            json!({
+                "month": p.month.to_string(),
+                "delta": num(p.delta),
+                "saved": num(p.saved),
+                "equity": num(p.equity),
+                "market": num(p.market),
             })
         })
         .collect();
@@ -309,9 +328,7 @@ async fn reports(
         "net_worth": net_worth,
         "cashflow": cashflow,
         "fire": {
-            "window": fire.window.map_or(Value::Null, |(from, to)| {
-                json!([from.to_string(), to.to_string()])
-            }),
+            "window": window_json(fire.window),
             "monthly_spend": num(fire.monthly_spend),
             "annual_spend": num(fire.annual_spend),
             "fire_number": num(fire.fire_number),
@@ -320,11 +337,29 @@ async fn reports(
             "monthly_savings": num(fire.monthly_savings),
             "swr_monthly": num(fire.swr_monthly),
             "scenarios": scenarios,
+            "coast": coast,
+            "steps": steps,
+            "lean_number": opt_num(fire.lean_number),
+            "lean_progress": ratio_json(fire.lean_progress),
         },
+        "runway": {
+            "liquid": num(view.runway.liquid),
+            "months": opt_num(view.runway.months),
+            "lean_months": opt_num(view.runway.lean_months),
+        },
+        "growth": {
+            "window": window_json(view.growth.window),
+            "saved": num(view.growth.saved),
+            "equity": num(view.growth.equity),
+            "market": num(view.growth.market),
+            "delta": num(view.growth.delta),
+            "implied_return": ratio_json(view.growth.implied_return),
+            "unpriced": view.growth.unpriced,
+            "points": growth,
+        },
+        "unpriced": view.unpriced,
         "year": {
-            "window": view.year_window.map_or(Value::Null, |(from, to)| {
-                json!([from.to_string(), to.to_string()])
-            }),
+            "window": window_json(view.year_window),
             "groups": year_groups,
         },
     })))
@@ -496,6 +531,25 @@ fn amounts_json(amounts: &[(String, Decimal)]) -> Value {
 }
 
 /// Money as JSON: rounded to cents, always a float.
+fn scenarios_json(scenarios: &[FireScenario]) -> Vec<Value> {
+    scenarios
+        .iter()
+        .map(|s| {
+            json!({
+                "rate": s.rate,
+                "months": s.months.map_or(Value::Null, |m| json!(m)),
+            })
+        })
+        .collect()
+}
+
+/// A trailing window as `[from, to]`, or null when there is none.
+fn window_json(window: Option<(MonthKey, MonthKey)>) -> Value {
+    window.map_or(Value::Null, |(from, to)| {
+        json!([from.to_string(), to.to_string()])
+    })
+}
+
 fn num(value: Decimal) -> Value {
     json!(value.round_dp(2).to_f64())
 }

@@ -156,6 +156,8 @@ async fn reports_endpoint_shapes_series_and_fire() {
         json!({
             "month": "2025-12",
             "assets": -30.0,
+            "cash": -30.0,
+            "holdings": 0.0,
             "liabilities": -100.0,
             "net": -130.0
         })
@@ -164,6 +166,41 @@ async fn reports_endpoint_shapes_series_and_fire() {
     // VACHR) stay out of the convertible total.
     assert_eq!(net_worth[8]["month"], json!("2026-08"));
     assert_eq!(net_worth[8]["net"], json!(-56.0));
+
+    // The commodities left out of that total are named rather than
+    // silently dropped, and while any is missing the growth split
+    // withholds the return it cannot compute honestly.
+    assert_eq!(body["unpriced"], json!(["VACHR", "VEA"]));
+    assert_eq!(body["growth"]["unpriced"], json!(["VACHR", "VEA"]));
+    assert_eq!(body["growth"]["implied_return"], json!(null));
+
+    // Every month's move splits into saving, capital in, and the rest.
+    let growth = body["growth"]["points"].as_array().unwrap();
+    assert_eq!(growth.len(), 9);
+    for p in growth {
+        let f = |k: &str| p[k].as_f64().unwrap();
+        assert!(
+            (f("saved") + f("equity") + f("market") - f("delta")).abs() < 1e-9,
+            "{p} does not reconcile"
+        );
+    }
+
+    // Runway is cash against the same monthly spend FIRE uses.
+    let runway = &body["runway"];
+    assert!(runway["liquid"].is_number());
+    assert_eq!(runway["lean_months"], json!(null));
+
+    // Coasting is priced at the same three rates as the saving path.
+    let rates = |k: &str| -> Vec<f64> {
+        body["fire"][k]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["rate"].as_f64().unwrap())
+            .collect()
+    };
+    assert_eq!(rates("coast"), rates("scenarios"));
+    assert_eq!(body["fire"]["lean_number"], json!(null));
 
     let cashflow = body["cashflow"].as_array().unwrap();
     assert_eq!(cashflow.len(), 9);

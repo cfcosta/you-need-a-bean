@@ -1,0 +1,23 @@
+; A ledger whose income arrives in a commodity nothing prices. The
+; spending is in the operating currency, so the flows read as a pure
+; loss while the cash a conversion brings in has no transaction behind
+; it — the shape the trust reporting has to catch.
+option "title" "Unpriced"
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Checking  USD
+2026-01-01 open Assets:Crypto    ADA
+2026-01-01 open Income:Grant     ADA
+2026-01-01 open Expenses:Rent    USD
+
+2026-01-05 * "Grant"
+  Income:Grant   -60000 ADA
+  Assets:Crypto
+
+2026-01-10 * "Rent"
+  Expenses:Rent  2000.00 USD
+  Assets:Checking
+
+2026-01-20 * "Convert: 50000 ADA → 30000 USD"
+  Assets:Checking  30000.00 USD @@ 50000 ADA
+  Assets:Crypto   -50000 ADA

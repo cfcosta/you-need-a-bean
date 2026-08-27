@@ -799,6 +799,35 @@ a:focus-visible {
   color: var(--muted);
   margin-top: 1px;
 }
+.scenario .coast {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.fire-steps {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 10px;
+}
+.fire-steps .step {
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.fire-steps .step::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  border-radius: 99px;
+  background: var(--good);
+  vertical-align: 1px;
+}
 .fine {
   margin-top: 12px;
   font-size: 10px;
@@ -830,9 +859,23 @@ a:focus-visible {
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
-.chart-svg .nw-area {
+.chart-svg .nw-cash {
   fill: var(--accent);
-  opacity: 0.13;
+  opacity: 0.16;
+}
+.chart-svg .nw-holdings {
+  fill: var(--bean);
+  opacity: 0.26;
+}
+.chart-svg .nw-debt {
+  fill: var(--over);
+  opacity: 0.2;
+}
+.chart-svg .gr-bar.saved {
+  fill: var(--accent);
+}
+.chart-svg .gr-bar.market {
+  fill: var(--bean);
 }
 .chart-svg .nw-line {
   fill: none;
@@ -858,6 +901,63 @@ a:focus-visible {
   stroke-width: 1.8;
   stroke-linejoin: round;
 }
+.notice {
+  border: 1px solid var(--warn-track);
+  background: var(--warn-tint);
+  border-radius: 10px;
+  padding: 10px 13px;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.notice b {
+  font-weight: 650;
+  color: var(--warn-text);
+}
+.notice code {
+  font-size: 11px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 8px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.key .sw {
+  width: 9px;
+  height: 9px;
+  border-radius: 2.5px;
+}
+.key .sw.cash,
+.key .sw.saved {
+  background: var(--accent);
+}
+.key .sw.holdings,
+.key .sw.market {
+  background: var(--bean);
+}
+.key .sw.debt {
+  background: var(--over);
+}
+.gr-stats {
+  margin-top: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 16px;
+}
+
 .report-grid {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
