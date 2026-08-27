@@ -158,10 +158,14 @@ impl Ledger {
             effective_sources: (concentration > Decimal::ZERO)
                 .then(|| (Decimal::ONE / concentration).round_dp(2)),
             passive,
-            passive_share: (total > Decimal::ZERO)
-                .then(|| (passive / total).round_dp(4)),
-            passive_cover: (spend > Decimal::ZERO)
-                .then(|| (passive / spend).round_dp(4)),
+            // Not rounded here, unlike the per-source shares. Passive
+            // income starts as a rounding error and grows out of one,
+            // so a hundredth of a percent is the whole of it for years
+            // — and these two are read side by side, where rounding
+            // both to nothing makes them look like the same number
+            // said twice. The serializer decides what survives.
+            passive_share: (total > Decimal::ZERO).then(|| passive / total),
+            passive_cover: (spend > Decimal::ZERO).then(|| passive / spend),
             declared,
             inferred,
         }

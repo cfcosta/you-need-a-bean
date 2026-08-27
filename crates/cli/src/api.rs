@@ -765,8 +765,19 @@ fn opt_num(value: Option<Decimal>) -> Value {
     value.map_or(Value::Null, num)
 }
 
+/// A share as JSON.
+///
+/// Four decimal places is a hundredth of a percent: enough for a share
+/// you can see on a bar, and far too coarse for one you cannot. Every
+/// share smaller than that would arrive as the same number, so a line
+/// carrying two of them would read as though it said one thing twice.
+/// Below a percent the digits the display needs to tell them apart
+/// survive the trip.
 fn ratio_json(ratio: Option<Decimal>) -> Value {
-    ratio.map_or(Value::Null, |r| json!(r.round_dp(4).to_f64()))
+    ratio.map_or(Value::Null, |r| {
+        let dp = if r.abs() < Decimal::new(1, 2) { 8 } else { 4 };
+        json!(r.round_dp(dp).to_f64())
+    })
 }
 
 fn format_day(day: Day) -> String {
@@ -797,7 +808,9 @@ fn civil_from_days(days: i64) -> Day {
 
 #[cfg(test)]
 mod tests {
-    use super::civil_from_days;
+    use serde_json::json;
+
+    use super::*;
 
     #[test]
     fn civil_from_days_matches_known_dates() {
@@ -805,5 +818,22 @@ mod tests {
         assert_eq!(civil_from_days(20_686), (2026, 8, 21));
         // A leap day.
         assert_eq!(civil_from_days(19_782), (2024, 2, 29));
+    }
+
+    #[test]
+    fn ratio_json_keeps_small_shares_apart() {
+        // Two fabricated sub-percent shares that coarse rounding must
+        // keep distinct.
+        let a = ratio_json(Some(Decimal::new(123, 6)));
+        let b = ratio_json(Some(Decimal::new(456, 6)));
+        assert_eq!(a, json!(0.000123));
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn ratio_json_rounds_a_visible_share_to_a_hundredth_of_a_percent() {
+        let r = ratio_json(Some(Decimal::new(123_456_789, 9)));
+        assert_eq!(r, json!(0.1235));
+        assert_eq!(ratio_json(None), Value::Null);
     }
 }

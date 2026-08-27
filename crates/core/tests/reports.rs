@@ -683,7 +683,14 @@ fn income_splits_by_source_and_measures_what_arrives_on_its_own() {
     assert_eq!(income.effective_sources, Some(dec("1.43")));
 
     assert_eq!(income.passive, dec("8000.00"));
-    assert_eq!(income.passive_share, Some(dec("0.0925")));
+    // These two are kept at full precision, because they are read
+    // beside each other and passive income spends years small enough
+    // that a hundredth of a percent would round both to nothing and
+    // make them look like one number said twice.
+    assert_eq!(
+        income.passive_share.map(|r| r.round_dp(6)),
+        Some(dec("0.092486"))
+    );
     // 8,000 against 40,000 of spending: a fifth of the bill already
     // pays itself.
     assert_eq!(income.passive_cover, Some(dec("0.2")));
