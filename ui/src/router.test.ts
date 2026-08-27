@@ -23,6 +23,7 @@ describe("parseRoute", () => {
       basis: null,
       cur: null,
       cat: null,
+      acct: null,
     });
     expect(parseRoute(at("/budget")).month).toBeNull();
     expect(parseRoute(at("/budget/2026-02")).month).toBe("2026-02");
@@ -47,6 +48,22 @@ describe("parseRoute", () => {
     expect(parseRoute(at("/?basis=six")).basis).toBeNull();
     // Reports has no category pane, so a stray cat is not ours to keep.
     expect(parseRoute(at("/reports?cat=Expenses%3AFun")).cat).toBeNull();
+    expect(
+      parseRoute(at("/account/Assets%3ACash?cat=Expenses%3AFun")).cat,
+    ).toBeNull();
+  });
+
+  test("reads an account off the path", () => {
+    const r = parseRoute(at("/account/Assets%3AUS%3ABofA%3AChecking"));
+    expect(r.page).toBe("account");
+    expect(r.acct).toBe("Assets:US:BofA:Checking");
+    expect(r.month).toBeNull();
+    expect(parseRoute(at("/account/Assets%3ACash/2026-02")).month).toBe(
+      "2026-02",
+    );
+    // An account page with no account on it is not a page.
+    expect(parseRoute(at("/account")).page).toBe("budget");
+    expect(parseRoute(at("/reports")).acct).toBeNull();
   });
 });
 
@@ -58,6 +75,7 @@ describe("resolveRoute", () => {
       basis: 6,
       cur: "USD",
       cat: null,
+      acct: null,
     });
   });
 
@@ -72,6 +90,22 @@ describe("resolveRoute", () => {
       basis: 3,
       cur: "EUR",
       cat: "Expenses:Fun",
+      acct: null,
+    });
+  });
+
+  test("keeps the account the path named", () => {
+    const r = resolveRoute(
+      parseRoute(at("/account/Assets%3ACash/2026-01")),
+      DEFAULTS,
+    );
+    expect(r).toEqual({
+      page: "account",
+      month: "2026-01",
+      basis: 6,
+      cur: "USD",
+      cat: null,
+      acct: "Assets:Cash",
     });
   });
 
@@ -90,6 +124,7 @@ describe("routeUrl", () => {
     basis: 6,
     cur: "USD",
     cat: null,
+    acct: null,
     ...over,
   });
 
@@ -110,6 +145,25 @@ describe("routeUrl", () => {
     );
   });
 
+  test("spells the account into the path", () => {
+    expect(
+      routeUrl(
+        state({ page: "account", acct: "Assets:US:BofA:Checking" }),
+        DEFAULTS,
+      ),
+    ).toBe("/account/Assets%3AUS%3ABofA%3AChecking");
+    expect(
+      routeUrl(
+        state({ page: "account", acct: "Assets:Cash", month: "2026-01" }),
+        DEFAULTS,
+      ),
+    ).toBe("/account/Assets%3ACash/2026-01");
+  });
+
+  test("has nowhere to send an account page with no account", () => {
+    expect(routeUrl(state({ page: "account" }), DEFAULTS)).toBe("/");
+  });
+
   test("drops the category on the page that has no inspector", () => {
     expect(routeUrl(state({ page: "reports", cat: "Expenses:Fun" }), DEFAULTS)).toBe(
       "/reports",
@@ -121,6 +175,8 @@ describe("routeUrl", () => {
       state(),
       state({ page: "reports", basis: 3 }),
       state({ month: "2025-12", cur: "EUR", cat: "Expenses:Fun" }),
+      state({ page: "account", acct: "Assets:Cash" }),
+      state({ page: "account", acct: "Assets:Cash", month: "2026-01" }),
     ]) {
       expect(resolveRoute(parseRoute(at(routeUrl(s, DEFAULTS))), DEFAULTS)).toEqual(
         s,

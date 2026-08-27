@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use bean_core::loader::load;
-use bean_core::model::{Ledger, MonthKey};
+use bean_core::model::{AccountKind, Ledger, MonthKey};
 use bean_core::query::Status;
 use rust_decimal::Decimal;
 
@@ -371,4 +371,92 @@ fn months_range_and_default_month_clamp() {
 
     // Today inside the range is the default as-is.
     assert_eq!(ledger.default_month((2026, 2, 10)), m("2026-02"));
+}
+
+#[test]
+fn account_view_reads_a_month_as_money_in_and_out() {
+    let ledger = ledger();
+    let view = ledger
+        .account_view("Assets:Cash", m("2026-02"), 3, "USD")
+        .unwrap();
+
+    assert_eq!(view.label, "Cash");
+    assert_eq!(view.kind, AccountKind::Budget);
+    // February opened on what January closed at, took 20 back and let
+    // 50 go. The header prints that as a sentence, so it has to add up.
+    assert_eq!(view.opening, Some(dec("-336")));
+    assert_eq!(view.inflow, dec("20"));
+    assert_eq!(view.outflow, dec("50"));
+    assert_eq!(view.converted, Some(dec("-366")));
+    assert_eq!(view.balances, vec![("USD".to_string(), dec("-366"))]);
+    assert!(view.unpriced.is_empty());
+
+    // The chart's window is the basis, ending at the month on screen.
+    let months: Vec<String> =
+        view.history.iter().map(|p| p.month.to_string()).collect();
+    assert_eq!(months, vec!["2025-12", "2026-01", "2026-02"]);
+    let flows: Vec<(Decimal, Decimal)> =
+        view.history.iter().map(|p| (p.inflow, p.outflow)).collect();
+    assert_eq!(
+        flows,
+        vec![
+            (dec("0"), dec("30")),
+            (dec("0"), dec("306")),
+            (dec("20"), dec("50")),
+        ]
+    );
+    let closes: Vec<Option<Decimal>> =
+        view.history.iter().map(|p| p.balance).collect();
+    assert_eq!(
+        closes,
+        vec![Some(dec("-30")), Some(dec("-336")), Some(dec("-366"))]
+    );
+
+    // Every row carries the balance it left behind, so the register
+    // reads down its last column the way a statement does.
+    let rows: Vec<(&str, Option<Decimal>, Option<Decimal>)> = view
+        .entries
+        .iter()
+        .map(|e| (e.txn.narration.as_deref().unwrap_or(""), e.delta, e.balance))
+        .collect();
+    assert_eq!(
+        rows,
+        vec![
+            ("Feb shop", Some(dec("-50")), Some(dec("-386"))),
+            ("Refund", Some(dec("20")), Some(dec("-366"))),
+        ]
+    );
+
+    assert!(
+        ledger
+            .account_view("Assets:Nope", m("2026-02"), 3, "USD")
+            .is_none()
+    );
+}
+
+#[test]
+fn account_view_leaves_a_hole_where_a_price_is_missing() {
+    let ledger = ledger();
+    let view = ledger
+        .account_view("Assets:Points", m("2026-03"), 3, "USD")
+        .unwrap();
+
+    assert_eq!(view.kind, AccountKind::Tracking);
+    assert_eq!(view.balances, vec![("VACHR".to_string(), dec("-3"))]);
+    // Nothing prices a voucher hour. A zero in the money columns would
+    // read as "nothing moved", which is the one thing that isn't true.
+    assert_eq!(view.converted, None);
+    assert_eq!(view.unpriced, vec!["VACHR".to_string()]);
+    assert_eq!(view.inflow, dec("0"));
+    assert_eq!(view.outflow, dec("0"));
+    assert_eq!(view.entries.len(), 1);
+    assert_eq!(view.entries[0].delta, None);
+    assert_eq!(view.entries[0].balance, None);
+
+    // Holding nothing yet is a balance of zero, not an unknown one:
+    // the hole starts where the unpriced commodity does.
+    assert_eq!(view.opening, Some(dec("0")));
+    let closes: Vec<Option<Decimal>> =
+        view.history.iter().map(|p| p.balance).collect();
+    assert_eq!(closes, vec![Some(dec("0")), Some(dec("0")), None]);
 }

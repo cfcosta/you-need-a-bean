@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { CategoryView, MonthView, ReportsView, Summary } from "./api";
-import { getCategory, getMonth, getReports, getSummary } from "./api";
+import type {
+  AccountView,
+  CategoryView,
+  MonthView,
+  ReportsView,
+  Summary,
+} from "./api";
+import {
+  getAccount,
+  getCategory,
+  getMonth,
+  getReports,
+  getSummary,
+} from "./api";
+import { Account } from "./components/Account";
 import { BudgetTable } from "./components/BudgetTable";
 import { Inspector } from "./components/Inspector";
 import { Reports } from "./components/Reports";
@@ -24,12 +37,14 @@ export function App() {
   const [basis, setBasis] = useState(DEFAULT_BASIS);
   const [cur, setCur] = useState<string | null>(null);
   const [cat, setCat] = useState<string | null>(null);
+  const [acct, setAcct] = useState<string | null>(null);
   // The auto-picked category is an implementation detail; only one the
   // reader chose is worth putting in the URL.
   const [catChosen, setCatChosen] = useState(false);
   const [view, setView] = useState<MonthView | null>(null);
   const [reports, setReports] = useState<ReportsView | null>(null);
   const [catView, setCatView] = useState<CategoryView | null>(null);
+  const [acctView, setAcctView] = useState<AccountView | null>(null);
   const [openTxns, setOpenTxns] = useState<ReadonlySet<number>>(new Set());
   const [closedGroups, setClosedGroups] = useState<ReadonlySet<string>>(
     new Set(),
@@ -40,7 +55,11 @@ export function App() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Where the URL last pointed, so the next write knows whether it is a
   // navigation (new history entry) or a change of view (rewrite).
-  const wasAt = useRef<{ page: Page; month: string } | null>(null);
+  const wasAt = useRef<{
+    page: Page;
+    month: string;
+    acct: string | null;
+  } | null>(null);
   // What the last poll saw of the server's reading of the ledger, so a
   // reload is noticed exactly once.
   const seen = useRef<{ revision: number; error: string | null } | null>(null);
@@ -67,6 +86,7 @@ export function App() {
         setBasis(r.basis);
         setCur(r.cur);
         setCat(r.cat);
+        setAcct(r.acct);
         if (s.title != null) document.title = `${s.title} — you need a bean`;
       })
       .catch((e: Error) => alive && setFatal(e.message));
@@ -118,18 +138,20 @@ export function App() {
   useEffect(() => {
     if (summary == null || month == null || cur == null) return;
     const url = routeUrl(
-      { page, month, basis, cur, cat: catChosen ? cat : null },
+      { page, month, basis, cur, cat: catChosen ? cat : null, acct },
       summary,
     );
     if (url !== location.pathname + location.search) {
       const moved =
         wasAt.current != null &&
-        (wasAt.current.page !== page || wasAt.current.month !== month);
+        (wasAt.current.page !== page ||
+          wasAt.current.month !== month ||
+          wasAt.current.acct !== acct);
       if (moved) history.pushState(null, "", url);
       else history.replaceState(null, "", url);
     }
-    wasAt.current = { page, month };
-  }, [summary, page, month, basis, cur, cat, catChosen]);
+    wasAt.current = { page, month, acct };
+  }, [summary, page, month, basis, cur, cat, catChosen, acct]);
 
   useEffect(() => {
     if (summary == null) return;
@@ -137,13 +159,14 @@ export function App() {
       const r = resolveRoute(parseRoute(location), summary);
       // The browser already moved us, so this is where we now are: the
       // writer above must not answer it with another history entry.
-      wasAt.current = { page: r.page, month: r.month };
+      wasAt.current = { page: r.page, month: r.month, acct: r.acct };
       setCatChosen(r.cat != null);
       setPage(r.page);
       setMonth(r.month);
       setBasis(r.basis);
       setCur(r.cur);
       setCat(r.cat);
+      setAcct(r.acct);
       setOpenTxns(new Set());
     };
     addEventListener("popstate", onPop);
@@ -193,6 +216,21 @@ export function App() {
     };
   }, [cat, month, basis, cur, revision]);
 
+  useEffect(() => {
+    if (acct == null || month == null || cur == null) return;
+    let alive = true;
+    getAccount(acct, month, basis, cur)
+      .then((v) => alive && setAcctView(v))
+      .catch((e: Error) => {
+        if (!alive) return;
+        setAcctView(null);
+        showToast(e.message);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [acct, month, basis, cur, revision]);
+
   if (fatal != null) {
     return <div className="empty">cannot reach the ledger server: {fatal}</div>;
   }
@@ -233,24 +271,38 @@ export function App() {
     setPage(p);
     setSidebarOpen(false);
   };
+  const openAccount = (account: string) => {
+    setPage("account");
+    setAcct(account);
+    setOpenTxns(new Set());
+    setSidebarOpen(false);
+  };
   // Real links in the nav, so the browser's own gestures work.
   const hrefFor = (p: Page) =>
     routeUrl(
-      { page: p, month, basis, cur, cat: catChosen ? cat : null },
+      { page: p, month, basis, cur, cat: catChosen ? cat : null, acct },
+      summary,
+    );
+  const acctHref = (account: string) =>
+    routeUrl(
+      { page: "account", month, basis, cur, cat: null, acct: account },
       summary,
     );
 
   return (
     <>
-      <div id="app" className={page === "reports" ? "no-insp" : ""}>
+      <div id="app" className={page === "budget" ? "" : "no-insp"}>
         <Sidebar
           summary={summary}
           view={view}
           cur={cur}
           open={sidebarOpen}
           page={page}
+          acct={acct}
           href={hrefFor}
+          acctHref={acctHref}
           onNavigate={navigate}
+          onAccount={openAccount}
         />
         <main id="main">
           <Topbar
@@ -295,6 +347,18 @@ export function App() {
               <Reports data={reports} cur={cur} />
             ) : (
               <div className="empty">crunching the numbers…</div>
+            ))}
+          {page === "account" &&
+            (acctView != null && acctView.account === acct ? (
+              <Account
+                view={acctView}
+                cur={cur}
+                month={month}
+                openTxns={openTxns}
+                onToggleTxn={toggleTxn}
+              />
+            ) : (
+              <div className="empty">reading the account…</div>
             ))}
         </main>
         {page === "budget" && (

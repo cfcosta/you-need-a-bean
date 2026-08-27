@@ -1,5 +1,6 @@
 import type { MonthView, Summary } from "../api";
 import { monthName, windowLabel } from "../format";
+import type { Page } from "../router";
 
 const BASES = [3, 6, 12] as const;
 
@@ -22,7 +23,7 @@ export function Topbar({
   basis: number;
   cur: string;
   window: [string, string] | null;
-  page: "budget" | "reports";
+  page: Page;
   onMonth: (m: string) => void;
   onBasis: (b: number) => void;
   onCur: (c: string) => void;
@@ -98,16 +99,22 @@ export function Topbar({
       </div>
       )}
       <div className="topbar-right">
-        <span className="seg-label">Target</span>
+        {/* The same window, read two ways: the months a target is
+            taken from, and the months an account's chart covers. */}
+        <span className="seg-label">
+          {page === "account" ? "History" : "Target"}
+        </span>
         <div className="seg" role="group" aria-label="Average window">
           {BASES.map((b) => (
             <button
               key={b}
               className={b === basis ? "on" : ""}
               title={
-                b === basis
-                  ? `The median month with spending in the previous ${b} (${windowLabel(window)})`
-                  : `The median month with spending in the previous ${b}`
+                page === "account"
+                  ? `The last ${b} months of this account`
+                  : b === basis
+                    ? `The median month with spending in the previous ${b} (${windowLabel(window)})`
+                    : `The median month with spending in the previous ${b}`
               }
               onClick={() => onBasis(b)}
             >

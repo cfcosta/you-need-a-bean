@@ -5,7 +5,7 @@
  * state should look like as a URL.
  */
 
-export type Page = "budget" | "reports";
+export type Page = "budget" | "reports" | "account";
 
 /** The bases the month picker offers. */
 export const BASES = [3, 6, 12];
@@ -19,6 +19,8 @@ export interface Route {
   basis: number | null;
   cur: string | null;
   cat: string | null;
+  /** The account whose register is on screen; only one page has one. */
+  acct: string | null;
 }
 
 /** A fully decided route — what the app actually renders. */
@@ -28,6 +30,7 @@ export interface RouteState {
   basis: number;
   cur: string;
   cat: string | null;
+  acct: string | null;
 }
 
 /** The parts of the summary a route is measured against. */
@@ -44,16 +47,26 @@ export function parseRoute(loc: {
   pathname: string;
   search: string;
 }): Route {
-  const [head, tail] = loc.pathname.split("/").filter(Boolean);
+  const [head, ...rest] = loc.pathname.split("/").filter(Boolean);
   const q = new URLSearchParams(loc.search);
-  const page: Page = head === "reports" ? "reports" : "budget";
+  // An account name is full of colons, so it travels encoded — and it
+  // takes the segment the month sits in everywhere else, which pushes
+  // the month one along.
+  const acct =
+    head === "account" && rest[0] != null
+      ? decodeURIComponent(rest[0])
+      : null;
+  const page: Page =
+    head === "reports" ? "reports" : acct != null ? "account" : "budget";
+  const month = acct != null ? rest[1] : rest[0];
   const basis = Number(q.get("basis"));
   return {
     page,
-    month: tail != null && MONTH.test(tail) ? tail : null,
+    month: month != null && MONTH.test(month) ? month : null,
     basis: BASES.includes(basis) ? basis : null,
     cur: q.get("cur"),
     cat: page === "budget" ? q.get("cat") : null,
+    acct,
   };
 }
 
@@ -71,6 +84,7 @@ export function resolveRoute(r: Route, d: RouteDefaults): RouteState {
         ? r.cur
         : fallbackCur,
     cat: r.cat,
+    acct: r.acct,
   };
 }
 
@@ -81,12 +95,18 @@ export function routeUrl(s: RouteState, d: RouteDefaults): string {
   if (s.basis !== DEFAULT_BASIS) q.set("basis", String(s.basis));
   if (s.cur !== (d.operating_currencies[0] ?? "USD")) q.set("cur", s.cur);
   if (s.page === "budget" && s.cat != null) q.set("cat", s.cat);
-  const path =
-    s.page === "reports"
-      ? "/reports"
-      : s.month === d.default_month
-        ? "/"
-        : `/budget/${s.month}`;
   const query = q.toString();
+  const path = pagePath(s, d);
   return query === "" ? path : `${path}?${query}`;
+}
+
+/** The path half of the URL: which page, and which month of it. */
+function pagePath(s: RouteState, d: RouteDefaults): string {
+  if (s.page === "reports") return "/reports";
+  // An account page with no account is nowhere; the budget is home.
+  if (s.page === "account" && s.acct != null) {
+    const at = `/account/${encodeURIComponent(s.acct)}`;
+    return s.month === d.default_month ? at : `${at}/${s.month}`;
+  }
+  return s.month === d.default_month ? "/" : `/budget/${s.month}`;
 }

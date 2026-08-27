@@ -17,10 +17,16 @@ function AccountList({
   title,
   rows,
   cur,
+  active,
+  href,
+  onOpen,
 }: {
   title: string;
   rows: AccountRow[];
   cur: string;
+  active: string | null;
+  href: (account: string) => string;
+  onOpen: (account: string) => void;
 }) {
   // The server already hides zero-balance accounts.
   if (rows.length === 0) return null;
@@ -39,14 +45,25 @@ function AccountList({
         const shown =
           single != null ? (a.balances[single] ?? 0) : (a.converted ?? 0);
         return (
-          <button key={a.account} className="acct-row" title={a.account}>
+          <a
+            key={a.account}
+            className={`acct-row${a.account === active ? " active" : ""}`}
+            title={a.account}
+            href={href(a.account)}
+            aria-current={a.account === active ? "page" : undefined}
+            onClick={(e) => {
+              if (!plain(e)) return;
+              e.preventDefault();
+              onOpen(a.account);
+            }}
+          >
             <span className="acct-name">
               <span className="p">{a.label}</span>
             </span>
             <span className={`acct-amt num${shown < 0 ? " neg" : ""}`}>
               {single != null ? fmt(shown, single) : `≈ ${fmt(shown, cur)}`}
             </span>
-          </button>
+          </a>
         );
       })}
     </div>
@@ -59,16 +76,23 @@ export function Sidebar({
   cur,
   open,
   page,
+  acct,
   href,
+  acctHref,
   onNavigate,
+  onAccount,
 }: {
   summary: Summary;
   view: MonthView | null;
   cur: string;
   open: boolean;
   page: Page;
+  /** The account whose register is on screen, so its row can say so. */
+  acct: string | null;
   href: (page: Page) => string;
+  acctHref: (account: string) => string;
   onNavigate: (page: Page) => void;
+  onAccount: (account: string) => void;
 }) {
   return (
     <nav
@@ -161,11 +185,17 @@ export function Sidebar({
             title="Budget accounts"
             rows={view.accounts.budget}
             cur={cur}
+            active={page === "account" ? acct : null}
+            href={acctHref}
+            onOpen={onAccount}
           />
           <AccountList
             title="Tracking"
             rows={view.accounts.tracking}
             cur={cur}
+            active={page === "account" ? acct : null}
+            href={acctHref}
+            onOpen={onAccount}
           />
         </>
       )}

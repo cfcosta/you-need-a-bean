@@ -100,6 +100,56 @@ pub struct CategoryView<'a> {
     pub txns: Vec<&'a Txn>,
 }
 
+/// One month of an account's register: what came in, what went out,
+/// and what it was left holding.
+#[derive(Debug, Clone)]
+pub struct AccountPoint {
+    pub month: MonthKey,
+    pub inflow: Decimal,
+    pub outflow: Decimal,
+    /// Closing balance converted at that month's end; `None` when
+    /// something it holds has no price.
+    pub balance: Option<Decimal>,
+}
+
+/// One line of the register.
+#[derive(Debug)]
+pub struct AccountEntry<'a> {
+    pub txn: &'a Txn,
+    /// What this transaction did to the account, converted. `None`
+    /// when a leg of it has no price in the display currency.
+    pub delta: Option<Decimal>,
+    /// The balance it left behind. `None` from the first entry whose
+    /// delta could not be converted onwards — a running total with a
+    /// hole in it is not a balance.
+    pub balance: Option<Decimal>,
+}
+
+/// An asset or liability account over one month: the statement view,
+/// where money arriving and money leaving are the two things worth
+/// seeing and the balance is what they add up to.
+#[derive(Debug)]
+pub struct AccountView<'a> {
+    pub account: String,
+    pub label: String,
+    pub kind: AccountKind,
+    /// The balance the month opened on: the end of the month before.
+    pub opening: Option<Decimal>,
+    /// What it holds at the end of this one, per commodity.
+    pub balances: Vec<(String, Decimal)>,
+    /// The same, converted; `None` when nothing converts.
+    pub converted: Option<Decimal>,
+    /// This month's arrivals and departures, converted.
+    pub inflow: Decimal,
+    pub outflow: Decimal,
+    /// `basis` months ending at the selected one.
+    pub history: Vec<AccountPoint>,
+    pub entries: Vec<AccountEntry<'a>>,
+    /// Commodities this month moved that have no price in the display
+    /// currency, and so are missing from every figure above.
+    pub unpriced: Vec<String>,
+}
+
 impl Ledger {
     /// This month's posting sum converted to `cur` at month end.
     /// Unconvertible commodities are left out (they stay in the split).
@@ -370,6 +420,77 @@ impl Ledger {
         })
     }
 
+    /// The register for one account: the month's transactions with a
+    /// running balance, the flows on either side of it, and enough
+    /// history to see the shape.
+    pub fn account_view(
+        &self,
+        account: &str,
+        month: MonthKey,
+        basis: u32,
+        cur: &str,
+    ) -> Option<AccountView<'_>> {
+        let info = self.account(account)?;
+        let at = month.end_of_month();
+
+        let mut balances = self.balance_at(account, month);
+        self.sort_amounts(&mut balances, cur);
+        let unpriced: Vec<String> = self
+            .sums(account, month)
+            .iter()
+            .filter(|(c, _)| self.convert(Decimal::ONE, c, cur, at).is_none())
+            .map(|(c, _)| c.clone())
+            .collect();
+
+        let opening = self.balance_converted(account, month.prev(), cur);
+        let mut running = opening;
+        let mut inflow = Decimal::ZERO;
+        let mut outflow = Decimal::ZERO;
+        let mut entries = Vec::new();
+        for txn in self.txns(account, month) {
+            let delta = self.txn_delta(txn, account, cur, at);
+            match delta {
+                Some(d) if d > Decimal::ZERO => inflow += d,
+                Some(d) if d < Decimal::ZERO => outflow -= d,
+                _ => {}
+            }
+            running = running.zip(delta).map(|(r, d)| r + d);
+            entries.push(AccountEntry {
+                txn,
+                delta,
+                balance: running,
+            });
+        }
+
+        let history = (0..basis)
+            .rev()
+            .map(|back| {
+                let m = month.minus(back);
+                let (inflow, outflow) = self.flows(account, m, cur);
+                AccountPoint {
+                    month: m,
+                    inflow,
+                    outflow,
+                    balance: self.balance_converted(account, m, cur),
+                }
+            })
+            .collect();
+
+        Some(AccountView {
+            account: info.account.clone(),
+            label: info.label.clone(),
+            kind: info.kind,
+            opening,
+            converted: self.balance_converted(account, month, cur),
+            balances,
+            inflow,
+            outflow,
+            history,
+            entries,
+            unpriced,
+        })
+    }
+
     /// All months the UI can navigate: first transaction month through
     /// the later of the last transaction month and today.
     pub fn months_range(&self, today: Day) -> Vec<MonthKey> {
@@ -420,15 +541,7 @@ impl Ledger {
         month: MonthKey,
         cur: &str,
     ) -> AccountRow {
-        let mut balances: Vec<(String, Decimal)> = Vec::new();
-        for (_, sums) in self
-            .months_of(&info.account)
-            .take_while(|(m, _)| *m <= month)
-        {
-            for (c, v) in sums {
-                add_sum(&mut balances, c, *v);
-            }
-        }
+        let mut balances = self.balance_at(&info.account, month);
         self.sort_amounts(&mut balances, cur);
         let at = month.end_of_month();
         let parts: Vec<Decimal> = balances
@@ -442,6 +555,88 @@ impl Ledger {
             converted: (!parts.is_empty())
                 .then(|| cents(parts.iter().copied().sum())),
         }
+    }
+
+    /// Cumulative balance through the end of `month`, per commodity,
+    /// in whatever order the postings arrived in.
+    fn balance_at(
+        &self,
+        account: &str,
+        month: MonthKey,
+    ) -> Vec<(String, Decimal)> {
+        let mut balances: Vec<(String, Decimal)> = Vec::new();
+        for (_, sums) in
+            self.months_of(account).take_while(|(m, _)| *m <= month)
+        {
+            for (c, v) in sums {
+                add_sum(&mut balances, c, *v);
+            }
+        }
+        balances
+    }
+
+    /// The same converted at the month's end. An account that holds
+    /// nothing yet is at zero — the `None` is for a balance no price
+    /// can put a number on, not for an empty one.
+    fn balance_converted(
+        &self,
+        account: &str,
+        month: MonthKey,
+        cur: &str,
+    ) -> Option<Decimal> {
+        let at = month.end_of_month();
+        let balances = self.balance_at(account, month);
+        if balances.is_empty() {
+            return Some(Decimal::ZERO);
+        }
+        let parts: Vec<Decimal> = balances
+            .iter()
+            .filter_map(|(c, v)| self.convert(*v, c, cur, at))
+            .collect();
+        (!parts.is_empty()).then(|| cents(parts.iter().copied().sum()))
+    }
+
+    /// What one transaction did to one account, converted at the
+    /// month's end. `None` when any leg of it has no price: a partial
+    /// total would be a wrong one.
+    fn txn_delta(
+        &self,
+        txn: &Txn,
+        account: &str,
+        cur: &str,
+        at: Day,
+    ) -> Option<Decimal> {
+        let mut total = Decimal::ZERO;
+        for posting in &txn.postings {
+            if posting.account != account {
+                continue;
+            }
+            for (value, currency) in &posting.amounts {
+                total += self.convert(*value, currency, cur, at)?;
+            }
+        }
+        Some(cents(total))
+    }
+
+    /// A month's arrivals and departures, counted per transaction so
+    /// they add up to the rows the register shows.
+    fn flows(
+        &self,
+        account: &str,
+        month: MonthKey,
+        cur: &str,
+    ) -> (Decimal, Decimal) {
+        let at = month.end_of_month();
+        let mut inflow = Decimal::ZERO;
+        let mut outflow = Decimal::ZERO;
+        for txn in self.txns(account, month) {
+            match self.txn_delta(txn, account, cur, at) {
+                Some(d) if d > Decimal::ZERO => inflow += d,
+                Some(d) if d < Decimal::ZERO => outflow -= d,
+                _ => {}
+            }
+        }
+        (inflow, outflow)
     }
 
     /// Native per-currency spend for the month, display-currency first.
