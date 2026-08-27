@@ -141,6 +141,33 @@ Each line is one task: core computation (with tests) → API shape → card.
       unnamed share is stated in the headline, while the categories and
       months behind each name remain available on hover.
 
+- [x] **12 · Investments** — what the money is actually in: allocation by
+      asset class, positions ranked by value, and the gain against cost
+      for the ones that recorded a cost.
+      Allocation leads and the list follows, because "am I
+      concentrated" is the question a portfolio answers first and a
+      table sorted by value only implies it. The names and the classes
+      come from the ledger's `commodity` directives when present; the
+      model does not infer them from ticker symbols. The cost basis is
+      the hard part. A disposal
+      written `{}` takes units out of whichever lot is open, which
+      makes average cost the only honest reading, and per account,
+      because that is where beancount keeps an inventory: charging a
+      sale at one broker against shares bought at another produces a
+      basis nobody ever paid. It is an accounting figure and not a tax
+      basis, and the card says so rather than leaving a reader to
+      assume otherwise. Where the basis is missing it stays missing.
+      The synthetic fixture includes a position received without an
+      annotated purchase, because reading a missing basis as zero would
+      manufacture a gain. A position reports a
+      basis only when every unit it still holds arrived carrying one,
+      and the uncovered value sits in a box beside the gain rather
+      than in a footnote, so a return is never quoted over a portfolio
+      it does not cover. Dust folds at a tenth of a percent of the
+      portfolio — a relative floor, like task 4's, since an absolute
+      one assumes a currency — and folds out of the ranking only: it
+      stays in the total and in its class.
+
 ## Conventions these follow
 
 - Money is quantized to cents at the leaves, so displayed sums add up.

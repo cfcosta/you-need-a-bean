@@ -233,3 +233,79 @@ fn converts_with_direct_inverse_and_pivot_rates() {
         None
     );
 }
+
+#[test]
+fn indexes_what_commodity_directives_declared() {
+    let ledger = ledger();
+
+    let vea = ledger.commodity("VEA").expect("VEA is declared");
+    assert_eq!(vea.currency, "VEA");
+    assert_eq!(
+        vea.name.as_deref(),
+        Some("Vanguard FTSE Developed Markets ETF")
+    );
+    assert_eq!(vea.asset_class.as_deref(), Some("etf"));
+    assert_eq!(vea.quote_currency.as_deref(), Some("USD"));
+
+    // Declared and silent is not the same as undeclared: the ledger
+    // said the commodity exists and said nothing else about it.
+    let vachr = ledger.commodity("VACHR").expect("VACHR is declared");
+    assert_eq!(vachr.name, None);
+    assert_eq!(vachr.asset_class, None);
+
+    // Nothing declares USD, and none of this invents a declaration.
+    assert!(ledger.commodity("USD").is_none());
+
+    let declared: Vec<&str> =
+        ledger.commodities().map(|c| c.currency.as_str()).collect();
+    assert_eq!(declared, vec!["VACHR", "VEA"]);
+}
+
+#[test]
+fn postings_carry_the_total_cost_their_lot_named() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/total-cost/main.beancount");
+    let ledger = Ledger::build(load(&path).unwrap());
+
+    let lot = |narration: &str, account: &str| {
+        ledger
+            .txns
+            .iter()
+            .find(|t| t.narration.as_deref() == Some(narration))
+            .expect("the transaction is in the fixture")
+            .postings
+            .iter()
+            .find(|p| p.account == account)
+            .expect("the posting is in the transaction")
+            .cost
+            .clone()
+    };
+
+    // `{{ 700.00 USD }}` is already a total; it is not multiplied by 7.
+    let mock = lot(
+        "fabricated purchase of 7 MOCK for a lump sum",
+        "Assets:Investments:ExampleBroker",
+    )
+    .expect("the lot named a cost");
+    assert_eq!(mock.total, dec("700.00"));
+    assert_eq!(mock.currency, "USD");
+
+    // A per-unit `{5.00 USD}` is multiplied out, and the redundant
+    // `@ 6.00 USD` alongside it is not what cost means.
+    let test = lot(
+        "fabricated purchase with both a cost and a redundant price",
+        "Assets:Investments:ExampleBroker",
+    )
+    .expect("the lot named a cost");
+    assert_eq!(test.total, dec("10.00"));
+    assert_eq!(test.currency, "USD");
+
+    // The elided leg paying for it holds no lot of its own.
+    assert!(
+        lot(
+            "fabricated purchase of 7 MOCK for a lump sum",
+            "Assets:Cash:ExampleBroker",
+        )
+        .is_none()
+    );
+}

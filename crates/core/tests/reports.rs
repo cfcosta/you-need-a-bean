@@ -933,3 +933,136 @@ fn a_ledger_that_names_nobody_ranks_nobody() {
     assert_eq!(payees.anonymous, payees.total);
     assert_eq!(payees.anonymous_count, 8);
 }
+
+fn investments() -> Ledger {
+    fixture("investments")
+}
+
+#[test]
+fn investments_rank_positions_and_group_them_by_class() {
+    let view = investments()
+        .reports_view((2026, 6, 15), 3, "USD")
+        .investments;
+
+    // Cash is not a position: the operating currency the rest of the
+    // page is denominated in is what these are being measured against.
+    let held: Vec<&str> =
+        view.items.iter().map(|p| p.currency.as_str()).collect();
+    assert_eq!(held, vec!["VTI", "ETH", "ACME", "BOND"]);
+    assert_eq!(view.total, dec("6080.00"));
+
+    let vti = &view.items[0];
+    assert_eq!(vti.label, "Vanguard Total Stock Market ETF");
+    assert_eq!(vti.class.as_deref(), Some("etf"));
+    // 20 bought, 10 more, 6 sold.
+    assert_eq!(vti.units, dec("24"));
+    assert_eq!(vti.price, dec("120.00"));
+    assert_eq!(vti.value, dec("2880.00"));
+    assert_eq!(vti.share, dec("0.4737"));
+    assert_eq!(vti.accounts, 1);
+    assert_eq!(vti.postings, 3);
+    assert_eq!(vti.first, (2026, 1, 10));
+    assert_eq!(vti.last, (2026, 3, 10));
+
+    // One position, two brokers: moving a holding between accounts must
+    // not split it into two smaller ones. A third broker bought a
+    // tranche and sold it out again, which leaves it a place the
+    // position has been rather than a place it is.
+    let acme = &view.items[2];
+    assert_eq!(acme.currency, "ACME");
+    assert_eq!(acme.units, dec("150"));
+    assert_eq!(acme.accounts, 2);
+    assert_eq!(acme.postings, 4);
+    assert_eq!(acme.value, dec("1200.00"));
+
+    // Priced, and nothing declared what it is. It still ranks; it just
+    // has nothing but its ticker to be called.
+    let bond = &view.items[3];
+    assert_eq!(bond.label, "BOND");
+    assert_eq!(bond.class, None);
+
+    let classes: Vec<(Option<&str>, String)> = view
+        .classes
+        .iter()
+        .map(|c| (c.name.as_deref(), c.value.to_string()))
+        .collect();
+    assert_eq!(
+        classes,
+        vec![
+            (Some("etf"), "2880.00".to_string()),
+            (Some("crypto"), "1500.00".to_string()),
+            (Some("stock"), "1200.00".to_string()),
+            (None, "500.00".to_string()),
+        ]
+    );
+    // Dust is folded out of the table but not out of its class.
+    assert_eq!(view.classes[1].positions, 2);
+    assert_eq!(view.classes[0].share, dec("0.4737"));
+
+    // Four holdings that behave like three, the same `1 / Σ share²` the
+    // income card uses on sources.
+    assert_eq!(view.effective, Some(dec("3.02")));
+}
+
+#[test]
+fn investments_report_a_basis_only_where_the_ledger_named_one() {
+    let view = investments()
+        .reports_view((2026, 6, 15), 3, "USD")
+        .investments;
+
+    // 20 × 100 plus a 1,100 lump is 3,100 over 30 units; selling 6 out
+    // of whichever lot takes a fifth of the basis with it.
+    let vti = &view.items[0];
+    assert_eq!(vti.basis, Some(dec("2480.00")));
+    assert_eq!(vti.gain, Some(dec("400.00")));
+    assert_eq!(vti.ret, Some(dec("0.1613")));
+
+    // Down is reported the same way up is. 100 at 10 and 50 at 12; the
+    // ten the third broker bought at 50 and sold at 9 are charged to
+    // that broker's own inventory, not blended into these — averaging
+    // the whole position would report 1,968.75 for shares that cost
+    // 1,600.
+    let acme = &view.items[2];
+    assert_eq!(acme.basis, Some(dec("1600.00")));
+    assert_eq!(acme.gain, Some(dec("-400.00")));
+    assert_eq!(acme.ret, Some(dec("-0.25")));
+
+    // Staking rewards are not a purchase. There is no cost to be up
+    // against, so no gain is reported rather than the +100% that
+    // treating a missing basis as zero would invent.
+    let eth = &view.items[1];
+    assert_eq!(eth.currency, "ETH");
+    assert_eq!(eth.value, dec("1500.00"));
+    assert_eq!(eth.basis, None);
+    assert_eq!(eth.gain, None);
+    assert_eq!(eth.ret, None);
+
+    // And the totals say how much of the page that covers, so a
+    // portfolio return is never quoted over a part of the portfolio
+    // without saying which part.
+    assert_eq!(view.basis, dec("4530.00"));
+    assert_eq!(view.based_value, dec("4580.00"));
+    assert_eq!(view.gain, dec("50.00"));
+    assert_eq!(view.ret, Some(dec("0.0110")));
+    assert_eq!(view.coverage, Some(dec("0.7533")));
+    assert_eq!(view.unbased, dec("1500.00"));
+    assert_eq!(view.unbased_count, 2);
+}
+
+#[test]
+fn investments_fold_dust_and_name_what_nothing_prices() {
+    let view = investments()
+        .reports_view((2026, 6, 15), 3, "USD")
+        .investments;
+
+    // Five DUST at a ten-thousandth is half a cent. It is still held
+    // and still counted in the total; it just does not earn a row.
+    assert!(view.items.iter().all(|p| p.currency != "DUST"));
+    assert_eq!(view.dust, 1);
+    assert_eq!(view.dust_value, dec("0.00"));
+
+    // Two GOLD is a real holding that nothing can value, so it is
+    // missing from every figure above — and named for it rather than
+    // quietly dropped.
+    assert_eq!(view.unpriced, vec!["GOLD".to_string()]);
+}

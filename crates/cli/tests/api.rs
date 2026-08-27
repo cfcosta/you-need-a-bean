@@ -48,7 +48,7 @@ async fn summary_reports_ledger_shape() {
     assert_eq!(body["title"], json!("Model Ledger"));
     assert_eq!(body["root"], json!("main.beancount"));
     assert_eq!(body["files"], json!(1));
-    assert_eq!(body["directives"], json!(28));
+    assert_eq!(body["directives"], json!(30));
     assert_eq!(body["parse_ms"], json!(7));
     assert_eq!(body["operating_currencies"], json!(["USD"]));
     let months = body["months"].as_array().unwrap();
@@ -150,6 +150,56 @@ async fn category_endpoint_lists_txns() {
     );
 
     assert_eq!(body["split"], json!({"USD": 30.0}));
+}
+
+#[tokio::test]
+async fn account_endpoint_reads_the_register() {
+    let (status, body) = get("/api/account/Assets:Cash/2026-02?basis=3").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["account"], json!("Assets:Cash"));
+    assert_eq!(body["label"], json!("Cash"));
+    assert_eq!(body["kind"], json!("budget"));
+    assert_eq!(body["opening"], json!(-336.0));
+    assert_eq!(body["inflow"], json!(20.0));
+    assert_eq!(body["outflow"], json!(50.0));
+    assert_eq!(body["balance"], json!(-366.0));
+    assert_eq!(body["balances"], json!({"USD": -366.0}));
+    assert_eq!(body["unpriced"], json!([]));
+
+    let history = body["history"].as_array().unwrap();
+    assert_eq!(history.len(), 3);
+    assert_eq!(
+        history[2],
+        json!({
+            "month": "2026-02",
+            "inflow": 20.0,
+            "outflow": 50.0,
+            "balance": -366.0
+        })
+    );
+
+    // Each row is a full transaction plus the balance it left behind.
+    let txns = body["txns"].as_array().unwrap();
+    assert_eq!(txns.len(), 2);
+    assert_eq!(txns[0]["narration"], json!("Feb shop"));
+    assert_eq!(txns[0]["delta"], json!(-50.0));
+    assert_eq!(txns[0]["balance"], json!(-386.0));
+    assert_eq!(txns[1]["delta"], json!(20.0));
+    assert_eq!(txns[1]["balance"], json!(-366.0));
+    assert_eq!(txns[1]["postings"].as_array().unwrap().len(), 2);
+
+    // An account holding something nothing prices says so, rather than
+    // reporting a month in which nothing happened.
+    let (status, body) = get("/api/account/Assets:Points/2026-03").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["kind"], json!("tracking"));
+    assert_eq!(body["balance"], Value::Null);
+    assert_eq!(body["unpriced"], json!(["VACHR"]));
+    assert_eq!(body["txns"][0]["balance"], Value::Null);
+
+    let (status, body) = get("/api/account/Assets:Nope/2026-01").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(body["error"].is_string());
 }
 
 #[tokio::test]
@@ -542,4 +592,69 @@ async fn reports_endpoint_ranks_the_payees() {
             "last": "2026-03-05",
         })
     );
+}
+
+#[tokio::test]
+async fn reports_endpoint_details_the_positions_held() {
+    let app = app_at("reports/investments", (2026, 6, 15));
+    let (status, body) = get_at(app, "/api/reports").await;
+    assert_eq!(status, StatusCode::OK);
+    let inv = &body["investments"];
+
+    assert_eq!(inv["total"], json!(6080.0));
+    assert_eq!(inv["basis"], json!(4530.0));
+    assert_eq!(inv["based_value"], json!(4580.0));
+    assert_eq!(inv["gain"], json!(50.0));
+    assert_eq!(inv["ret"], json!(0.011));
+    assert_eq!(inv["coverage"], json!(0.7533));
+    assert_eq!(inv["unbased"], json!(1500.0));
+    assert_eq!(inv["unbased_count"], json!(2));
+    assert_eq!(inv["effective"], json!(3.02));
+    assert_eq!(inv["dust"], json!(1));
+    assert_eq!(inv["dust_value"], json!(0.0));
+    assert_eq!(inv["unpriced"], json!(["GOLD"]));
+
+    let items = inv["items"].as_array().unwrap();
+    assert_eq!(items.len(), 4);
+    assert_eq!(
+        items[0],
+        json!({
+            "currency": "VTI",
+            "label": "Vanguard Total Stock Market ETF",
+            "class": "etf",
+            "units": 24.0,
+            "price": 120.0,
+            "value": 2880.0,
+            "share": 0.4737,
+            "basis": 2480.0,
+            "gain": 400.0,
+            "ret": 0.1613,
+            "accounts": 1,
+            "postings": 3,
+            "first": "2026-01-10",
+            "last": "2026-03-10",
+        })
+    );
+    // Fractional units survive the trip: rounding a holding to cents
+    // reports three quarters of an ETH as 0.75 and a ten-thousandth of
+    // a BTC as nothing at all.
+    assert_eq!(items[1]["currency"], json!("ETH"));
+    assert_eq!(items[1]["units"], json!(0.75));
+    // Nothing bought it, so nothing is reported about what it cost.
+    assert_eq!(items[1]["basis"], Value::Null);
+    assert_eq!(items[1]["gain"], Value::Null);
+    assert_eq!(items[1]["ret"], Value::Null);
+    // Priced and undeclared: the ticker is the whole label.
+    assert_eq!(items[3]["label"], json!("BOND"));
+    assert_eq!(items[3]["class"], Value::Null);
+
+    let classes = inv["classes"].as_array().unwrap();
+    assert_eq!(classes.len(), 4);
+    assert_eq!(
+        classes[0],
+        json!({ "name": "etf", "value": 2880.0, "share": 0.4737, "positions": 1 })
+    );
+    assert_eq!(classes[1]["name"], json!("crypto"));
+    assert_eq!(classes[1]["positions"], json!(2));
+    assert_eq!(classes[3]["name"], Value::Null);
 }

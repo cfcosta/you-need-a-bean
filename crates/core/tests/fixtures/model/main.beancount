@@ -1,6 +1,14 @@
 option "title" "Model Ledger"
 option "operating_currency" "USD"
 
+; VEA says what it is; VACHR is declared and silent; nothing declares
+; the currencies at all.
+2025-11-01 commodity VEA
+  name: "Vanguard FTSE Developed Markets ETF"
+  asset-class: "etf"
+  quote-currency: "USD"
+2025-11-01 commodity VACHR
+
 2025-11-01 open Assets:Cash                 USD
 2025-11-01 open Assets:US:BofA:Checking     USD
   name: "Checking"

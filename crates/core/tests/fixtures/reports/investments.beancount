@@ -1,0 +1,105 @@
+option "title" "Investments"
+option "operating_currency" "USD"
+
+; Every commodity the ledger bothered to declare. Names and asset
+; classes are taken from here and nowhere else — never guessed from
+; the ticker. BOND is deliberately undeclared, GOLD deliberately
+; unpriced.
+2026-01-01 commodity VTI
+  name: "Vanguard Total Stock Market ETF"
+  asset-class: "etf"
+  quote-currency: "USD"
+
+2026-01-01 commodity ACME
+  name: "Acme Corp"
+  asset-class: "stock"
+
+2026-01-01 commodity ETH
+  name: "Ethereum"
+  asset-class: "crypto"
+
+2026-01-01 commodity DUST
+  name: "Dust Token"
+  asset-class: "crypto"
+
+2026-01-01 open Assets:Checking   USD
+2026-01-01 open Assets:Broker     VTI,ACME,GOLD,BOND
+2026-01-01 open Assets:Broker2    ACME
+2026-01-01 open Assets:Broker3    ACME
+2026-01-01 open Assets:Wallet     ETH,DUST
+2026-01-01 open Income:Staking    ETH,DUST
+2026-01-01 open Equity:Opening    USD
+
+2026-01-01 price VTI   100.00 USD
+2026-06-01 price VTI   120.00 USD
+2026-01-01 price ACME   10.00 USD
+2026-06-01 price ACME    8.00 USD
+2026-06-01 price ETH  2000.00 USD
+2026-06-01 price DUST    0.0001 USD
+2026-06-01 price BOND   50.00 USD
+
+2026-01-01 * "Opening balance"
+  Assets:Checking  100000.00 USD
+  Equity:Opening
+
+; A per-unit lot.
+2026-01-10 * "Buy VTI"
+  Assets:Broker  20 VTI {100.00 USD}
+  Assets:Checking
+
+; The same thing written as a total.
+2026-02-10 * "Buy more VTI"
+  Assets:Broker  10 VTI {{1100.00 USD}}
+  Assets:Checking
+
+; Sold out of whichever lot, which is what makes average cost the
+; only honest reading.
+2026-03-10 * "Sell some VTI"
+  Assets:Broker  -6 VTI {} @ 115.00 USD
+  Assets:Checking
+
+; One position, two brokers.
+2026-01-15 * "Buy ACME"
+  Assets:Broker  100 ACME {10.00 USD}
+  Assets:Checking
+
+2026-02-15 * "Buy ACME elsewhere"
+  Assets:Broker2  50 ACME {12.00 USD}
+  Assets:Checking
+
+; A tranche bought and closed at a broker that holds none of it now.
+; The sale belongs to that broker's own inventory: charging it against
+; the shares the other two are holding would leave the position at a
+; basis nobody ever paid, and would count a broker it has left as a
+; place it sits.
+2026-01-05 * "Buy ACME at the old broker"
+  Assets:Broker3  10 ACME {50.00 USD}
+  Assets:Checking
+
+2026-05-05 * "Close the old broker"
+  Assets:Broker3  -10 ACME {} @ 9.00 USD
+  Assets:Checking
+
+; Never bought: it arrives as income, so there is no cost to be up
+; against.
+2026-01-20 * "Staking reward"
+  Income:Staking  -0.5 ETH
+  Assets:Wallet
+
+2026-04-20 * "Staking reward"
+  Income:Staking  -0.25 ETH
+  Assets:Wallet
+
+2026-01-25 * "Airdrop"
+  Assets:Wallet  5 DUST
+  Income:Staking
+
+; Priced, but nothing declared what it is.
+2026-03-01 * "Buy bonds"
+  Assets:Broker  10 BOND {45.00 USD}
+  Assets:Checking
+
+; Held and unpriceable: missing from every figure, and named for it.
+2026-01-30 * "Buy gold"
+  Assets:Broker  2 GOLD {500.00 USD}
+  Assets:Checking
