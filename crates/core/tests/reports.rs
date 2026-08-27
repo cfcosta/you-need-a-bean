@@ -477,3 +477,47 @@ fn exchange_rate_drift_is_not_a_price_rise() {
     // Two dollars on sixteen is.
     assert!(find("Netflix").change.is_some());
 }
+
+#[test]
+fn tags_and_links_add_up_as_topics() {
+    let view = fixture("projects").reports_view((2026, 4, 15), 3, "USD");
+    let projects = &view.projects;
+
+    let rows: Vec<(char, &str, Decimal, Decimal, usize, usize, u32)> = projects
+        .items
+        .iter()
+        .map(|p| {
+            (
+                p.kind.sigil(),
+                p.name.as_str(),
+                p.spent,
+                p.net,
+                p.count,
+                p.categories,
+                p.months,
+            )
+        })
+        .collect();
+    assert_eq!(
+        rows,
+        vec![
+            // 4,000 tile + 6,000 labour, less the 500 of spare boxes
+            // that went back.
+            ('#', "renovation", dec("9500.00"), dec("9500.00"), 3, 2, 3),
+            // Charged 5,400, but the employer paid half of it back —
+            // reporting the gross would say the trip cost what it
+            // never did.
+            ('^', "trip-japan", dec("5400.00"), dec("3400.00"), 3, 2, 2),
+        ]
+    );
+
+    let renovation = &projects.items[0];
+    assert_eq!(renovation.first, (2026, 1, 10));
+    assert_eq!(renovation.last, (2026, 3, 2));
+
+    // Two payment ids on one transaction each, and one tag that only
+    // marks transfers between accounts already owned. Neither is a
+    // topic, and both are counted rather than quietly dropped.
+    assert_eq!(projects.singletons, 2);
+    assert_eq!(projects.markers, 1);
+}

@@ -212,6 +212,34 @@ export interface YearGroup {
   prior: number | null;
 }
 
+/** What one tag or link cost, across however long it ran. */
+export interface Project {
+  name: string;
+  /** "#" for a tag, "^" for a link. */
+  sigil: string;
+  /** Spend across the topic, refunds already netted out. */
+  spent: number;
+  /** Money that came back: a reimbursed trip didn't cost its gross. */
+  income: number;
+  /** `spent - income` — what it actually took. */
+  net: number;
+  count: number;
+  /** Distinct expense accounts touched. */
+  categories: number;
+  first: string;
+  last: string;
+  /** Calendar months the span covers, inclusive. */
+  months: number;
+}
+
+export interface Projects {
+  items: Project[];
+  /** Names on a single transaction: an importer's id, not a topic. */
+  singletons: number;
+  /** Names that moved no money — marks on transfers. */
+  markers: number;
+}
+
 /** A category whose quarter moved against the quarter before it. */
 export interface Mover {
   account: string;
@@ -250,6 +278,7 @@ export interface ReportsView {
     groups: YearGroup[];
   };
   movers: Movers;
+  projects: Projects;
 }
 
 async function get<T>(url: string): Promise<T> {

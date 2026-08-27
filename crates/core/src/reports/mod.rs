@@ -9,6 +9,7 @@
 mod fire;
 mod growth;
 mod movers;
+mod projects;
 mod recurring;
 mod year;
 
@@ -18,6 +19,7 @@ pub use fire::{
 };
 pub use growth::{GrowthPoint, GrowthView};
 pub use movers::{Mover, MoversView};
+pub use projects::{Project, ProjectsView, Topic};
 pub use recurring::{Cadence, PriceChange, Recurring, RecurringView};
 pub use year::{YearGroup, YearView};
 
@@ -73,6 +75,8 @@ pub struct ReportsView {
     /// before — the year card's ranking asked as a question about
     /// change rather than size.
     pub movers: MoversView,
+    /// What each tag and link cost, over how long.
+    pub projects: ProjectsView,
 }
 
 /// Per-month currency deltas for one root of the ledger.
@@ -181,6 +185,7 @@ impl Ledger {
         // A year of history behind the growth split, matching the year
         // card's window without sharing its meaning.
         let growth_window = self.window(current, 12);
+        let projects = self.projects_view(cur, &mut unpriced);
         // Every conversion the view needs has run by now, so the set is
         // complete. The growth split is the report the gaps hurt most:
         // an amount dropped from one side of a transaction and kept on
@@ -206,6 +211,7 @@ impl Ledger {
             unpriced,
             year: self.year_view(current, cur),
             movers: self.movers_view(current, cur),
+            projects,
         }
     }
 

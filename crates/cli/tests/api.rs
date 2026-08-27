@@ -259,6 +259,20 @@ async fn reports_endpoint_shapes_series_and_fire() {
         ])
     );
 
+    // Every tag and link that spans more than one transaction and
+    // moved money, with what it took after refunds.
+    let projects = &body["projects"];
+    assert!(projects["singletons"].is_number());
+    assert!(projects["markers"].is_number());
+    for p in projects["items"].as_array().unwrap() {
+        assert!(p["count"].as_u64().unwrap() >= 2);
+        assert!(p["months"].as_u64().unwrap() >= 1);
+        assert!(["#", "^"].contains(&p["sigil"].as_str().unwrap()));
+        let (spent, income) =
+            (p["spent"].as_f64().unwrap(), p["income"].as_f64().unwrap());
+        assert!((p["net"].as_f64().unwrap() - (spent - income)).abs() < 1e-9);
+    }
+
     // Six whole months do fit, so the quarters compare even though the
     // years cannot.
     let movers = &body["movers"];

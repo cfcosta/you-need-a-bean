@@ -55,10 +55,18 @@ Each line is one task: core computation (with tests) → API shape → card.
       answers nothing — and a move must clear 1% of the bigger quarter
       to earn a row, a floor that scales with the ledger instead of
       assuming a currency.
-- [ ] **5 · Tags and links as projects** — `#renovation` and
+- [x] **5 · Tags and links as projects** — `#renovation` and
       `^trip-japan` are how beancount users scope work across months and
       categories, and the UI aggregates them nowhere. Total, count and
       date span per topic.
+      The mock fixture demonstrates both shapes that are not projects:
+      two unique importer payment links appear on one transaction each,
+      while one repeated transfer tag moves no money. Two other names
+      span several transactions and remain reportable topics. So the
+      card doesn't guess from a name; it reports transactions, months
+      and categories crossed, then counts what it excluded.
+      Refunds and reimbursements net out, because a trip the employer
+      paid half of did not cost what it charged.
 - [ ] **6 · Income breakdown** — income collapses to one number today.
       Split by `Income:*` source, flag source concentration, and show
       passive income as a share of spend: the Coast/Barista-FIRE bar.

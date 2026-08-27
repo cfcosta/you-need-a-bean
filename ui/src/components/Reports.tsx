@@ -4,6 +4,7 @@ import type {
   GrowthPoint,
   Movers,
   NetWorthPoint,
+  Projects,
   RecurringView,
   ReportsView,
 } from "../api";
@@ -849,6 +850,71 @@ function MoversCard({ data, cur }: { data: Movers; cur: string }) {
   );
 }
 
+/** "Mar 2026", or "Jan – Mar 2026" once a topic spans months. */
+function spanLabel(first: string, last: string): string {
+  if (first.slice(0, 7) === last.slice(0, 7)) return monthYear(first);
+  if (first.slice(0, 4) === last.slice(0, 4)) {
+    return `${monthShort(first)} \u2013 ${monthYear(last)}`;
+  }
+  return `${monthYear(first)} \u2013 ${monthYear(last)}`;
+}
+
+function ProjectsCard({ data, cur }: { data: Projects; cur: string }) {
+  const top = data.items.slice(0, 10);
+  const rest = data.items.length - top.length;
+  // Two shapes can't be topics under any reading, and saying how many
+  // were set aside beats a card that looks like the whole story.
+  const left = [
+    data.singletons > 0 &&
+      `${data.singletons} name${data.singletons === 1 ? "" : "s"} on one transaction`,
+    data.markers > 0 && `${data.markers} that moved no money`,
+  ].filter(Boolean) as string[];
+
+  return (
+    <div className="report-card">
+      <h2>Projects</h2>
+      <div className="sub2">what each tag and link cost, across its whole run</div>
+      {data.items.length === 0 ? (
+        <div className="empty">no tag or link spans more than one transaction</div>
+      ) : (
+        <div className="pj-rows">
+          {top.map((p) => (
+            <div
+              key={`${p.sigil}${p.name}`}
+              className="pj-row"
+              title={`${p.sigil}${p.name}: ${fmt(p.spent, cur)} spent${
+                p.income > 0 ? `, ${fmt(p.income, cur)} back` : ""
+              } · ${p.first} to ${p.last}`}
+            >
+              <span className="pj-name">
+                <i>{p.sigil}</i>
+                {p.name}
+              </span>
+              <span className="pj-meta">
+                <span>{spanLabel(p.first, p.last)}</span>
+                <span>
+                  {p.count} txns · {p.categories}{" "}
+                  {p.categories === 1 ? "category" : "categories"}
+                </span>
+                {p.income > 0 && (
+                  <b className="down" title={`${fmt(p.spent, cur)} charged`}>
+                    {fmtCompact(p.income, cur)} back
+                  </b>
+                )}
+              </span>
+              <span className="pj-amt num">{fmt(p.net, cur, 0)}</span>
+            </div>
+          ))}
+          {rest > 0 && <div className="pj-note">{rest} more</div>}
+        </div>
+      )}
+      {left.length > 0 && (
+        <div className="pj-note">left out: {left.join(", ")}</div>
+      )}
+    </div>
+  );
+}
+
 export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
   const f = data.fire;
   const hasTarget = f.fire_number > 0;
@@ -1035,6 +1101,8 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
             </div>
             <CashflowChart points={cash} cur={cur} />
           </div>
+
+          <ProjectsCard data={data.projects} cur={cur} />
         </div>
 
         <div className="report-col">

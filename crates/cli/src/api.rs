@@ -357,6 +357,25 @@ async fn reports(
             })
         })
         .collect();
+    let projects: Vec<Value> = view
+        .projects
+        .items
+        .iter()
+        .map(|p| {
+            json!({
+                "name": p.name,
+                "sigil": p.kind.sigil().to_string(),
+                "spent": num(p.spent),
+                "income": num(p.income),
+                "net": num(p.net),
+                "count": p.count,
+                "categories": p.categories,
+                "first": format_day(p.first),
+                "last": format_day(p.last),
+                "months": p.months,
+            })
+        })
+        .collect();
     let movers: Vec<Value> = view
         .movers
         .items
@@ -419,6 +438,11 @@ async fn reports(
             "window": window_json(view.year.window),
             "prior_window": window_json(view.year.prior_window),
             "groups": year_groups,
+        },
+        "projects": {
+            "items": projects,
+            "singletons": view.projects.singletons,
+            "markers": view.projects.markers,
         },
         "movers": {
             "recent": window_json(view.movers.recent),

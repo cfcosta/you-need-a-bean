@@ -1,0 +1,60 @@
+option "title" "Projects"
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Checking          USD
+2026-01-01 open Income:Salary            USD
+2026-01-01 open Income:Reimbursements    USD
+2026-01-01 open Expenses:Home:Materials  USD
+2026-01-01 open Expenses:Home:Labor      USD
+2026-01-01 open Expenses:Travel:Flights  USD
+2026-01-01 open Expenses:Travel:Lodging  USD
+2026-01-01 open Equity:Opening           USD
+
+2026-01-01 * "Opening balance"
+  Assets:Checking  50000.00 USD
+  Equity:Opening
+
+; A project: months apart, two categories, one refund against it.
+2026-01-10 * "Tile Depot" "Bathroom tile" #renovation
+  Expenses:Home:Materials  4000.00 USD
+  Assets:Checking
+
+2026-02-14 * "Builder" "Bathroom labour" #renovation
+  Expenses:Home:Labor  6000.00 USD
+  Assets:Checking
+
+2026-03-02 * "Tile Depot" "Returned the spare boxes" #renovation
+  Expenses:Home:Materials  -500.00 USD
+  Assets:Checking
+
+; A trip that got partly paid back: gross is not what it cost.
+2026-02-01 * "Airline" "Flights" ^trip-japan
+  Expenses:Travel:Flights  3000.00 USD
+  Assets:Checking
+
+2026-02-20 * "Hotel" "Eight nights" ^trip-japan
+  Expenses:Travel:Lodging  2400.00 USD
+  Assets:Checking
+
+2026-03-15 * "Employer" "Half the trip was work" ^trip-japan
+  Income:Reimbursements  -2000.00 USD
+  Assets:Checking
+
+; An importer's payment ids: one transaction each, never a topic.
+2026-01-05 * "Employer" "Salary" ^import-payment-0001
+  Income:Salary  -8000.00 USD
+  Assets:Checking
+
+2026-02-05 * "Employer" "Salary" ^import-payment-0002
+  Income:Salary  -8000.00 USD
+  Assets:Checking
+
+; A bookkeeping mark on transfers: many transactions, no money in or
+; out of the ledger.
+2026-01-20 * "Self" "Move cash" #transfer-marker
+  Assets:Checking  -1000.00 USD
+  Assets:Checking   1000.00 USD
+
+2026-02-20 * "Self" "Move cash back" #transfer-marker
+  Assets:Checking   1000.00 USD
+  Assets:Checking  -1000.00 USD
