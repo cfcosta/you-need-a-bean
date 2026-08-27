@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { fireFill, leanMark } from "./fire";
+import { fireFill, leanFlag, leanMark } from "./fire";
 
 describe("fireFill", () => {
   test("is the progress, as a share of the bar", () => {
@@ -39,5 +39,25 @@ describe("leanMark", () => {
 
   test("drops a marker with nothing behind it", () => {
     expect(leanMark(0, 100_000)).toBe(null);
+  });
+});
+
+describe("leanFlag", () => {
+  // A label centred on its mark hangs half its width past whichever
+  // end the mark is near, and the marks worth drawing are usually
+  // near one: a lean target is a small fraction of a full one.
+  test("hangs off the near end of the bar, not over the mark", () => {
+    expect(leanFlag(0.018)).toEqual({ left: "1.8%" });
+    expect(leanFlag(0.42)).toEqual({ left: "42%" });
+  });
+
+  test("flies the other way once the mark is past the middle", () => {
+    expect(leanFlag(0.8)).toEqual({ right: "20%" });
+    expect(leanFlag(0.99)).toEqual({ right: "1%" });
+  });
+
+  test("does not spell a rounding error into the stylesheet", () => {
+    expect(leanFlag(0.07)).toEqual({ left: "7%" });
+    expect(leanFlag(0.93)).toEqual({ right: "7%" });
   });
 });

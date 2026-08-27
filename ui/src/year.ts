@@ -158,7 +158,10 @@ export function yearRows(
   return [
     ...groups.slice(0, cut).map(plain),
     {
-      group: foldGroups(`${rest.length} more groups`, rest, span),
+      // Named for the column it sits in, which is as narrow as the
+      // longest group name and no wider. The names stacked above it
+      // already say what there are more of.
+      group: foldGroups(`${rest.length} more`, rest, span),
       folded: true,
     },
   ];

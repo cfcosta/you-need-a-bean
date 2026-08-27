@@ -158,7 +158,9 @@ describe("yearRows", () => {
       many.slice(0, 9).map((g) => g.name),
     );
     expect(rows[9]!.folded).toBe(true);
-    expect(rows[9]!.group.name).toBe("3 more groups");
+    // Named to fit the same column the group names use, since it is a
+    // row in that column and the words above it say what "more" is.
+    expect(rows[9]!.group.name).toBe("3 more");
     expect(rows[9]!.group.total).toBe(10 + 11 + 12);
   });
 
