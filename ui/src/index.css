@@ -102,6 +102,44 @@
   --shadow-pop: 0 8px 32px rgba(52, 59, 88, 0.25);
 }
 
+/* Scrollbars. The tokens point at palette vars rather than literals, so
+   the light theme picks its own up without repeating the block — and the
+   thumb is drawn inside a transparent border so it reads as a mark on the
+   pane rather than a rail bolted to the edge of it. */
+:root {
+  --scroll-thumb: var(--line-2);
+  --scroll-thumb-hover: var(--muted);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  background-clip: padding-box;
+}
+/* The sidebar stays night whatever the rest of the page is doing, so its
+   scrollbar has to as well — the page's thumb is invisible on it in dark
+   mode and far too bright in light. */
+#sidebar {
+  --scroll-thumb: var(--brand-line);
+  --scroll-thumb-hover: var(--brand-ink-2);
+}
+
 html,
 body,
 #root {
