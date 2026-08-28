@@ -1,5 +1,5 @@
-# Vendored copy of beancount-parser 2.6.0 (Unlicense, github.com/jcornaz/beancount-parser),
-# wired in via [patch.crates-io] in the workspace root. Local change vs upstream:
+# Workspace copy of beancount-parser 2.6.0 (Unlicense, github.com/jcornaz/beancount-parser).
+# Local change vs upstream:
 # src/amount.rs accepts a unary plus in amount expressions ("+123.45 USD"),
 # which Python beancount allows and real ledgers contain. See VENDOR.md.
 
@@ -8,7 +8,7 @@ edition = "2021"
 rust-version = "1.68"
 name = "beancount-parser"
 version = "2.6.0"
-authors = ["Jonathan Cornaz"]
+authors = ["Jonathan Cornaz", "Cainã Costa <me@cfcosta.com>"]
 description = "A beancount file parser library for rust"
 keywords = ["parsing", "beancount", "accounting"]
 categories = ["parser-implementations"]
@@ -30,6 +30,10 @@ default-features = false
 
 [dependencies.nom_locate]
 version = "5"
+default-features = false
+
+[dev-dependencies.rstest]
+version = "0.26"
 default-features = false
 
 [lints.clippy]

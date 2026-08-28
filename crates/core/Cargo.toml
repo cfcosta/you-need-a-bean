@@ -10,7 +10,7 @@ name = "bean_core"
 bench = false
 
 [dependencies]
-beancount-parser = "2.6.0"
+beancount-parser.workspace = true
 glob = "0.3.4"
 miette = "7.6.0"
 rust_decimal = "1.42.1"

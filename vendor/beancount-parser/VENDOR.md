@@ -1,16 +1,15 @@
 # Vendored: beancount-parser 2.6.0
 
 Source: <https://github.com/jcornaz/beancount-parser>, crates.io release
-2.6.0, license Unlicense (see `UNLICENSE`). Wired into the build through
-`[patch.crates-io]` in the workspace root `Cargo.toml`, so `crates/core`
-keeps depending on plain `beancount-parser = "2.6.0"`.
+2.6.0, license Unlicense (see `UNLICENSE`). The crate is a workspace member
+and consumers use the path dependency declared in `[workspace.dependencies]`.
 
 Everything not listed below is byte-identical to the crates.io release.
-`vendor/` is excluded from the cargo workspace and from treefmt so the
-diff against upstream stays reviewable — do not reformat it. Every patch
+`vendor/` is excluded from treefmt so the diff against upstream stays
+reviewable — do not reformat it. Every patch
 carries a `Local patch vs upstream 2.6.0` comment at its site pointing
-back here. Drop this directory and the `[patch.crates-io]` entry once the
-fixes are released upstream.
+back here. Replace the workspace dependency with the crates.io release once
+the fixes are released upstream.
 
 Every change here is pinned by a case in `crates/conformance/corpus/`,
 so a rewrite of the parser has to reproduce it. See `docs/PARSER.md`.

@@ -321,5 +321,5 @@ of the time on the table.
    behaviour difference. Decide, case by case, whether it is a bug in the
    rewrite or an improvement worth re-blessing.
 4. `cargo bench -p you-need-a-bean-conformance -- --baseline before`.
-5. Only then swap `[patch.crates-io]` in the root manifest and run the rest of
-   the workspace.
+5. Only then swap the parser path in `[workspace.dependencies]` and run the
+   rest of the workspace.
