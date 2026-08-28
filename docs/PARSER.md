@@ -1,8 +1,8 @@
 # the parser contract
 
 The app reads beancount through the vendored `beancount-parser` crate in
-`vendor/beancount-parser` (upstream 2.6.0 plus the patches in
-`vendor/beancount-parser/VENDOR.md`). It is a nom recursive-descent parser
+`crates/beancount-parser` (upstream 2.6.0 plus the patches in
+`crates/beancount-parser/VENDOR.md`). It is a nom recursive-descent parser
 carrying a set of local fixes and a handful of behaviours nobody chose.
 
 `crates/conformance` exists so that crate can be replaced. It pins what the

@@ -5,8 +5,8 @@ Source: <https://github.com/jcornaz/beancount-parser>, crates.io release
 and consumers use the path dependency declared in `[workspace.dependencies]`.
 
 Everything not listed below is byte-identical to the crates.io release.
-`vendor/` is excluded from treefmt so the diff against upstream stays
-reviewable — do not reformat it. Every patch
+`crates/beancount-parser/` is excluded from treefmt so the diff against
+upstream stays reviewable — do not reformat it. Every patch
 carries a `Local patch vs upstream 2.6.0` comment at its site pointing
 back here. Replace the workspace dependency with the crates.io release once
 the fixes are released upstream.

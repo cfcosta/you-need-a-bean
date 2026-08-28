@@ -1,14 +1,14 @@
 [workspace]
 members = [
+  "crates/beancount-parser",
   "crates/cli",
   "crates/conformance",
   "crates/core",
-  "vendor/beancount-parser",
 ]
 resolver = "3"
 
 [workspace.dependencies]
-beancount-parser = { path = "vendor/beancount-parser" }
+beancount-parser = { path = "crates/beancount-parser" }
 
 [workspace.package]
 version = "0.1.0"

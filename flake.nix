@@ -55,7 +55,7 @@
                   settings.global.excludes = [
                     "*.lock"
                     # Vendored crate: keep byte-comparable to upstream.
-                    "vendor/*"
+                    "crates/beancount-parser/*"
                   ];
                   programs = {
                     nixfmt.enable = true;
