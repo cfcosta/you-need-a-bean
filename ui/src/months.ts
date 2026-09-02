@@ -14,3 +14,10 @@ export function monthWindow(
   const to = months[i - 1];
   return from != null && to != null ? [from, to] : null;
 }
+
+/** "2026-08" plus n months, which may be negative. */
+export function addMonths(m: string, n: number): string {
+  const total = Number(m.slice(0, 4)) * 12 + (Number(m.slice(5, 7)) - 1) + n;
+  const y = Math.floor(total / 12);
+  return `${y}-${String(total - y * 12 + 1).padStart(2, "0")}`;
+}

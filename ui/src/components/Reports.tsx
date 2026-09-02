@@ -31,16 +31,10 @@ import {
   ratio,
   windowLabel,
 } from "../format";
+import { addMonths } from "../months";
 import type { RibbonMonth, StripCell } from "../year";
 import { yearRibbon, yearRows, yearStrip } from "../year";
 import { Unpriced } from "./Unpriced";
-
-/** "2026-08" plus n months. */
-function addMonths(m: string, n: number): string {
-  const total = Number(m.slice(0, 4)) * 12 + (Number(m.slice(5, 7)) - 1) + n;
-  const y = Math.floor(total / 12);
-  return `${y}-${String(total - y * 12 + 1).padStart(2, "0")}`;
-}
 
 /** 27 → "2 yr 3 mo" */
 function duration(months: number): string {

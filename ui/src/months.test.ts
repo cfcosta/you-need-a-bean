@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { monthWindow } from "./months";
+import { addMonths, monthWindow } from "./months";
 
 const MONTHS = [
   "2025-12",
@@ -28,5 +28,14 @@ describe("monthWindow", () => {
   test("has no window at the first month or off the range", () => {
     expect(monthWindow(MONTHS, "2025-12", 6)).toBeNull();
     expect(monthWindow(MONTHS, "2020-01", 6)).toBeNull();
+  });
+});
+
+describe("addMonths", () => {
+  test("counts forward and back across a year end", () => {
+    expect(addMonths("2026-08", 5)).toBe("2027-01");
+    expect(addMonths("2026-01", -1)).toBe("2025-12");
+    expect(addMonths("2026-11", 0)).toBe("2026-11");
+    expect(addMonths("2024-02", 25)).toBe("2026-03");
   });
 });

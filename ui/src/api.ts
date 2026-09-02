@@ -540,6 +540,134 @@ export interface ReportsView {
   trust: Trust;
 }
 
+export type DebtKind = "installment" | "revolving";
+
+/** One payment on a debt, split the way the ledger split it. */
+export interface DebtPayment {
+  date: string;
+  total: number;
+  /** What came off the balance. */
+  principal: number;
+  /** What went to an interest expense in the same transaction. */
+  interest: number;
+}
+
+/** What a debt stood at when a month ended. Null when the balance
+ * could not be converted that month. */
+export interface DebtPoint {
+  month: string;
+  owed: number | null;
+}
+
+/** One movement on a debt inside the history window: the balance it
+ * left behind and how much it moved it. The first point is the
+ * balance at the window's start, with no movement. */
+export interface TrailPoint {
+  date: string;
+  owed: number | null;
+  /** Positive when the debt grew. */
+  delta: number | null;
+}
+
+/** Where the current payment leads, at the current rate. */
+export interface Payoff {
+  months: number;
+  month: string;
+  /** Interest still to come. */
+  interest: number;
+}
+
+/** A card's month: what went on it, what came off it, and what was
+ * left over from before. */
+export interface Cycle {
+  charges: number;
+  payments: number;
+  /** What the last payment did not clear. Null when the card could not
+   * be read that closely. */
+  carried: number | null;
+  in_full: boolean | null;
+}
+
+export interface Debt {
+  account: string;
+  label: string;
+  kind: DebtKind;
+  /** Positive when money is owed. */
+  owed: number;
+  balances: Record<string, number>;
+  /** The most that was ever owed. */
+  peak: number;
+  /** How much of the peak is paid off; loans only. */
+  progress: number | null;
+  /** Yearly, read off the interest the ledger charged. */
+  rate: number | null;
+  /** The usual payment. */
+  payment: number | null;
+  due_day: number | null;
+  next_due: string | null;
+  principal_paid: number;
+  interest_paid: number;
+  /** Newest first. */
+  payments: DebtPayment[];
+  /** Month ends, oldest first. */
+  history: DebtPoint[];
+  trail: TrailPoint[];
+  payoff: Payoff | null;
+  cycle: Cycle | null;
+}
+
+/** Whether the cash on hand covers what is on the cards. */
+export interface Cover {
+  cash: number;
+  owed: number;
+  covered: boolean;
+  after: number;
+}
+
+export interface Upcoming {
+  account: string;
+  label: string;
+  date: string;
+  amount: number;
+}
+
+export type NoticeKind = "missed" | "growing" | "overpaid";
+
+/** Something the figures do not say on their own. */
+export interface DebtNotice {
+  kind: NoticeKind;
+  account: string;
+  label: string;
+  amount: number | null;
+  day: number | null;
+}
+
+export interface LiabilitiesView {
+  month: string;
+  owed: number;
+  installment: number;
+  revolving: number;
+  interest: {
+    month: number;
+    /** Over `window`. */
+    year: number;
+    earned_month: number;
+    earned_year: number;
+    window: [string, string] | null;
+  };
+  /** A year of interest at today's balances and rates. */
+  cost_year: number;
+  blended_rate: number | null;
+  /** When the last loan is paid off, at today's payments. */
+  debt_free: string | null;
+  cover: Cover;
+  upcoming: Upcoming[];
+  notices: DebtNotice[];
+  /** Most owed first. */
+  debts: Debt[];
+  unpriced: string[];
+}
+
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) {
@@ -578,3 +706,6 @@ export const getAccount = (
 
 export const getReports = (basis: number, cur: string) =>
   get<ReportsView>(`/api/reports?basis=${basis}&cur=${cur}`);
+
+export const getLiabilities = (basis: number, cur: string) =>
+  get<LiabilitiesView>(`/api/liabilities?basis=${basis}&cur=${cur}`);
