@@ -668,6 +668,21 @@ async fn liabilities(
         })
         .collect();
     let notices: Vec<Value> = view.notices.iter().map(notice_json).collect();
+    let beaten: Vec<Value> = view
+        .beaten
+        .iter()
+        .map(|b| {
+            json!({
+                "account": b.account,
+                "label": b.label,
+                "peak": num(b.peak),
+                "principal_paid": num(b.principal_paid),
+                "interest_paid": num(b.interest_paid),
+                "first": format_day(b.first),
+                "last": format_day(b.last),
+            })
+        })
+        .collect();
     Ok(Json(json!({
         "month": view.month.to_string(),
         "owed": num(view.owed),
@@ -683,6 +698,7 @@ async fn liabilities(
         "cost_year": num(view.cost_year),
         "blended_rate": ratio_json(view.blended_rate),
         "debt_free": view.debt_free.map_or(Value::Null, |m| json!(m.to_string())),
+        "assumed_return": num(view.assumed_return),
         "cover": {
             "cash": num(view.cover.cash),
             "owed": num(view.cover.owed),
@@ -692,6 +708,7 @@ async fn liabilities(
         "upcoming": upcoming,
         "notices": notices,
         "debts": debts,
+        "beaten": beaten,
         "unpriced": view.unpriced,
     })))
 }
@@ -740,6 +757,24 @@ fn debt_json(d: &Debt) -> Value {
             "in_full": c.in_full,
         })
     });
+    let foreign: Vec<Value> = d
+        .foreign
+        .iter()
+        .map(|f| {
+            json!({
+                "code": f.code,
+                "amount": num(f.amount),
+                "converted": opt_num(f.converted),
+            })
+        })
+        .collect();
+    let collateral = d.collateral.as_ref().map_or(Value::Null, |c| {
+        json!({
+            "account": c.account,
+            "label": c.label,
+            "value": opt_num(c.value),
+        })
+    });
     json!({
         "account": d.account,
         "label": d.label,
@@ -749,6 +784,10 @@ fn debt_json(d: &Debt) -> Value {
         },
         "owed": num(d.owed),
         "balances": amounts_json(&d.balances),
+        "foreign": foreign,
+        "limit": opt_num(d.limit),
+        "utilisation": ratio_json(d.utilisation),
+        "collateral": collateral,
         "peak": num(d.peak),
         "progress": ratio_json(d.progress),
         "rate": ratio_json(d.rate),

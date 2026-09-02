@@ -48,7 +48,7 @@ async fn summary_reports_ledger_shape() {
     assert_eq!(body["title"], json!("Model Ledger"));
     assert_eq!(body["root"], json!("main.beancount"));
     assert_eq!(body["files"], json!(1));
-    assert_eq!(body["directives"], json!(30));
+    assert_eq!(body["directives"], json!(32));
     assert_eq!(body["parse_ms"], json!(7));
     assert_eq!(body["operating_currencies"], json!(["USD"]));
     let months = body["months"].as_array().unwrap();
@@ -687,7 +687,9 @@ async fn liabilities_endpoint_shapes_the_debts() {
     );
     assert_eq!(body["cost_year"], json!(669.43));
     assert_eq!(body["blended_rate"], json!(0.0646));
-    assert_eq!(body["debt_free"], json!("2027-11"));
+    // The store card at its minimum outlasts the loan.
+    assert_eq!(body["debt_free"], json!("2027-12"));
+    assert_eq!(body["assumed_return"], json!(0.05));
     assert_eq!(
         body["cover"],
         json!({ "cash": 2243.0, "owed": 579.8, "covered": true, "after": 1663.2 })
@@ -779,7 +781,10 @@ async fn liabilities_endpoint_shapes_the_debts() {
     assert_eq!(store["kind"], json!("revolving"));
     assert_eq!(store["rate"], json!(0.24));
     assert_eq!(store["progress"], json!(null));
-    assert_eq!(store["payoff"], json!(null));
+    assert_eq!(
+        store["payoff"],
+        json!({ "months": 22, "month": "2027-12", "interest": 82.28 })
+    );
     assert_eq!(
         store["cycle"],
         json!({ "charges": 100.0, "payments": 0.0, "carried": 140.0, "in_full": false })
@@ -803,6 +808,74 @@ async fn liabilities_endpoint_shapes_the_debts() {
     assert_eq!(body["blended_rate"], json!(null));
     assert_eq!(body["debt_free"], json!(null));
     assert_eq!(body["debts"], json!([]));
+    assert_eq!(body["beaten"], json!([]));
     assert_eq!(body["upcoming"], json!([]));
     assert_eq!(body["notices"], json!([]));
+}
+
+#[tokio::test]
+async fn liabilities_endpoint_carries_what_the_ledger_states() {
+    let app = app_at("reports/liabilities-meta", (2026, 9, 2));
+    let (status, body) = get_at(app, "/api/liabilities?basis=6").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["debt_free"], json!("2028-08"));
+    let debts = body["debts"].as_array().unwrap();
+    let find = |account: &str| {
+        debts
+            .iter()
+            .find(|d| d["account"] == json!(account))
+            .unwrap_or_else(|| panic!("{account} is missing"))
+    };
+
+    let car = find("Liabilities:Loan:Car");
+    assert_eq!(car["rate"], json!(0.0525));
+    assert_eq!(
+        car["collateral"],
+        json!({ "account": "Assets:Car", "label": "The Car", "value": 11000.0 })
+    );
+    assert_eq!(car["limit"], json!(null));
+    assert_eq!(car["utilisation"], json!(null));
+    assert_eq!(car["foreign"], json!([]));
+
+    let sofa = find("Liabilities:Loan:Sofa");
+    assert_eq!(sofa["rate"], json!(0.0));
+    assert_eq!(sofa["due_day"], json!(15));
+    assert_eq!(sofa["collateral"], json!(null));
+
+    let everyday = find("Liabilities:Card:Everyday");
+    assert_eq!(everyday["limit"], json!(1000.0));
+    assert_eq!(everyday["utilisation"], json!(0.4));
+
+    let travel = find("Liabilities:Card:Travel");
+    assert_eq!(
+        travel["foreign"],
+        json!([{ "code": "EUR", "amount": 100.0, "converted": 110.0 }])
+    );
+
+    assert_eq!(
+        body["beaten"],
+        json!([
+            {
+                "account": "Liabilities:Card:Old",
+                "label": "Old Card",
+                "peak": 80.0,
+                "principal_paid": 80.0,
+                "interest_paid": 0.0,
+                "first": "2026-02-10",
+                "last": "2026-03-05",
+            },
+            {
+                "account": "Liabilities:Loan:Student",
+                "label": "Student Loan",
+                "peak": 600.0,
+                "principal_paid": 600.0,
+                "interest_paid": 3.0,
+                "first": "2026-01-01",
+                "last": "2026-02-05",
+            },
+        ])
+    );
+    // The card cleared every statement is expected to pay its balance.
+    assert_eq!(body["upcoming"][2]["label"], json!("Everyday Card"));
+    assert_eq!(body["upcoming"][2]["amount"], json!(400.0));
 }
