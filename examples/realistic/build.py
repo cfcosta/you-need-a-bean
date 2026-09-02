@@ -539,7 +539,7 @@ def furniture(y, m):
         ])
     when = day(y, m, 15)
     owed = -BOOK.balance(FURNITURE)
-    if owed > 0 and in_month(when, y, m):
+    if (y, m) > (2026, 7) and owed > 0 and in_month(when, y, m):
         txn(when, "*", "Alder & Oak", "instalment", [
             {"account": FURNITURE, "amount": min(d(75.00), owed), "currency": "USD"},
             {"account": CHECKING},
@@ -1177,7 +1177,7 @@ def paperwork():
              "2025-11-12-student-loan-paid-in-full.html",
              receipt("Meridian Student Lending — paid in full",
                      [("Original principal", "6,240.00 USD"),
-                      ("Interest over the term", "462.02 USD"),
+                      ("Interest over the term", "278.50 USD"),
                       ("Balance", "0.00 USD")],
                      "paid in full"))
 

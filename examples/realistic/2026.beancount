@@ -2489,10 +2489,6 @@
   Expenses:Transport:Transit                      5.48 USD
   Assets:Prepaid:Transit
 
-2026-07-15 * "Alder & Oak" "instalment"
-  Liabilities:Loan:Furniture                     75.00 USD
-  Assets:Bank:Checking
-
 2026-07-16 * "Nori House" "late lunch"
   Expenses:Food:Dining                           99.01 USD
   Liabilities:Card:Everyday
