@@ -1,0 +1,131 @@
+option "title" "Liabilities"
+option "operating_currency" "USD"
+
+; A car loan at 6% nominal, paid 500 a month on the 15th; an everyday
+; card paid in full each month; a store card that only grows, and
+; charges interest on the card itself; a travel card in currencies the
+; ledger prices (EUR) and does not (GBP); an old card in credit.
+
+2025-10-01 open Assets:Checking                USD
+2025-10-01 open Liabilities:Loan:Car           USD
+  name: "Car Loan"
+2025-10-01 open Liabilities:Card:Everyday      USD
+  name: "Everyday Card"
+2025-10-01 open Liabilities:Card:Store         USD
+  name: "Store Card"
+2025-10-01 open Liabilities:Card:Travel        USD, EUR, GBP
+  name: "Travel Card"
+2025-10-01 open Liabilities:Card:Old           USD
+  name: "Old Card"
+2025-10-01 open Expenses:Financial:Interest    USD
+2025-10-01 open Expenses:Food                  USD, EUR, GBP
+2025-10-01 open Income:Interest                USD
+2025-10-01 open Equity:Opening                 USD
+
+2026-02-01 price EUR 1.10 USD
+
+2025-10-01 * "opening"
+  Assets:Checking                            5000.00 USD
+  Liabilities:Loan:Car                     -12000.00 USD
+  Equity:Opening
+
+; ---- the loan: 12000 at 0.5% a month, 500 a month ----
+
+2025-10-15 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                        440.00 USD
+  Expenses:Financial:Interest                  60.00 USD
+  Assets:Checking
+
+2025-11-15 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                        442.20 USD
+  Expenses:Financial:Interest                  57.80 USD
+  Assets:Checking
+
+2025-12-15 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                        444.41 USD
+  Expenses:Financial:Interest                  55.59 USD
+  Assets:Checking
+
+2026-01-15 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                        446.63 USD
+  Expenses:Financial:Interest                  53.37 USD
+  Assets:Checking
+
+2026-02-15 * "Northgate Auto Finance" "car payment"
+  Liabilities:Loan:Car                        448.87 USD
+  Expenses:Financial:Interest                  51.13 USD
+  Assets:Checking
+
+; ---- the everyday card: charged, then the statement paid in full ----
+
+2025-12-03 * "Grocer" "food"
+  Expenses:Food                               120.00 USD
+  Liabilities:Card:Everyday
+
+2025-12-20 * "Grocer" "food"
+  Expenses:Food                                80.00 USD
+  Liabilities:Card:Everyday
+
+2026-01-05 * "Grocer" "food"
+  Expenses:Food                               150.00 USD
+  Liabilities:Card:Everyday
+
+2026-01-25 * "Bank" "statement payment"
+  Liabilities:Card:Everyday                   200.00 USD
+  Assets:Checking
+
+; ---- the store card: a hundred on, twenty off, every month ----
+
+2025-11-05 * "Store" "things"
+  Expenses:Food                               100.00 USD
+  Liabilities:Card:Store
+
+2025-11-20 * "Store" "minimum payment"
+  Liabilities:Card:Store                       20.00 USD
+  Assets:Checking
+
+2025-12-05 * "Store" "things"
+  Expenses:Food                               100.00 USD
+  Liabilities:Card:Store
+
+2025-12-20 * "Store" "minimum payment"
+  Liabilities:Card:Store                       20.00 USD
+  Assets:Checking
+
+2026-01-05 * "Store" "things"
+  Expenses:Food                               100.00 USD
+  Liabilities:Card:Store
+
+2026-01-20 * "Store" "minimum payment"
+  Liabilities:Card:Store                       20.00 USD
+  Assets:Checking
+
+2026-01-31 * "Store" "interest"
+  Expenses:Financial:Interest                   4.80 USD
+  Liabilities:Card:Store
+
+2026-02-05 * "Store" "things"
+  Expenses:Food                               100.00 USD
+  Liabilities:Card:Store
+
+; ---- the travel card: euros the ledger prices, pounds it does not ----
+
+2026-02-10 * "Trattoria" "supper"
+  Expenses:Food                               100.00 EUR
+  Liabilities:Card:Travel                    -100.00 EUR
+
+2026-02-12 * "Pub" "lunch"
+  Expenses:Food                                40.00 GBP
+  Liabilities:Card:Travel                     -40.00 GBP
+
+; ---- the old card: a refund landed after it was paid off ----
+
+2026-02-02 * "Shop" "refund"
+  Expenses:Food                               -25.00 USD
+  Liabilities:Card:Old                         25.00 USD
+
+; ---- and the bank paying us for once ----
+
+2026-02-01 * "Bank" "interest"
+  Income:Interest                              -3.00 USD
+  Assets:Checking

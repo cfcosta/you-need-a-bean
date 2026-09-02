@@ -2,7 +2,10 @@ use std::path::PathBuf;
 
 use bean_core::loader::load;
 use bean_core::model::{Day, Ledger, MonthKey};
-use bean_core::reports::{YearGroup, YearView, months_to_fire};
+use bean_core::reports::{
+    Debt, DebtKind, LiabilitiesView, NoticeKind, YearGroup, YearView, amortize,
+    debt_kind, months_to_fire,
+};
 use rust_decimal::Decimal;
 
 fn dec(s: &str) -> Decimal {
@@ -1116,4 +1119,301 @@ fn movers_past_the_cut_are_kept_rather_than_dropped() {
     // The tail is ranked by the same measure as the list above it, so
     // opening it reads as one list rather than two.
     assert!(movers.items.last().unwrap().delta.abs() >= dec("800.00"));
+}
+
+fn liabilities(today: Day, basis: u32) -> LiabilitiesView {
+    fixture("liabilities").liabilities_view(today, basis, "USD")
+}
+
+fn debt<'a>(view: &'a LiabilitiesView, account: &str) -> &'a Debt {
+    view.debts
+        .iter()
+        .find(|d| d.account == account)
+        .unwrap_or_else(|| panic!("{account} is missing"))
+}
+
+#[test]
+fn liabilities_total_what_is_owed_and_what_it_costs() {
+    let view = liabilities((2026, 2, 20), 6);
+    assert_eq!(view.month, m("2026-02"));
+    // 9777.89 on the loan, 344.80 + 150 + 110 on the cards, 25 in credit.
+    assert_eq!(view.owed, dec("10357.69"));
+    assert_eq!(view.installment, dec("9777.89"));
+    assert_eq!(view.revolving, dec("579.80"));
+    // The loan's February interest; the store card's was in January.
+    assert_eq!(view.interest_month, dec("51.13"));
+    assert_eq!(view.window, Some((m("2025-10"), m("2026-01"))));
+    assert_eq!(view.interest_year, dec("231.56"));
+    assert_eq!(view.earned_month, dec("3.00"));
+    assert_eq!(view.earned_year, Decimal::ZERO);
+    // 6% of the loan plus 24% of the store card, over everything owed.
+    assert_eq!(view.cost_year, dec("669.43"));
+    assert_eq!(view.blended_rate, Some(dec("0.0646")));
+    assert_eq!(view.unpriced, vec!["GBP".to_string()]);
+}
+
+#[test]
+fn liabilities_tell_a_loan_from_a_card() {
+    let view = liabilities((2026, 2, 20), 6);
+    let listed: Vec<(&str, DebtKind, Decimal)> = view
+        .debts
+        .iter()
+        .map(|d| (d.account.as_str(), d.kind, d.owed))
+        .collect();
+    assert_eq!(
+        listed,
+        vec![
+            (
+                "Liabilities:Loan:Car",
+                DebtKind::Installment,
+                dec("9777.89")
+            ),
+            ("Liabilities:Card:Store", DebtKind::Revolving, dec("344.80")),
+            (
+                "Liabilities:Card:Everyday",
+                DebtKind::Revolving,
+                dec("150.00")
+            ),
+            (
+                "Liabilities:Card:Travel",
+                DebtKind::Revolving,
+                dec("110.00")
+            ),
+            ("Liabilities:Card:Old", DebtKind::Revolving, dec("-25.00")),
+        ]
+    );
+    assert_eq!(debt(&view, "Liabilities:Loan:Car").label, "Car Loan");
+    let travel = debt(&view, "Liabilities:Card:Travel");
+    assert_eq!(
+        travel.balances,
+        vec![
+            ("EUR".to_string(), dec("-100.00")),
+            ("GBP".to_string(), dec("-40.00")),
+        ]
+    );
+
+    // The name says what it is when it can; the pattern of postings
+    // decides when it cannot.
+    assert_eq!(
+        debt_kind("Liabilities:Mortgage", true),
+        DebtKind::Installment
+    );
+    assert_eq!(
+        debt_kind("Liabilities:Amex:Gold", false),
+        DebtKind::Revolving
+    );
+    assert_eq!(
+        debt_kind("Liabilities:Dentist", false),
+        DebtKind::Installment
+    );
+    assert_eq!(debt_kind("Liabilities:Dentist", true), DebtKind::Revolving);
+}
+
+#[test]
+fn a_loan_reports_its_rate_payment_and_progress() {
+    let view = liabilities((2026, 2, 20), 6);
+    let car = debt(&view, "Liabilities:Loan:Car");
+    assert_eq!(car.rate, Some(dec("0.0600")));
+    assert_eq!(car.payment, Some(dec("500.00")));
+    assert_eq!(car.due_day, Some(15));
+    assert_eq!(car.next_due, Some((2026, 3, 15)));
+    assert_eq!(car.peak, dec("12000.00"));
+    assert_eq!(car.progress, Some(dec("0.1852")));
+    assert_eq!(car.principal_paid, dec("2222.11"));
+    assert_eq!(car.interest_paid, dec("277.89"));
+    assert_eq!(car.payments.len(), 5);
+    let last = &car.payments[0];
+    assert_eq!(last.date, (2026, 2, 15));
+    assert_eq!(last.total, dec("500.00"));
+    assert_eq!(last.principal, dec("448.87"));
+    assert_eq!(last.interest, dec("51.13"));
+    assert_eq!(car.payments[4].date, (2025, 10, 15));
+    assert!(car.cycle.is_none());
+}
+
+#[test]
+fn a_loan_projects_its_payoff_at_the_current_payment() {
+    let view = liabilities((2026, 2, 20), 6);
+    let car = debt(&view, "Liabilities:Loan:Car");
+    let payoff = car.payoff.as_ref().expect("the loan pays off");
+    assert_eq!(payoff.months, 21);
+    assert_eq!(payoff.month, m("2027-11"));
+    assert_eq!(payoff.interest, dec("537.69"));
+    assert_eq!(view.debt_free, Some(m("2027-11")));
+
+    // A card carrying a balance does not get a projection: next
+    // month's charges are not in the model.
+    assert!(debt(&view, "Liabilities:Card:Store").payoff.is_none());
+}
+
+#[test]
+fn amortization_handles_the_edges() {
+    let plan = amortize(dec("9777.89"), dec("0.06"), dec("500")).unwrap();
+    assert_eq!((plan.months, plan.interest), (21, dec("537.69")));
+    // Without interest it is plain division, rounded up.
+    let flat = amortize(dec("1000"), Decimal::ZERO, dec("300")).unwrap();
+    assert_eq!((flat.months, flat.interest), (4, Decimal::ZERO));
+    // A payment that does not cover the interest never lands.
+    assert!(amortize(dec("10000"), dec("0.24"), dec("200")).is_none());
+    assert!(amortize(dec("100"), dec("0.1"), Decimal::ZERO).is_none());
+    // Nothing owed is paid off already.
+    let done = amortize(Decimal::ZERO, dec("0.1"), dec("50")).unwrap();
+    assert_eq!((done.months, done.interest), (0, Decimal::ZERO));
+}
+
+#[test]
+fn a_card_reports_its_cycle() {
+    let view = liabilities((2026, 2, 20), 6);
+
+    let everyday = debt(&view, "Liabilities:Card:Everyday");
+    let cycle = everyday.cycle.as_ref().expect("cards have a cycle");
+    assert_eq!(cycle.charges, Decimal::ZERO);
+    assert_eq!(cycle.payments, Decimal::ZERO);
+    // The January payment cleared everything older than a month.
+    assert_eq!(cycle.carried, Some(Decimal::ZERO));
+    assert_eq!(cycle.in_full, Some(true));
+    assert_eq!(everyday.rate, None);
+    assert_eq!(everyday.due_day, None);
+
+    let store = debt(&view, "Liabilities:Card:Store");
+    let cycle = store.cycle.as_ref().unwrap();
+    assert_eq!(cycle.charges, dec("100.00"));
+    assert_eq!(cycle.payments, Decimal::ZERO);
+    // 240 left after the January payment, of which 100 was that
+    // month's shopping: the rest is being carried.
+    assert_eq!(cycle.carried, Some(dec("140.00")));
+    assert_eq!(cycle.in_full, Some(false));
+    // 4.80 charged on 240: 2% a month.
+    assert_eq!(store.rate, Some(dec("0.2400")));
+    assert_eq!(store.payment, Some(dec("20.00")));
+    assert_eq!(store.due_day, Some(20));
+    assert_eq!(store.next_due, Some((2026, 2, 20)));
+    assert_eq!(store.progress, None);
+
+    // Never paid, so nothing to infer a cycle from.
+    let travel = debt(&view, "Liabilities:Card:Travel");
+    assert_eq!(travel.cycle.as_ref().unwrap().carried, None);
+    assert_eq!(travel.cycle.as_ref().unwrap().in_full, None);
+}
+
+#[test]
+fn revolving_debt_is_checked_against_cash() {
+    let view = liabilities((2026, 2, 20), 6);
+    assert_eq!(view.cover.cash, dec("2243.00"));
+    assert_eq!(view.cover.owed, dec("579.80"));
+    assert!(view.cover.covered);
+    assert_eq!(view.cover.after, dec("1663.20"));
+}
+
+#[test]
+fn a_debt_keeps_its_history_and_its_trail() {
+    let view = liabilities((2026, 2, 20), 3);
+    let car = debt(&view, "Liabilities:Loan:Car");
+    let history: Vec<(String, Option<Decimal>)> = car
+        .history
+        .iter()
+        .map(|p| (p.month.to_string(), p.owed))
+        .collect();
+    assert_eq!(
+        history,
+        vec![
+            ("2025-10".to_string(), Some(dec("11560.00"))),
+            ("2025-11".to_string(), Some(dec("11117.80"))),
+            ("2025-12".to_string(), Some(dec("10673.39"))),
+            ("2026-01".to_string(), Some(dec("10226.76"))),
+            ("2026-02".to_string(), Some(dec("9777.89"))),
+        ]
+    );
+    // Three months back at basis 3: where it stood on the way in, then
+    // every step since.
+    let trail: Vec<(Day, Option<Decimal>, Option<Decimal>)> = car
+        .trail
+        .iter()
+        .map(|p| (p.date, p.owed, p.delta))
+        .collect();
+    assert_eq!(
+        trail,
+        vec![
+            ((2025, 12, 1), Some(dec("11117.80")), None),
+            ((2025, 12, 15), Some(dec("10673.39")), Some(dec("-444.41"))),
+            ((2026, 1, 15), Some(dec("10226.76")), Some(dec("-446.63"))),
+            ((2026, 2, 15), Some(dec("9777.89")), Some(dec("-448.87"))),
+        ]
+    );
+
+    // A card in a currency nothing prices has a hole where its trail
+    // would be, not a wrong number.
+    let travel = debt(&view, "Liabilities:Card:Travel");
+    let owed: Vec<Option<Decimal>> =
+        travel.trail.iter().map(|p| p.owed).collect();
+    assert_eq!(owed, vec![Some(Decimal::ZERO), Some(dec("110.00")), None]);
+    assert_eq!(travel.history.last().unwrap().owed, None);
+}
+
+#[test]
+fn payments_due_within_the_month_are_lined_up() {
+    let view = liabilities((2026, 2, 20), 6);
+    let upcoming: Vec<(&str, Day, Decimal)> = view
+        .upcoming
+        .iter()
+        .map(|u| (u.label.as_str(), u.date, u.amount))
+        .collect();
+    assert_eq!(
+        upcoming,
+        vec![
+            ("Store Card", (2026, 2, 20), dec("20.00")),
+            ("Car Loan", (2026, 3, 15), dec("500.00")),
+        ]
+    );
+}
+
+#[test]
+fn the_ledger_notices_what_the_figures_do_not_say() {
+    let kinds = |view: &LiabilitiesView| -> Vec<(NoticeKind, String)> {
+        view.notices
+            .iter()
+            .map(|n| (n.kind, n.account.clone()))
+            .collect()
+    };
+    // The store card has grown three months running while carrying a
+    // balance; the old card is in credit.
+    let view = liabilities((2026, 2, 20), 6);
+    assert_eq!(
+        kinds(&view),
+        vec![
+            (NoticeKind::Growing, "Liabilities:Card:Store".to_string()),
+            (NoticeKind::Overpaid, "Liabilities:Card:Old".to_string()),
+        ]
+    );
+    let old = view
+        .notices
+        .iter()
+        .find(|n| n.kind == NoticeKind::Overpaid)
+        .unwrap();
+    assert_eq!(old.amount, Some(dec("25.00")));
+
+    // March: the 15th has passed with no car payment. The store card's
+    // 20th is today, and today is not late yet.
+    let view = liabilities((2026, 3, 20), 6);
+    assert_eq!(
+        kinds(&view)[0],
+        (NoticeKind::Missed, "Liabilities:Loan:Car".to_string())
+    );
+    assert_eq!(view.notices[0].day, Some(15));
+    assert_eq!(view.notices.len(), 3);
+
+    // Early in March nothing is late.
+    let view = liabilities((2026, 3, 10), 6);
+    assert!(view.notices.iter().all(|n| n.kind != NoticeKind::Missed));
+}
+
+#[test]
+fn a_ledger_without_debts_has_nothing_to_say() {
+    let view = fixture("income").liabilities_view((2026, 4, 15), 6, "USD");
+    assert!(view.debts.is_empty());
+    assert_eq!(view.owed, Decimal::ZERO);
+    assert_eq!(view.blended_rate, None);
+    assert_eq!(view.debt_free, None);
+    assert!(view.upcoming.is_empty());
+    assert!(view.notices.is_empty());
 }

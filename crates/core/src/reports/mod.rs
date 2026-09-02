@@ -10,6 +10,7 @@ mod fire;
 mod growth;
 mod income;
 mod investments;
+mod liabilities;
 mod movers;
 mod payees;
 mod projects;
@@ -25,6 +26,11 @@ pub use fire::{
 pub use growth::{GrowthPoint, GrowthView};
 pub use income::{IncomeSource, IncomeView};
 pub use investments::{AssetClass, InvestmentsView, Position};
+pub use liabilities::{
+    Amortization, Cover, Cycle, Debt, DebtKind, DebtPoint, LiabilitiesView,
+    Notice, NoticeKind, Payment, Payoff, TrailPoint, Upcoming, amortize,
+    debt_kind,
+};
 pub use movers::{Mover, MoversView};
 pub use payees::{Payee, PayeesView};
 pub use projects::{Project, ProjectsView, Topic};
@@ -279,7 +285,7 @@ impl Ledger {
 
     /// Sum of the convertible parts of a per-currency balance list,
     /// naming the commodities it had to leave out.
-    fn convertible(
+    pub(crate) fn convertible(
         &self,
         amounts: &[(String, Decimal)],
         cur: &str,

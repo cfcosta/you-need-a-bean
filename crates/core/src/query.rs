@@ -559,7 +559,7 @@ impl Ledger {
 
     /// Cumulative balance through the end of `month`, per commodity,
     /// in whatever order the postings arrived in.
-    fn balance_at(
+    pub(crate) fn balance_at(
         &self,
         account: &str,
         month: MonthKey,
@@ -599,7 +599,7 @@ impl Ledger {
     /// What one transaction did to one account, converted at the
     /// month's end. `None` when any leg of it has no price: a partial
     /// total would be a wrong one.
-    fn txn_delta(
+    pub(crate) fn txn_delta(
         &self,
         txn: &Txn,
         account: &str,
@@ -653,7 +653,11 @@ impl Ledger {
 
     /// Display currency first, then operating currencies in declaration
     /// order, then everything else alphabetically.
-    fn sort_amounts(&self, amounts: &mut [(String, Decimal)], cur: &str) {
+    pub(crate) fn sort_amounts(
+        &self,
+        amounts: &mut [(String, Decimal)],
+        cur: &str,
+    ) {
         amounts.sort_by_key(|(c, _)| {
             (
                 c != cur,
