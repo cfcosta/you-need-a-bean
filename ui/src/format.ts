@@ -114,3 +114,15 @@ export function ratio(v: number | null): string {
   const s = p >= 10 ? p.toFixed(0) : p >= 1 ? p.toFixed(1) : p.toPrecision(2);
   return `${sign}${trimZeros(s)}%`;
 }
+
+/** "2026-08" → "Aug 2026" */
+export const monthYear = (m: string) => `${monthShort(m)} ${m.slice(0, 4)}`;
+
+/** 27 → "2 yr 3 mo" */
+export function duration(months: number): string {
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  if (y === 0) return `${m} mo`;
+  if (m === 0) return `${y} yr`;
+  return `${y} yr ${m} mo`;
+}

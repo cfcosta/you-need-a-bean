@@ -22,28 +22,24 @@ import type {
   YearGroup,
 } from "../api";
 import { fireFill, leanFlag, leanMark } from "../fire";
+import { bounds, ticks } from "../chart";
 import {
   calendarMonth,
+  duration,
   fmt,
   fmtCompact,
   monthName,
   monthShort,
+  monthYear,
   ratio,
   windowLabel,
 } from "../format";
 import { addMonths } from "../months";
 import type { RibbonMonth, StripCell } from "../year";
 import { yearRibbon, yearRows, yearStrip } from "../year";
+import type { KeyItem } from "./Card";
+import { CardHead, Key } from "./Card";
 import { Unpriced } from "./Unpriced";
-
-/** 27 → "2 yr 3 mo" */
-function duration(months: number): string {
-  const y = Math.floor(months / 12);
-  const m = months % 12;
-  if (y === 0) return `${m} mo`;
-  if (m === 0) return `${y} yr`;
-  return `${y} yr ${m} mo`;
-}
 
 /** How long the current stash takes on its own, with nothing more saved. */
 function coastLabel(months: number | null | undefined): string {
@@ -57,8 +53,6 @@ function listOf(items: string[]): string {
   if (items.length <= 1) return items.join("");
   return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
-
-const monthYear = (m: string) => `${monthShort(m)} ${m.slice(0, 4)}`;
 
 /** A share as a bar width. Clamped, because a share above one would run
  * the fill past the track it is drawn inside. */
@@ -77,90 +71,6 @@ function changePct(ratio: number | null): string {
   const p = ratio * 100;
   if (Math.abs(p) < 0.5) return "flat";
   return `${p > 0 ? "+" : "\u2212"}${Math.round(Math.abs(p))}%`;
-}
-
-/** Round gridline values covering [min, max], roughly `want` of them. */
-function ticks(min: number, max: number, want: number): number[] {
-  const raw = (max - min) / Math.max(1, want);
-  if (!(raw > 0)) return [];
-  const mag = 10 ** Math.floor(Math.log10(raw));
-  const r = raw / mag;
-  const step = (r >= 5 ? 10 : r >= 2 ? 5 : r >= 1 ? 2 : 1) * mag;
-  const out: number[] = [];
-  for (let v = Math.ceil(min / step) * step; v <= max; v += step) out.push(v);
-  return out;
-}
-
-/** Pad [min, max] so marks don't touch the frame; always spans zero. */
-function bounds(values: number[]): [number, number] {
-  let min = Math.min(0, ...values);
-  let max = Math.max(0, ...values);
-  if (max === min) max = min + 1;
-  const head = (max - min) * 0.08;
-  if (min < 0) min -= head;
-  return [min, max + head];
-}
-
-/** Every card's head: what it is, the span it covers, and the one
- * number it produces.
- *
- * These three used to be a sentence under the title. The sentence
- * spent its first clause restating the title and then buried the span
- * and the total inside prose, which put the two facts a reader
- * actually scans for in the hardest place on the card to find. Here
- * they have fixed positions instead: the span under the name, the
- * number against the right edge, the same on every card.
- */
-function CardHead({
-  title,
-  span,
-  figure,
-  note,
-}: {
-  title: string;
-  span?: ReactNode;
-  /** The card's headline amount. */
-  figure?: ReactNode;
-  /** What the figure is measured against, small and beneath it. */
-  note?: ReactNode;
-}) {
-  return (
-    <div className="card-head">
-      <div>
-        <h2>{title}</h2>
-        {span != null && <div className="card-span">{span}</div>}
-      </div>
-      {(figure != null || note != null) && (
-        <div className="card-fig">
-          {figure != null && <span className="card-total num">{figure}</span>}
-          {note != null && <span className="card-note">{note}</span>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface KeyItem {
-  /** The swatch class, which is what the mark on the chart looks
-   * like. */
-  sw: string;
-  label: ReactNode;
-  title?: string;
-}
-
-/** A chart's key. The swatch is the definition, so the sentence that
- * used to define the series is not needed to read the picture. */
-function Key({ items }: { items: KeyItem[] }) {
-  return (
-    <div className="key">
-      {items.map((k) => (
-        <span key={k.sw} className="key-item" title={k.title}>
-          <i className={`sw ${k.sw}`} />
-          {k.label}
-        </span>
-      ))}
-    </div>
-  );
 }
 
 function NetWorthChart({
