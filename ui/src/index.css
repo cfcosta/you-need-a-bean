@@ -3,12 +3,12 @@
 /* ------------------------------------------------------------------------
    you need a bean — the visual system.
 
-   A finance journal rather than a dashboard: warm paper and roast, one
-   gold that always means "your money", a serif for the figures that
-   matter and a grotesque for everything that merely has to be read.
-   Two schemes share every token name, so a rule written once holds in
-   both; the sidebar and the independence card keep the dark palette in
-   either, the way a magazine keeps its masthead.
+   A finance journal rather than a dashboard, set in the Tokyo Night
+   colours: one blue that always means "your money", a serif for the
+   figures that matter and a grotesque for everything that merely has
+   to be read. Two schemes share every token name, so a rule written
+   once holds in both; the sidebar and the independence card keep the
+   night in either, the way a magazine keeps its masthead.
    ------------------------------------------------------------------------ */
 
 @font-face {
@@ -40,7 +40,7 @@
   src: url(./fonts/JetBrainsMono.woff2) format("woff2");
 }
 
-/* Roast — the default scheme. */
+/* Night — the default scheme. */
 :root {
   color-scheme: dark;
   --font-ui:
@@ -50,130 +50,130 @@
   --font-mono:
     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --bg: #0f0d0b;
-  --surface: #171310;
-  --surface-2: #221c17;
-  --ink: #efe6d6;
-  --ink-2: #c9bca7;
-  --muted: #8a7d6b;
-  --line: #2a231d;
-  --line-2: #3a3129;
-  --accent: #e4b04a;
-  --accent-ink: #ebbd5f;
-  --accent-wash: rgba(228, 176, 74, 0.13);
-  --copper: #c9784f;
-  --brand: #0b0a08;
-  --brand-hover: #16130f;
-  --brand-line: #221c17;
-  --brand-ink: #efe6d6;
-  --brand-ink-2: #8a7d6b;
-  --bean: #e3b15a;
-  --good: #a3c96a;
-  --good-text: #b6d382;
-  --good-tint: rgba(163, 201, 106, 0.12);
-  --good-track: rgba(163, 201, 106, 0.2);
-  --warn: #e9a23b;
-  --warn-text: #efb459;
-  --warn-tint: rgba(233, 162, 59, 0.12);
-  --warn-track: rgba(233, 162, 59, 0.22);
-  --over: #ef6f6c;
-  --over-text: #f58784;
-  --over-tint: rgba(239, 111, 108, 0.12);
-  --over-track: rgba(239, 111, 108, 0.22);
-  --bar-past: #3f3429;
-  --bar-now: #e4b04a;
+  --bg: #16161e;
+  --surface: #1a1b26;
+  --surface-2: #24283b;
+  --ink: #c0caf5;
+  --ink-2: #a9b1d6;
+  --muted: #565f89;
+  --line: #292e42;
+  --line-2: #3b4261;
+  --accent: #7aa2f7;
+  --accent-ink: #7aa2f7;
+  --accent-wash: rgba(122, 162, 247, 0.14);
+  --market: #bb9af7;
+  --brand: #131421;
+  --brand-hover: #1c1e2e;
+  --brand-line: #232637;
+  --brand-ink: #c0caf5;
+  --brand-ink-2: #737aa2;
+  --bean: #e0af68;
+  --good: #9ece6a;
+  --good-text: #9ece6a;
+  --good-tint: rgba(158, 206, 106, 0.13);
+  --good-track: rgba(158, 206, 106, 0.22);
+  --warn: #e0af68;
+  --warn-text: #e0af68;
+  --warn-tint: rgba(224, 175, 104, 0.13);
+  --warn-track: rgba(224, 175, 104, 0.22);
+  --over: #f7768e;
+  --over-text: #f7768e;
+  --over-tint: rgba(247, 118, 142, 0.13);
+  --over-track: rgba(247, 118, 142, 0.24);
+  --bar-past: #414868;
+  --bar-now: #7aa2f7;
   /* Asset classes on the allocation bar. Categorical, and picked so
      none of them is one of the colours that means a verdict. */
-  --alloc-1: #d9a441;
-  --alloc-2: #6fb1c9;
-  --alloc-3: #b8a0e0;
-  --alloc-4: #6cc3a7;
-  --alloc-5: #8a7d6b;
-  --glow: rgba(228, 176, 74, 0.11);
+  --alloc-1: #7aa2f7;
+  --alloc-2: #bb9af7;
+  --alloc-3: #7dcfff;
+  --alloc-4: #73daca;
+  --alloc-5: #565f89;
+  --glow: rgba(122, 162, 247, 0.1);
   --grain: 0.05;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.35);
   --shadow-pop: 0 18px 48px rgba(0, 0, 0, 0.65);
 }
 
-/* Paper — the light scheme. The sidebar keeps the roast whatever the
+/* Day — the light scheme. The sidebar keeps the night whatever the
    page is doing, so nothing under --brand changes here. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     color-scheme: light;
-    --bg: #efe8dc;
-    --surface: #faf6ee;
-    --surface-2: #ede5d6;
-    --ink: #211a14;
-    --ink-2: #4a3f34;
-    --muted: #8a7c6a;
-    --line: #ddd3c3;
-    --line-2: #c9bda9;
-    --accent: #a8731c;
-    --accent-ink: #8a5c12;
-    --accent-wash: rgba(168, 115, 28, 0.12);
-    --copper: #b0623a;
-    --good: #5f7f2b;
-    --good-text: #4a6620;
-    --good-tint: rgba(95, 127, 43, 0.12);
-    --good-track: rgba(95, 127, 43, 0.22);
-    --warn: #b8651a;
-    --warn-text: #8f4c0f;
-    --warn-tint: rgba(184, 101, 26, 0.12);
-    --warn-track: rgba(184, 101, 26, 0.24);
-    --over: #c8463f;
-    --over-text: #a3322c;
-    --over-tint: rgba(200, 70, 63, 0.11);
-    --over-track: rgba(200, 70, 63, 0.22);
-    --bar-past: #cdbfa6;
-    --bar-now: #a8731c;
-    --alloc-1: #b8862c;
-    --alloc-2: #3f8fa8;
-    --alloc-3: #7d63b8;
-    --alloc-4: #2f9a7e;
-    --alloc-5: #8a7c6a;
-    --glow: rgba(200, 150, 60, 0.18);
+    --bg: #d5d6db;
+    --surface: #e6e7ec;
+    --surface-2: #d0d3e0;
+    --ink: #343b58;
+    --ink-2: #485077;
+    --muted: #7c84a3;
+    --line: #c3c7d6;
+    --line-2: #adb4ca;
+    --accent: #2e7de9;
+    --accent-ink: #1d5fc0;
+    --accent-wash: rgba(46, 125, 233, 0.12);
+    --market: #7847bd;
+    --good: #587539;
+    --good-text: #465e26;
+    --good-tint: rgba(88, 117, 57, 0.14);
+    --good-track: rgba(88, 117, 57, 0.28);
+    --warn: #b15c00;
+    --warn-text: #7d4a00;
+    --warn-tint: rgba(177, 92, 0, 0.13);
+    --warn-track: rgba(177, 92, 0, 0.26);
+    --over: #f52a65;
+    --over-text: #b4104a;
+    --over-tint: rgba(245, 42, 101, 0.12);
+    --over-track: rgba(245, 42, 101, 0.24);
+    --bar-past: #7e9be5;
+    --bar-now: #2e7de9;
+    --alloc-1: #2e7de9;
+    --alloc-2: #9854f1;
+    --alloc-3: #007197;
+    --alloc-4: #118c74;
+    --alloc-5: #7c84a3;
+    --glow: rgba(46, 125, 233, 0.14);
     --grain: 0.045;
-    --shadow: 0 1px 2px rgba(60, 40, 20, 0.06), 0 10px 28px rgba(60, 40, 20, 0.08);
-    --shadow-pop: 0 18px 48px rgba(60, 40, 20, 0.28);
+    --shadow: 0 1px 2px rgba(52, 59, 88, 0.08), 0 10px 28px rgba(52, 59, 88, 0.1);
+    --shadow-pop: 0 18px 48px rgba(52, 59, 88, 0.25);
   }
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #efe8dc;
-  --surface: #faf6ee;
-  --surface-2: #ede5d6;
-  --ink: #211a14;
-  --ink-2: #4a3f34;
-  --muted: #8a7c6a;
-  --line: #ddd3c3;
-  --line-2: #c9bda9;
-  --accent: #a8731c;
-  --accent-ink: #8a5c12;
-  --accent-wash: rgba(168, 115, 28, 0.12);
-  --copper: #b0623a;
-  --good: #5f7f2b;
-  --good-text: #4a6620;
-  --good-tint: rgba(95, 127, 43, 0.12);
-  --good-track: rgba(95, 127, 43, 0.22);
-  --warn: #b8651a;
-  --warn-text: #8f4c0f;
-  --warn-tint: rgba(184, 101, 26, 0.12);
-  --warn-track: rgba(184, 101, 26, 0.24);
-  --over: #c8463f;
-  --over-text: #a3322c;
-  --over-tint: rgba(200, 70, 63, 0.11);
-  --over-track: rgba(200, 70, 63, 0.22);
-  --bar-past: #cdbfa6;
-  --bar-now: #a8731c;
-  --alloc-1: #b8862c;
-  --alloc-2: #3f8fa8;
-  --alloc-3: #7d63b8;
-  --alloc-4: #2f9a7e;
-  --alloc-5: #8a7c6a;
-  --glow: rgba(200, 150, 60, 0.18);
+  --bg: #d5d6db;
+  --surface: #e6e7ec;
+  --surface-2: #d0d3e0;
+  --ink: #343b58;
+  --ink-2: #485077;
+  --muted: #7c84a3;
+  --line: #c3c7d6;
+  --line-2: #adb4ca;
+  --accent: #2e7de9;
+  --accent-ink: #1d5fc0;
+  --accent-wash: rgba(46, 125, 233, 0.12);
+  --market: #7847bd;
+  --good: #587539;
+  --good-text: #465e26;
+  --good-tint: rgba(88, 117, 57, 0.14);
+  --good-track: rgba(88, 117, 57, 0.28);
+  --warn: #b15c00;
+  --warn-text: #7d4a00;
+  --warn-tint: rgba(177, 92, 0, 0.13);
+  --warn-track: rgba(177, 92, 0, 0.26);
+  --over: #f52a65;
+  --over-text: #b4104a;
+  --over-tint: rgba(245, 42, 101, 0.12);
+  --over-track: rgba(245, 42, 101, 0.24);
+  --bar-past: #7e9be5;
+  --bar-now: #2e7de9;
+  --alloc-1: #2e7de9;
+  --alloc-2: #9854f1;
+  --alloc-3: #007197;
+  --alloc-4: #118c74;
+  --alloc-5: #7c84a3;
+  --glow: rgba(46, 125, 233, 0.14);
   --grain: 0.045;
-  --shadow: 0 1px 2px rgba(60, 40, 20, 0.06), 0 10px 28px rgba(60, 40, 20, 0.08);
-  --shadow-pop: 0 18px 48px rgba(60, 40, 20, 0.28);
+  --shadow: 0 1px 2px rgba(52, 59, 88, 0.08), 0 10px 28px rgba(52, 59, 88, 0.1);
+  --shadow-pop: 0 18px 48px rgba(52, 59, 88, 0.25);
 }
 
 /* Scrollbars. The tokens point at palette vars rather than literals, so
@@ -327,24 +327,24 @@ a:focus-visible {
 
 /* ---------- Sidebar ---------- */
 #sidebar {
-  /* The sidebar keeps the roast in both schemes, so its tokens are its
+  /* The sidebar keeps the night in both schemes, so its tokens are its
      own — anything drawn inside it can keep using the page's names. */
   --ink: var(--brand-ink);
-  --ink-2: #c9bca7;
+  --ink-2: #a9b1d6;
   --muted: var(--brand-ink-2);
   --line: var(--brand-line);
-  --line-2: #2e2620;
-  --surface: #12100d;
-  --surface-2: #1a1612;
-  --accent: #e4b04a;
-  --accent-ink: #ebbd5f;
-  --accent-wash: rgba(228, 176, 74, 0.14);
-  --over-text: #f58784;
-  --good-text: #b6d382;
+  --line-2: #292e42;
+  --surface: #16161e;
+  --surface-2: #1c1e2e;
+  --accent: #7aa2f7;
+  --accent-ink: #7aa2f7;
+  --accent-wash: rgba(122, 162, 247, 0.14);
+  --over-text: #f7768e;
+  --good-text: #9ece6a;
   --scroll-thumb: var(--brand-line);
   --scroll-thumb-hover: var(--brand-ink-2);
   background:
-    radial-gradient(460px 280px at 0% 0%, rgba(228, 176, 74, 0.1), transparent 62%),
+    radial-gradient(460px 280px at 0% 0%, rgba(122, 162, 247, 0.1), transparent 62%),
     var(--brand);
   color: var(--brand-ink);
   display: flex;
@@ -363,7 +363,7 @@ a:focus-visible {
 }
 .wordmark svg {
   flex: none;
-  filter: drop-shadow(0 2px 8px rgba(228, 176, 74, 0.35));
+  filter: drop-shadow(0 2px 8px rgba(224, 175, 104, 0.35));
 }
 .wordmark-text {
   font-family: var(--font-display);
@@ -381,8 +381,8 @@ a:focus-visible {
   margin-top: 14px;
   padding: 7px 10px;
   border-radius: 9px;
-  background: rgba(228, 176, 74, 0.06);
-  border: 1px solid rgba(228, 176, 74, 0.16);
+  background: rgba(122, 162, 247, 0.08);
+  border: 1px solid rgba(122, 162, 247, 0.18);
   font-size: 10.5px;
   color: var(--brand-ink-2);
   display: flex;
@@ -544,7 +544,7 @@ a:focus-visible {
 .theme-seg button.on {
   background: var(--accent-wash);
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(228, 176, 74, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(122, 162, 247, 0.28);
 }
 .theme-seg svg {
   flex: none;
@@ -630,7 +630,7 @@ a:focus-visible {
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--copper), var(--accent));
+  background: linear-gradient(90deg, var(--market), var(--accent));
   transition: width 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .topbar-right {
@@ -1146,30 +1146,30 @@ a:focus-visible {
   text-underline-offset: 3px;
 }
 
-/* The independence card: the page's masthead. It keeps the roast in
+/* The independence card: the page's masthead. It keeps the night in
    both schemes and sets its number in the biggest cut of the face. */
 .report-card.fire {
-  --bg: #120e0b;
-  --surface: #1a1410;
-  --surface-2: #251d16;
-  --ink: #f3ead9;
-  --ink-2: #cdbfa8;
-  --muted: #9a8b76;
-  --line: #34291f;
-  --line-2: #4a3c2e;
-  --accent: #e4b04a;
-  --accent-ink: #edc063;
-  --accent-wash: rgba(228, 176, 74, 0.14);
-  --good: #a3c96a;
-  --good-text: #bcdb8e;
-  --over: #ef6f6c;
-  --over-text: #f79390;
+  --bg: #131421;
+  --surface: #1a1b26;
+  --surface-2: #24283b;
+  --ink: #c0caf5;
+  --ink-2: #a9b1d6;
+  --muted: #737aa2;
+  --line: #292e42;
+  --line-2: #3b4261;
+  --accent: #7aa2f7;
+  --accent-ink: #7aa2f7;
+  --accent-wash: rgba(122, 162, 247, 0.14);
+  --good: #9ece6a;
+  --good-text: #9ece6a;
+  --over: #f7768e;
+  --over-text: #f7768e;
   color: var(--ink);
   background:
-    radial-gradient(900px 380px at 6% -10%, rgba(228, 176, 74, 0.2), transparent 60%),
-    radial-gradient(600px 320px at 100% 110%, rgba(201, 120, 79, 0.16), transparent 60%),
-    linear-gradient(160deg, #1c1611, #110d0a);
-  border-color: #3b2f24;
+    radial-gradient(900px 380px at 6% -10%, rgba(122, 162, 247, 0.2), transparent 60%),
+    radial-gradient(600px 320px at 100% 110%, rgba(187, 154, 247, 0.16), transparent 60%),
+    linear-gradient(160deg, #1f2335, #131421);
+  border-color: #363b54;
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.5),
     0 22px 48px rgba(0, 0, 0, 0.35);
@@ -1187,7 +1187,7 @@ a:focus-visible {
   background: repeating-radial-gradient(
     circle at 104% -30%,
     transparent 0 14px,
-    rgba(228, 176, 74, 0.055) 14px 15px
+    rgba(122, 162, 247, 0.06) 14px 15px
   );
   -webkit-mask-image: linear-gradient(200deg, #000 20%, transparent 62%);
   mask-image: linear-gradient(200deg, #000 20%, transparent 62%);
@@ -1196,7 +1196,7 @@ a:focus-visible {
   position: relative;
 }
 .report-card.fire:hover {
-  border-color: #4d3d2d;
+  border-color: #454b6b;
 }
 .report-card.fire .lbl {
   color: var(--accent);
@@ -1220,7 +1220,7 @@ a:focus-visible {
   font-variation-settings: "opsz" 120;
   font-variant-numeric: tabular-nums lining-nums;
   color: var(--ink);
-  text-shadow: 0 2px 24px rgba(228, 176, 74, 0.18);
+  text-shadow: 0 2px 24px rgba(122, 162, 247, 0.25);
 }
 .fire-sub {
   font-size: 11.5px;
@@ -1293,8 +1293,8 @@ a:focus-visible {
 .fire-bar .fill {
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, #b8862c, #e4b04a 60%, #f3d27a);
-  box-shadow: 0 0 14px rgba(228, 176, 74, 0.35);
+  background: linear-gradient(90deg, #3d59a1, #7aa2f7 60%, #7dcfff);
+  box-shadow: 0 0 14px rgba(122, 162, 247, 0.35);
   transform-origin: left center;
   animation: grow 1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
@@ -1378,8 +1378,8 @@ a:focus-visible {
   vertical-align: 1px;
 }
 
-/* Charts. Gold is money that is yours, copper is money the market is
-   holding for you, coral is money owed; the same three on every card. */
+/* Charts. Blue is money that is yours, purple is money the market is
+   holding for you, red is money owed; the same three on every card. */
 .chart-svg {
   display: block;
   width: 100%;
@@ -1408,10 +1408,10 @@ a:focus-visible {
   font-variant-numeric: tabular-nums lining-nums;
 }
 .chart-svg .nw-cash {
-  fill: url(#g-gold);
+  fill: url(#g-cash);
 }
 .chart-svg .nw-holdings {
-  fill: url(#g-copper);
+  fill: url(#g-market);
 }
 .chart-svg .nw-debt {
   fill: url(#g-debt);
@@ -1420,7 +1420,7 @@ a:focus-visible {
   fill: var(--accent);
 }
 .chart-svg .gr-bar.market {
-  fill: var(--copper);
+  fill: var(--market);
 }
 .chart-svg .nw-line {
   fill: none;
@@ -1531,7 +1531,7 @@ a:focus-visible {
 }
 .key .sw.holdings,
 .key .sw.market {
-  background: var(--copper);
+  background: var(--market);
 }
 .key .sw.debt,
 .key .sw.over,
@@ -3030,7 +3030,7 @@ button.reg-row:hover {
 }
 .boot svg {
   animation: sk-breathe 1.6s ease-in-out infinite;
-  filter: drop-shadow(0 6px 24px rgba(228, 176, 74, 0.35));
+  filter: drop-shadow(0 6px 24px rgba(224, 175, 104, 0.35));
 }
 @media (prefers-reduced-motion: reduce) {
   .boot svg {
@@ -3190,7 +3190,7 @@ button.reg-row:hover {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(10, 8, 6, 0.45);
+    background: rgba(13, 13, 20, 0.5);
     -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
     z-index: 45;

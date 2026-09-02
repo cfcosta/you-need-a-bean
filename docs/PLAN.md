@@ -12,9 +12,9 @@ you-need-a-bean examples/example.beancount
 The layout follows `docs/mockup-v3.html`: dark sidebar with ledger chip
 and account balances, monthly budget table with "vs typical" bullet bars,
 right inspector with target card / 6-month chart / currency split /
-transaction list with expandable metadata. The look has since moved on
-from the mockup's Tokyo Night palette to the "Roast" and "Paper" schemes
-described under UI below.
+transaction list with expandable metadata. It keeps the mockup's Tokyo
+Night palette; the typography and the shape of the cards have moved on,
+as described under UI below.
 
 ## Architecture
 
@@ -106,17 +106,17 @@ currency unless stated. `cur` defaults to the first operating currency,
 ## UI
 
 Bun + React 19 + Tailwind v4 (`bun-plugin-tailwind`). The design is an
-editorial finance journal in two schemes, both sets of custom properties
-in `ui/src/index.css`: "Roast" (dark, the default) and "Paper" (light).
-Gold is money that is yours, copper is what the market holds for you,
-sage is kept or under, coral is over or owed. Figures and titles are set
-in Fraunces, the interface in Inter, account names in JetBrains Mono; the
-fonts live under `ui/src/fonts/` and are inlined into the CSS at build
-time, so the app never reaches for the network. The scheme follows the
-system by default and can be pinned from the switch at the foot of the
-sidebar; that choice is kept in local storage (`ui/src/theme.ts`), not in
-the URL, since it is about the screen rather than the ledger. Components
-map 1:1 to the mockup's renderers: `Sidebar`, `Topbar`, `StatStrip`,
+editorial finance journal in the Tokyo Night colours, two sets of custom
+properties in `ui/src/index.css`: Night (dark, the default) and Day
+(light). Blue is money that is yours, purple is what the market holds
+for you, green is kept or under, red is over or owed. Figures and titles
+are set in Fraunces, the interface in Inter, account names in JetBrains
+Mono; the fonts live under `ui/src/fonts/` and are inlined into the CSS
+at build time, so the app never reaches for the network. The scheme
+follows the system by default and can be pinned from the switch at the
+foot of the sidebar; that choice is kept in local storage
+(`ui/src/theme.ts`), not in the URL, since it is about the screen rather
+than the ledger. Components map 1:1 to the mockup's renderers: `Sidebar`, `Topbar`, `StatStrip`,
 `BudgetTable` (VsBar), `Inspector` (TargetCard, HistoryChart,
 CurrencySplit, TxnList). Client state: `{month, basis, cur, cat,
 openTxns, closedGroups}` — same as the mockup's `state` object.

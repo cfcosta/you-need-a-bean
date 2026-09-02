@@ -399,18 +399,18 @@ export function App() {
           />
         )}
       </div>
-      {/* The fills the charts share. Gold is money that is yours, copper is
-          money the market holds for you, coral is money owed; each fades
+      {/* The fills the charts share. Blue is money that is yours, purple is
+          money the market holds for you, red is money owed; each fades
           toward its baseline so the band reads as a quantity, not a block. */}
       <svg className="defs" aria-hidden="true" focusable="false">
         <defs>
-          <linearGradient id="g-gold" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="g-cash" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" style={{ stopColor: "var(--accent)" }} stopOpacity="0.55" />
             <stop offset="1" style={{ stopColor: "var(--accent)" }} stopOpacity="0.04" />
           </linearGradient>
-          <linearGradient id="g-copper" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" style={{ stopColor: "var(--copper)" }} stopOpacity="0.6" />
-            <stop offset="1" style={{ stopColor: "var(--copper)" }} stopOpacity="0.06" />
+          <linearGradient id="g-market" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style={{ stopColor: "var(--market)" }} stopOpacity="0.6" />
+            <stop offset="1" style={{ stopColor: "var(--market)" }} stopOpacity="0.06" />
           </linearGradient>
           <linearGradient id="g-debt" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" style={{ stopColor: "var(--over)" }} stopOpacity="0.08" />

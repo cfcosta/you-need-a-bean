@@ -74,8 +74,8 @@ function AccountList({
 
 const THEME_LABEL: Record<ThemePref, string> = {
   auto: "Auto",
-  light: "Paper",
-  dark: "Roast",
+  light: "Day",
+  dark: "Night",
 };
 const THEME_TITLE: Record<ThemePref, string> = {
   auto: "follow the system's colour scheme",
@@ -115,7 +115,7 @@ function ThemeIcon({ which }: { which: ThemePref }) {
   );
 }
 
-/** Roast, paper, or whatever the system says. The choice is remembered
+/** Night, day, or whatever the system says. The choice is remembered
  * per browser; it is a fact about the screen, not about the ledger. */
 function ThemeSwitch({
   theme,
