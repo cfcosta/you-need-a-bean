@@ -2,10 +2,12 @@ import { describe, expect, test } from "bun:test";
 
 import type { Debt } from "./api";
 import {
+  addDays,
   amortize,
   beatenText,
   cardLede,
   costLine,
+  costShares,
   coverLine,
   dayLabel,
   daysBetween,
@@ -13,6 +15,7 @@ import {
   emphasize,
   foreignText,
   freeLine,
+  hues,
   investVerdict,
   loanLede,
   noticeText,
@@ -20,9 +23,11 @@ import {
   ordinal,
   payingDown,
   plan,
+  rateTone,
   securedText,
   shareLine,
   sliderRange,
+  stripMarks,
 } from "./debt";
 
 /** A debt with nothing on it, for a test to fill in the parts it is about. */
@@ -588,5 +593,97 @@ describe("emphasize", () => {
       { text: "BRL 1,000", strong: true },
       { text: ".", strong: false },
     ]);
+  });
+});
+
+describe("costShares", () => {
+  test("puts each debt's share of the balance against its share of the cost", () => {
+    const shares = costShares([
+      debt({ account: "car", label: "Car", owed: 5000, rate: 0.05 }),
+      debt({ account: "store", label: "Store", owed: 2500, rate: 0.24 }),
+      debt({ account: "sofa", label: "Sofa", owed: 2500, rate: 0 }),
+      debt({ account: "done", label: "Done", owed: 0, rate: 0.2 }),
+    ]);
+    expect(shares.map((s) => s.account)).toEqual(["car", "store", "sofa"]);
+    expect(shares.map((s) => s.owed)).toEqual([0.5, 0.25, 0.25]);
+    expect(shares.map((s) => s.cost.toFixed(3))).toEqual(["0.294", "0.706", "0.000"]);
+  });
+
+  test("has no cost to share when nothing charges interest", () => {
+    const shares = costShares([
+      debt({ account: "a", owed: 100, rate: 0 }),
+      debt({ account: "b", owed: 300, rate: null }),
+    ]);
+    expect(shares.map((s) => s.cost)).toEqual([0, 0]);
+    expect(shares.map((s) => s.owed)).toEqual([0.25, 0.75]);
+  });
+});
+
+describe("hues", () => {
+  test("gives every owing debt a colour in order, cycling after five", () => {
+    const debts = ["a", "b", "c", "d", "e", "f"].map((account) =>
+      debt({ account, owed: 10 }),
+    );
+    const h = hues([...debts, debt({ account: "paid", owed: 0 })]);
+    expect([...h.entries()]).toEqual([
+      ["a", "d1"],
+      ["b", "d2"],
+      ["c", "d3"],
+      ["d", "d4"],
+      ["e", "d5"],
+      ["f", "d1"],
+    ]);
+  });
+});
+
+describe("rateTone", () => {
+  test("reads a rate against the return the ledger assumes", () => {
+    expect(rateTone(null, 0.05)).toBeNull();
+    expect(rateTone(0, 0.05)).toBe("free");
+    expect(rateTone(0.03, 0.05)).toBe("cheap");
+    expect(rateTone(0.0528, 0.05)).toBe("dear");
+    expect(rateTone(0.2388, 0.05)).toBe("steep");
+  });
+});
+
+describe("stripMarks", () => {
+  const up = (date: string, label = date, amount = 1) => ({
+    account: label,
+    label,
+    date,
+    amount,
+  });
+
+  test("places each payment along the next month and staggers close neighbours", () => {
+    const marks = stripMarks(
+      [up("2026-09-27"), up("2026-09-10"), up("2026-09-15"), up("2026-09-18")],
+      "2026-09-02",
+    );
+    expect(marks.map((m) => m.date)).toEqual([
+      "2026-09-10",
+      "2026-09-15",
+      "2026-09-18",
+      "2026-09-27",
+    ]);
+    expect(marks.map((m) => m.x.toFixed(3))).toEqual(["0.258", "0.419", "0.516", "0.806"]);
+    expect(marks.map((m) => m.lane)).toEqual([0, 0, 1, 0]);
+  });
+
+  test("stacks payments on the same day, and keeps the strip's ends", () => {
+    const marks = stripMarks(
+      [up("2026-09-02", "a"), up("2026-09-02", "b"), up("2026-09-02", "c"), up("2026-10-03", "d")],
+      "2026-09-02",
+    );
+    expect(marks.map((m) => m.lane)).toEqual([0, 1, 2, 0]);
+    expect(marks.map((m) => m.x)).toEqual([0, 0, 0, 1]);
+  });
+});
+
+describe("addDays", () => {
+  test("steps over month and year ends", () => {
+    expect(addDays("2026-09-02", 7)).toBe("2026-09-09");
+    expect(addDays("2026-09-28", 5)).toBe("2026-10-03");
+    expect(addDays("2026-12-30", 3)).toBe("2027-01-02");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
   });
 });

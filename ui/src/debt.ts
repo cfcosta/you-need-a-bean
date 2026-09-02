@@ -15,6 +15,7 @@ import type {
   DebtKind,
   DebtNotice,
   Foreign,
+  Upcoming,
 } from "./api";
 import {
   duration,
@@ -598,6 +599,11 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((utc(to) - utc(from)) / 86_400_000);
 }
 
+/** The date `n` days on. */
+export function addDays(date: string, n: number): string {
+  return new Date(utc(date) + n * 86_400_000).toISOString().slice(0, 10);
+}
+
 /** What a notice says. The server sends the fact; the sentence is ours. */
 export function noticeText(n: DebtNotice, cur: string): string {
   switch (n.kind) {
@@ -617,4 +623,82 @@ export function noticeText(n: DebtNotice, cur: string): string {
         `a payment too many`
       );
   }
+}
+
+/** One debt's share of what is owed against its share of what it all
+ * costs, for drawing the two bars one above the other. */
+export interface Share {
+  account: string;
+  label: string;
+  owed: number;
+  cost: number;
+}
+
+export function costShares(debts: Debt[]): Share[] {
+  const owing = debts.filter((d) => d.owed > EPS);
+  const total = owing.reduce((s, d) => s + d.owed, 0);
+  const cost = (d: Debt) => d.owed * (d.rate ?? 0);
+  const totalCost = owing.reduce((s, d) => s + cost(d), 0);
+  return owing.map((d) => ({
+    account: d.account,
+    label: d.label,
+    owed: total > 0 ? d.owed / total : 0,
+    cost: totalCost > 0 ? cost(d) / totalCost : 0,
+  }));
+}
+
+/** The colour class each owing debt keeps across the page, in the
+ * order given, cycling after five. */
+export function hues(debts: Debt[]): Map<string, string> {
+  const out = new Map<string, string>();
+  let k = 0;
+  for (const d of debts) {
+    if (d.owed <= EPS) continue;
+    out.set(d.account, `d${(k % 5) + 1}`);
+    k += 1;
+  }
+  return out;
+}
+
+/** How a rate reads against the return the ledger assumes a portfolio
+ * makes: nothing, less than that, more, or a card's kind of rate. */
+export type RateTone = "free" | "cheap" | "dear" | "steep";
+
+export function rateTone(rate: number | null, assumed: number): RateTone | null {
+  if (rate == null) return null;
+  if (rate <= 1e-9) return "free";
+  if (rate < assumed) return "cheap";
+  if (rate < 0.15) return "dear";
+  return "steep";
+}
+
+/** A payment placed along the next `days` days: `x` from 0 at today to
+ * 1 at the end, and `lane` counting the earlier marks close enough to
+ * overprint it, so the drawing can stagger their labels. */
+export interface Mark {
+  account: string;
+  label: string;
+  date: string;
+  amount: number;
+  x: number;
+  lane: number;
+}
+
+export function stripMarks(
+  upcoming: Upcoming[],
+  today: string,
+  days = 31,
+  near = 0.12,
+): Mark[] {
+  const marks = upcoming
+    .map((u) => ({
+      ...u,
+      x: Math.min(1, Math.max(0, daysBetween(today, u.date) / days)),
+      lane: 0,
+    }))
+    .sort((a, b) => a.x - b.x || a.date.localeCompare(b.date));
+  marks.forEach((m, i) => {
+    m.lane = marks.slice(0, i).filter((p) => m.x - p.x < near).length;
+  });
+  return marks;
 }
