@@ -1097,7 +1097,14 @@ fn window_json(window: Option<(MonthKey, MonthKey)>) -> Value {
 }
 
 fn num(value: Decimal) -> Value {
-    json!(value.round_dp(2).to_f64())
+    let cents = value.round_dp(2);
+    // A negated zero keeps its sign, and `-0.0` is a number that reads
+    // as a debt.
+    json!(if cents.is_zero() {
+        Some(0.0)
+    } else {
+        cents.to_f64()
+    })
 }
 
 fn opt_num(value: Option<Decimal>) -> Value {
@@ -1166,6 +1173,17 @@ mod tests {
         assert_eq!(civil_from_days(20_686), (2026, 8, 21));
         // A leap day.
         assert_eq!(civil_from_days(19_782), (2024, 2, 29));
+    }
+
+    #[test]
+    fn num_never_sends_a_negative_zero() {
+        // A card paid to the cent is owed minus nothing, and negating a
+        // zero with cents keeps its sign; JSON must not print `-0.0`.
+        let paid = Decimal::new(123_456, 2);
+        assert_eq!(num(-(paid - paid)).to_string(), "0.0");
+        assert_eq!(opt_num(Some(-Decimal::new(0, 2))).to_string(), "0.0");
+        assert_eq!(num(-Decimal::new(4, 3)).to_string(), "0.0");
+        assert_eq!(num(-Decimal::new(6, 3)).to_string(), "-0.01");
     }
 
     #[test]
