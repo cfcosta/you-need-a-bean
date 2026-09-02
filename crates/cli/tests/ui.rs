@@ -60,10 +60,13 @@ async fn serves_the_embedded_ui_at_root() {
     assert_eq!(status, StatusCode::OK);
     assert!(content_type.contains("javascript"), "{content_type}");
 
+    // The head also preloads a font, so the stylesheet is the href that
+    // says it is one, not the first href on the page.
     let css = body
         .split("href=\"")
-        .nth(1)
-        .and_then(|rest| rest.split('"').next())
+        .skip(1)
+        .filter_map(|rest| rest.split('"').next())
+        .find(|href| href.ends_with(".css"))
         .expect("index.html references a stylesheet");
     let (status, content_type, _) = get(&app, css).await;
     assert_eq!(status, StatusCode::OK);
