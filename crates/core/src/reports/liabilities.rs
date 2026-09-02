@@ -1,13 +1,19 @@
 //! What you owe, what it costs, and when it ends.
 //!
 //! Every liability with something on it gets a card: how much, at what
-//! rate, paid how much and when, and — for a loan — the month the last
-//! payment lands if the current one keeps landing. None of it needs a
-//! number the ledger does not already hold. The rate is what the
-//! interest legs say against the balance they were charged on; the
-//! payment is what has been paid lately; the due day is where the
-//! payments fall; a card is paid in full when the payment cleared
-//! everything older than a statement.
+//! rate, paid how much and when, and — for a loan or a card being
+//! carried — the month the last payment lands if the current one keeps
+//! landing. None of it needs a number the ledger does not already
+//! hold. The rate is what the interest legs say against the balance
+//! they were charged on; the payment is what has been paid lately; the
+//! due day is where the payments fall; a card is paid in full when the
+//! payment cleared everything older than a statement.
+//!
+//! What the postings cannot say, the open directive may: a `rate:`
+//! before any interest is charged, a `due:` day before two payments
+//! have landed, a card's `limit:`, and the `collateral:` a loan is
+//! secured on. When the ledger states one of those, it wins over the
+//! guess.
 //!
 //! Signs are the reader's, not the ledger's: a liability holds a
 //! negative balance, and this module reports it as a positive amount
@@ -21,6 +27,7 @@ use crate::model::{
     AccountInfo, AccountKind, Day, Ledger, MonthKey, add_sum, days_between,
 };
 use crate::query::{cents, median};
+use crate::reports::fire::SCENARIO_RATES;
 
 /// Interest observations the rate is read from: the newest few, so a
 /// loan whose rate was reset reads at the new one.
@@ -146,6 +153,42 @@ pub struct Cycle {
     pub in_full: Option<bool>,
 }
 
+/// The asset a loan is secured on, as the open directive named it.
+#[derive(Debug, Clone)]
+pub struct Collateral {
+    pub account: String,
+    pub label: String,
+    /// What it is worth at the month's end, converted; `None` when it
+    /// cannot be priced or the account is not in the ledger.
+    pub value: Option<Decimal>,
+}
+
+/// One foreign-currency part of what is owed.
+#[derive(Debug, Clone)]
+pub struct Foreign {
+    pub code: String,
+    /// Owed in that currency: positive, the reader's sign.
+    pub amount: Decimal,
+    /// The same in the display currency, when there is a price.
+    pub converted: Option<Decimal>,
+}
+
+/// A debt that is over: paid to nothing, and either a loan (which has
+/// nowhere else to go) or closed. Kept as a receipt.
+#[derive(Debug, Clone)]
+pub struct Beaten {
+    pub account: String,
+    pub label: String,
+    /// The most that was ever owed.
+    pub peak: Decimal,
+    pub principal_paid: Decimal,
+    pub interest_paid: Decimal,
+    /// The first day anything was owed.
+    pub first: Day,
+    /// The day of the last payment.
+    pub last: Day,
+}
+
 #[derive(Debug, Clone)]
 pub struct Debt {
     pub account: String,
@@ -155,15 +198,25 @@ pub struct Debt {
     pub owed: Decimal,
     /// Owed now per commodity, as the ledger signs it.
     pub balances: Vec<(String, Decimal)>,
+    /// The parts of `balances` not in the display currency, converted.
+    pub foreign: Vec<Foreign>,
+    /// `limit:` from the open directive, in the display currency.
+    pub limit: Option<Decimal>,
+    /// `owed` over `limit`.
+    pub utilisation: Option<Decimal>,
+    /// `collateral:` from the open directive, looked up.
+    pub collateral: Option<Collateral>,
     /// The most that was ever owed.
     pub peak: Decimal,
     /// How much of the peak has been paid down; loans only.
     pub progress: Option<Decimal>,
-    /// Nominal annual rate read off the interest legs.
+    /// Nominal annual rate: `rate:` from the open directive, else read
+    /// off the interest legs.
     pub rate: Option<Decimal>,
     /// What a payment has been lately.
     pub payment: Option<Decimal>,
-    /// The day of the month payments land on.
+    /// The day of the month payments land on: `due:` from the open
+    /// directive, else where the payments fall.
     pub due_day: Option<u8>,
     /// When the next one is expected, while something is owed.
     pub next_due: Option<Day>,
@@ -176,7 +229,8 @@ pub struct Debt {
     /// Owed after every transaction over the trailing `basis` months,
     /// opened by where it stood going in.
     pub trail: Vec<TrailPoint>,
-    /// Loans only: where the current payment lands.
+    /// Where the current payment lands, with nothing new put on: loans,
+    /// and cards carrying a balance.
     pub payoff: Option<Payoff>,
     /// Cards only.
     pub cycle: Option<Cycle>,
@@ -222,14 +276,21 @@ pub struct LiabilitiesView {
     pub cost_year: Decimal,
     /// `cost_year` over `owed`.
     pub blended_rate: Option<Decimal>,
-    /// The month the last loan pays off, when every loan does.
+    /// The month the last debt being paid down is gone, when every
+    /// one of them has a month: loans, and cards carrying a balance.
     pub debt_free: Option<MonthKey>,
+    /// The yearly return paying a debt down is weighed against: the
+    /// middle of the independence page's scenarios, so the two pages
+    /// agree.
+    pub assumed_return: Decimal,
     pub cover: Cover,
     /// Payments expected in the next month, soonest first.
     pub upcoming: Vec<Upcoming>,
     pub notices: Vec<Notice>,
     /// Biggest first.
     pub debts: Vec<Debt>,
+    /// Debts that are over, most recently beaten first.
+    pub beaten: Vec<Beaten>,
     pub unpriced: Vec<String>,
 }
 
@@ -274,6 +335,7 @@ impl Ledger {
         };
         let mut unpriced = BTreeSet::new();
         let mut debts = Vec::new();
+        let mut beaten = Vec::new();
         let mut interest_month = Decimal::ZERO;
         let mut interest_year = Decimal::ZERO;
         for info in self.accounts() {
@@ -292,7 +354,9 @@ impl Ledger {
                     interest_year += amount;
                 }
             }
-            if let Some(debt) = self.debt_of(
+            if let Some(receipt) = beaten_of(info, &walk) {
+                beaten.push(receipt);
+            } else if let Some(debt) = self.debt_of(
                 info,
                 &walk,
                 today,
@@ -306,6 +370,9 @@ impl Ledger {
         }
         debts.sort_by(|a, b| {
             b.owed.cmp(&a.owed).then_with(|| a.account.cmp(&b.account))
+        });
+        beaten.sort_by(|a, b| {
+            b.last.cmp(&a.last).then_with(|| a.account.cmp(&b.account))
         });
 
         let (earned_month, earned_year) =
@@ -323,15 +390,11 @@ impl Ledger {
             .filter(|d| d.owed > Decimal::ZERO)
             .map(|d| d.owed * d.rate.unwrap_or_default())
             .sum();
-        let loans: Vec<&Debt> = debts
-            .iter()
-            .filter(|d| {
-                d.kind == DebtKind::Installment && d.owed > Decimal::ZERO
-            })
-            .collect();
-        let debt_free = (!loans.is_empty())
+        let paying_down: Vec<&Debt> =
+            debts.iter().filter(|d| paying_down(d)).collect();
+        let debt_free = (!paying_down.is_empty())
             .then(|| {
-                loans
+                paying_down
                     .iter()
                     .map(|d| d.payoff.as_ref().map(|p| p.month))
                     .collect::<Option<Vec<_>>>()
@@ -357,6 +420,9 @@ impl Ledger {
             blended_rate: (owed > Decimal::ZERO)
                 .then(|| (cost / owed).round_dp(4)),
             debt_free,
+            assumed_return: Decimal::try_from(SCENARIO_RATES[1])
+                .map(|r| r.round_dp(4))
+                .unwrap_or_default(),
             cover: Cover {
                 cash,
                 owed: revolving,
@@ -366,6 +432,7 @@ impl Ledger {
             upcoming,
             notices,
             debts,
+            beaten,
             unpriced: unpriced.into_iter().collect(),
         }
     }
@@ -484,9 +551,23 @@ impl Ledger {
             .collect();
         self.sort_amounts(&mut balances, cur);
 
+        let foreign = balances
+            .iter()
+            .filter(|(c, _)| c != cur)
+            .map(|(c, v)| Foreign {
+                code: c.clone(),
+                amount: -v,
+                converted: self.convert(-v, c, cur, at).map(cents),
+            })
+            .collect();
+
         let mut rates: Vec<Decimal> =
             w.rates.iter().rev().take(RATE_SAMPLES).copied().collect();
-        let rate = (!rates.is_empty()).then(|| median(&mut rates).round_dp(4));
+        let rate = info
+            .debt
+            .rate
+            .or_else(|| (!rates.is_empty()).then(|| median(&mut rates)))
+            .map(|r| r.round_dp(4));
 
         let payments: Vec<&Payment> =
             w.payments.iter().map(|(p, _)| p).collect();
@@ -503,9 +584,13 @@ impl Ledger {
             .take(DUE_SAMPLES)
             .map(|p| Decimal::from(p.date.2))
             .collect();
-        let due_day = (payments.len() >= DUE_PAYMENTS)
-            .then(|| median(&mut days).round().to_string().parse::<u8>().ok())
-            .flatten();
+        let due_day = info.debt.due.or_else(|| {
+            (payments.len() >= DUE_PAYMENTS)
+                .then(|| {
+                    median(&mut days).round().to_string().parse::<u8>().ok()
+                })
+                .flatten()
+        });
         let paid_this_month = payments
             .iter()
             .any(|p| MonthKey::new(p.date.0, p.date.1) == current);
@@ -513,7 +598,14 @@ impl Ledger {
             .filter(|_| owed > Decimal::ZERO)
             .map(|day| next_due(day, paid_this_month, today, current));
 
-        let payoff = (kind == DebtKind::Installment && owed > Decimal::ZERO)
+        let cycle =
+            (kind == DebtKind::Revolving).then(|| self.cycle_of(w, current));
+        let carried = cycle
+            .as_ref()
+            .and_then(|c| c.carried)
+            .is_some_and(|c| c > Decimal::ZERO);
+        let payoff = (owed > Decimal::ZERO
+            && (kind == DebtKind::Installment || carried))
             .then(|| {
                 let payment = payment.filter(|p| *p > Decimal::ZERO)?;
                 let plan = amortize(owed, rate.unwrap_or_default(), payment)?;
@@ -524,9 +616,31 @@ impl Ledger {
                 })
             })
             .flatten();
-        let cycle =
-            (kind == DebtKind::Revolving).then(|| self.cycle_of(w, current));
         let peak = cents(w.peak);
+        let limit = info.debt.limit.and_then(|limit| {
+            let own = match info.currencies.as_slice() {
+                [only] => only.as_str(),
+                _ => cur,
+            };
+            self.convert(limit, own, cur, at).map(cents)
+        });
+        let utilisation = limit
+            .filter(|l| *l > Decimal::ZERO)
+            .map(|l| (owed.max(Decimal::ZERO) / l).round_dp(4));
+        let collateral = info.debt.collateral.as_ref().map(|name| {
+            let held = self.account(name);
+            Collateral {
+                account: name.clone(),
+                label: held.map_or_else(
+                    || name.rsplit(':').next().unwrap_or(name).to_string(),
+                    |a| a.label.clone(),
+                ),
+                value: held.and_then(|a| {
+                    let balances = self.balance_at(&a.account, current);
+                    self.owed_of(&balances, cur, at).map(|v| -v)
+                }),
+            }
+        });
         let progress = (kind == DebtKind::Installment && peak > Decimal::ZERO)
             .then(|| {
                 ((peak - owed) / peak)
@@ -540,6 +654,10 @@ impl Ledger {
             kind,
             owed,
             balances,
+            foreign,
+            limit,
+            utilisation,
+            collateral,
             peak,
             progress,
             rate,
@@ -834,12 +952,56 @@ fn trail(w: &Walk, from: MonthKey) -> Vec<TrailPoint> {
     .collect()
 }
 
+/// Owing, and on the way down at a payment: a loan, or a card carrying
+/// a balance. What `debt_free` waits for.
+fn paying_down(d: &Debt) -> bool {
+    let carried = d
+        .cycle
+        .as_ref()
+        .and_then(|c| c.carried)
+        .is_some_and(|c| c > Decimal::ZERO);
+    d.owed > Decimal::ZERO && (d.kind == DebtKind::Installment || carried)
+}
+
+/// A debt that is over, if this one is: nothing owed in any currency,
+/// something once was, and either it is a loan or the account has
+/// been closed. A card at zero that is still open is just between
+/// statements.
+fn beaten_of(info: &AccountInfo, w: &Walk) -> Option<Beaten> {
+    let held = w.balances.iter().any(|(_, v)| !v.is_zero());
+    let kind = debt_kind(&info.account, w.recharged);
+    let over = kind == DebtKind::Installment || info.closed.is_some();
+    if held || w.peak <= Decimal::ZERO || !over {
+        return None;
+    }
+    let first = w.steps.first()?.date;
+    let last = w.payments.last().map(|(p, _)| p.date)?;
+    Some(Beaten {
+        account: info.account.clone(),
+        label: info.label.clone(),
+        peak: cents(w.peak),
+        principal_paid: cents(
+            w.payments.iter().map(|(p, _)| p.principal).sum(),
+        ),
+        interest_paid: cents(w.interest.iter().map(|(_, i)| *i).sum()),
+        first,
+        last,
+    })
+}
+
 fn upcoming(debts: &[Debt], today: Day) -> Vec<Upcoming> {
     let mut due: Vec<Upcoming> = debts
         .iter()
         .filter_map(|d| {
             let date = d.next_due?;
-            let amount = d.payment?;
+            // A card cleared every statement pays what is on it; a
+            // loan, or a card being carried, pays its payment.
+            let in_full = d.cycle.as_ref().and_then(|c| c.in_full);
+            let amount = if in_full == Some(true) {
+                d.owed
+            } else {
+                d.payment?
+            };
             let ahead = days_between(today, date);
             ((0..=UPCOMING_DAYS).contains(&ahead)).then(|| Upcoming {
                 account: d.account.clone(),

@@ -27,9 +27,9 @@ pub use growth::{GrowthPoint, GrowthView};
 pub use income::{IncomeSource, IncomeView};
 pub use investments::{AssetClass, InvestmentsView, Position};
 pub use liabilities::{
-    Amortization, Cover, Cycle, Debt, DebtKind, DebtPoint, LiabilitiesView,
-    Notice, NoticeKind, Payment, Payoff, TrailPoint, Upcoming, amortize,
-    debt_kind,
+    Amortization, Beaten, Collateral, Cover, Cycle, Debt, DebtKind, DebtPoint,
+    Foreign, LiabilitiesView, Notice, NoticeKind, Payment, Payoff, TrailPoint,
+    Upcoming, amortize, debt_kind,
 };
 pub use movers::{Mover, MoversView};
 pub use payees::{Payee, PayeesView};

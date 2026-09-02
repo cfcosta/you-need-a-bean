@@ -1239,11 +1239,20 @@ fn a_loan_projects_its_payoff_at_the_current_payment() {
     assert_eq!(payoff.months, 21);
     assert_eq!(payoff.month, m("2027-11"));
     assert_eq!(payoff.interest, dec("537.69"));
-    assert_eq!(view.debt_free, Some(m("2027-11")));
 
-    // A card carrying a balance does not get a projection: next
-    // month's charges are not in the model.
-    assert!(debt(&view, "Liabilities:Card:Store").payoff.is_none());
+    // A card carrying a balance is projected at its payment with
+    // nothing new put on it: 344.80 at 24%, 20 a month.
+    let store = debt(&view, "Liabilities:Card:Store");
+    let payoff = store.payoff.as_ref().expect("the minimum gets there");
+    assert_eq!(payoff.months, 22);
+    assert_eq!(payoff.month, m("2027-12"));
+    assert_eq!(payoff.interest, dec("82.28"));
+    // Debt-free is when the last of them is gone.
+    assert_eq!(view.debt_free, Some(m("2027-12")));
+    // A card paid in full has nothing to project, and one never paid
+    // has no payment to project with.
+    assert!(debt(&view, "Liabilities:Card:Everyday").payoff.is_none());
+    assert!(debt(&view, "Liabilities:Card:Travel").payoff.is_none());
 }
 
 #[test]
@@ -1411,9 +1420,144 @@ fn the_ledger_notices_what_the_figures_do_not_say() {
 fn a_ledger_without_debts_has_nothing_to_say() {
     let view = fixture("income").liabilities_view((2026, 4, 15), 6, "USD");
     assert!(view.debts.is_empty());
+    assert!(view.beaten.is_empty());
     assert_eq!(view.owed, Decimal::ZERO);
     assert_eq!(view.blended_rate, None);
     assert_eq!(view.debt_free, None);
     assert!(view.upcoming.is_empty());
     assert!(view.notices.is_empty());
+}
+
+/// The annotated fixture, on the second of September.
+fn annotated() -> LiabilitiesView {
+    fixture("liabilities-meta").liabilities_view((2026, 9, 2), 6, "USD")
+}
+
+#[test]
+fn an_open_directive_says_what_the_postings_cannot() {
+    let view = annotated();
+    // The sofa has never been charged interest and has one payment:
+    // its rate and its due day come from the open directive.
+    let sofa = debt(&view, "Liabilities:Loan:Sofa");
+    assert_eq!(sofa.rate, Some(Decimal::ZERO));
+    assert_eq!(sofa.due_day, Some(15));
+    assert_eq!(sofa.next_due, Some((2026, 9, 15)));
+    let payoff = sofa.payoff.as_ref().expect("a 0% loan still ends");
+    assert_eq!(payoff.months, 23);
+    assert_eq!(payoff.month, m("2028-08"));
+    assert_eq!(payoff.interest, Decimal::ZERO);
+    // A rate the ledger states wins over one read off the legs.
+    let car = debt(&view, "Liabilities:Loan:Car");
+    assert_eq!(car.rate, Some(dec("0.0525")));
+    assert_eq!(car.payoff.as_ref().map(|p| p.months), Some(17));
+    assert_eq!(view.debt_free, Some(m("2028-08")));
+}
+
+#[test]
+fn a_card_is_measured_against_its_limit() {
+    let view = annotated();
+    let everyday = debt(&view, "Liabilities:Card:Everyday");
+    assert_eq!(everyday.limit, Some(dec("1000")));
+    assert_eq!(everyday.utilisation, Some(dec("0.4")));
+    // No limit, no share of one.
+    let travel = debt(&view, "Liabilities:Card:Travel");
+    assert!(travel.limit.is_none());
+    assert!(travel.utilisation.is_none());
+}
+
+#[test]
+fn a_loan_knows_what_secures_it() {
+    let view = annotated();
+    let car = debt(&view, "Liabilities:Loan:Car");
+    let collateral = car.collateral.as_ref().expect("the loan names it");
+    assert_eq!(collateral.account, "Assets:Car");
+    assert_eq!(collateral.label, "The Car");
+    assert_eq!(collateral.value, Some(dec("11000.00")));
+    assert!(debt(&view, "Liabilities:Loan:Sofa").collateral.is_none());
+}
+
+#[test]
+fn a_foreign_balance_is_shown_in_both_currencies() {
+    let view = annotated();
+    let travel = debt(&view, "Liabilities:Card:Travel");
+    assert_eq!(travel.owed, dec("110.00"));
+    let foreign: Vec<(&str, Decimal, Option<Decimal>)> = travel
+        .foreign
+        .iter()
+        .map(|f| (f.code.as_str(), f.amount, f.converted))
+        .collect();
+    assert_eq!(foreign, vec![("EUR", dec("100.00"), Some(dec("110.00")))]);
+    assert!(debt(&view, "Liabilities:Card:Everyday").foreign.is_empty());
+}
+
+#[test]
+fn a_debt_that_is_over_becomes_a_receipt() {
+    let view = annotated();
+    assert!(view.debts.iter().all(
+        |d| !d.account.ends_with("Student") && !d.account.ends_with("Old")
+    ));
+    let beaten: Vec<(&str, &str, Decimal, Decimal, Decimal, Day, Day)> = view
+        .beaten
+        .iter()
+        .map(|b| {
+            (
+                b.account.as_str(),
+                b.label.as_str(),
+                b.peak,
+                b.principal_paid,
+                b.interest_paid,
+                b.first,
+                b.last,
+            )
+        })
+        .collect();
+    // Most recently beaten first.
+    assert_eq!(
+        beaten,
+        vec![
+            (
+                "Liabilities:Card:Old",
+                "Old Card",
+                dec("80.00"),
+                dec("80.00"),
+                Decimal::ZERO,
+                (2026, 2, 10),
+                (2026, 3, 5)
+            ),
+            (
+                "Liabilities:Loan:Student",
+                "Student Loan",
+                dec("600.00"),
+                dec("600.00"),
+                dec("3.00"),
+                (2026, 1, 1),
+                (2026, 2, 5)
+            ),
+        ]
+    );
+}
+
+#[test]
+fn a_card_paid_in_full_is_expected_to_pay_what_is_on_it() {
+    let view = annotated();
+    let upcoming: Vec<(&str, Day, Decimal)> = view
+        .upcoming
+        .iter()
+        .map(|u| (u.label.as_str(), u.date, u.amount))
+        .collect();
+    // The loans pay their payment; the card pays its balance, not the
+    // median of what its last statements happened to be.
+    assert_eq!(
+        upcoming,
+        vec![
+            ("Car Loan", (2026, 9, 15), dec("500.00")),
+            ("Sofa Financing", (2026, 9, 15), dec("50.00")),
+            ("Everyday Card", (2026, 9, 25), dec("400.00")),
+        ]
+    );
+}
+
+#[test]
+fn the_view_says_what_return_it_measures_debt_against() {
+    assert_eq!(annotated().assumed_return, dec("0.05"));
 }

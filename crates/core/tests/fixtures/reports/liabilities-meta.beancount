@@ -1,0 +1,108 @@
+option "title" "Liabilities, annotated"
+option "operating_currency" "USD"
+
+; What the ledger can say about a debt that its postings cannot: the
+; rate on a loan that has never charged interest, the day a payment is
+; due before two have landed, a card's limit, and what a loan is
+; secured on. Plus two debts that are over — one paid off and closed,
+; one closed after its last payment — and a card with euros on it.
+
+2026-01-01 open Assets:Checking USD
+2026-01-01 open Assets:Car USD
+  name: "The Car"
+  ynab: "tracking"
+2026-01-01 open Liabilities:Loan:Car USD
+  name: "Car Loan"
+  rate: 5.25
+  collateral: "Assets:Car"
+2026-01-01 open Liabilities:Loan:Sofa USD
+  name: "Sofa Financing"
+  rate: 0
+  due: 15
+2026-01-01 open Liabilities:Loan:Student USD
+  name: "Student Loan"
+2026-01-01 open Liabilities:Card:Everyday USD
+  name: "Everyday Card"
+  limit: 1000
+2026-01-01 open Liabilities:Card:Travel USD, EUR
+  name: "Travel Card"
+2026-01-01 open Liabilities:Card:Old USD
+  name: "Old Card"
+2026-01-01 open Expenses:Financial:Interest USD
+2026-01-01 open Expenses:Food USD, EUR
+2026-01-01 open Expenses:Home USD
+2026-01-01 open Equity:Opening USD
+
+2026-08-31 price EUR 1.10 USD
+
+2026-01-01 * "opening"
+  Assets:Checking              5000.00 USD
+  Assets:Car                  12000.00 USD
+  Liabilities:Loan:Car        -9000.00 USD
+  Liabilities:Loan:Student     -600.00 USD
+  Equity:Opening
+
+; The car loan: the legs say 6%, the open directive says 5.25%.
+2026-07-15 * "car payment"
+  Liabilities:Loan:Car          455.00 USD
+  Expenses:Financial:Interest    45.00 USD
+  Assets:Checking
+2026-08-15 * "car payment"
+  Liabilities:Loan:Car          457.28 USD
+  Expenses:Financial:Interest    42.72 USD
+  Assets:Checking
+
+; The car is worth less than it was.
+2026-06-30 * "the car, marked down"
+  Assets:Car                  -1000.00 USD
+  Equity:Opening
+
+; The sofa: 0% over two years, one payment so far.
+2026-07-20 * "Sofa" "sofa"
+  Expenses:Home                1200.00 USD
+  Liabilities:Loan:Sofa
+2026-08-15 * "sofa payment"
+  Liabilities:Loan:Sofa          50.00 USD
+  Assets:Checking
+
+; The student loan: paid off in February, closed in March.
+2026-01-05 * "student payment"
+  Liabilities:Loan:Student      300.00 USD
+  Expenses:Financial:Interest     2.00 USD
+  Assets:Checking
+2026-02-05 * "student payment"
+  Liabilities:Loan:Student      300.00 USD
+  Expenses:Financial:Interest     1.00 USD
+  Assets:Checking
+2026-03-01 close Liabilities:Loan:Student
+
+; The old card: one charge, one payment, closed.
+2026-02-10 * "Grocer" "food"
+  Expenses:Food                  80.00 USD
+  Liabilities:Card:Old
+2026-03-05 * "old card payment"
+  Liabilities:Card:Old           80.00 USD
+  Assets:Checking
+2026-05-01 close Liabilities:Card:Old
+
+; The everyday card: cleared on the 25th, 400 on it since.
+2026-07-10 * "Grocer" "food"
+  Expenses:Food                 200.00 USD
+  Liabilities:Card:Everyday
+2026-07-25 * "everyday payment"
+  Liabilities:Card:Everyday     200.00 USD
+  Assets:Checking
+2026-08-10 * "Grocer" "food"
+  Expenses:Food                 300.00 USD
+  Liabilities:Card:Everyday
+2026-08-25 * "everyday payment"
+  Liabilities:Card:Everyday     300.00 USD
+  Assets:Checking
+2026-08-28 * "Grocer" "food"
+  Expenses:Food                 400.00 USD
+  Liabilities:Card:Everyday
+
+; The travel card: 100 euro on it.
+2026-08-25 * "Trattoria" "supper"
+  Expenses:Food                 100.00 EUR
+  Liabilities:Card:Travel      -100.00 EUR
