@@ -80,6 +80,51 @@ watcher can come later).
 - **Asset/liability fallback labels**: last two segments joined with a
   space when depth > 2 (`Assets:US:BofA:Checking` → "BofA Checking").
 
+### Liabilities
+
+Everything on the Liabilities page is read from the transactions; no
+metadata is needed, and none is honoured yet.
+
+- **Owed** = the negation of a `Liabilities:*` account's converted
+  balance, so a debt is a positive number; a charge raises it and a
+  payment lowers it. An account in credit is owed as a negative amount
+  and raises an `overpaid` notice.
+- **Kind**: `installment` (a loan) or `revolving` (a card). A segment
+  of the account name decides when it can — card, credit, visa,
+  mastercard, amex, overdraft say card; loan, mortgage, financ, student,
+  auto, car, lease say loan — otherwise a debt that took new charges
+  after it was opened is a card.
+- **Rate** = the interest posted against the balance it accrued on,
+  annualised, over the newest six interest legs. An interest leg is a
+  posting to an `Expenses:` account with "interest" in its name, in a
+  transaction that also touches the debt. Interest earned is the same
+  reading of `Income:` accounts named that way.
+- **Payment** = the median of the last three payments; **due day** = the
+  median day of the last six, once there are two. `next_due` is the due
+  day in the current month or the next, while something is owed.
+- **Payoff** = months until the balance reaches zero at the current
+  payment with interest accruing monthly at `rate / 12` (rounded to the
+  cent each month, banker's rounding), plus the interest paid on the
+  way; `null` when the payment does not beat the interest. Capped at
+  1,200 months. **Debt-free** = the month the last loan is paid off,
+  `null` while no loan is owed or any loan's payment does not beat its
+  interest; **cost_year** = Σ owed × rate; **blended_rate** = cost_year
+  / owed.
+- **Cycle** (cards): the current month's charges and payments, the
+  balance carried past the last payment (charges younger than 31 days
+  belong to the cycle being paid into), and whether that payment
+  cleared everything older.
+- **Notices**: `missed` — a debt paid within the last two months whose
+  due day has passed by more than three days this month without a
+  payment; `growing` — a card that ended higher three months running
+  while carrying a balance; `overpaid` — see above.
+- **Upcoming** = the next due payment of every debt within 31 days.
+- **Cover** = the budget accounts' cash against what the cards hold.
+- **Windows**: the interest and payment figures for "the year" cover
+  the twelve complete months before the current one, clamped to the
+  ledger; a debt's `trail` (its balance after every transaction) covers
+  the `basis` months.
+
 ## HTTP API
 
 All responses are JSON. Amounts are numbers in the requested display
@@ -100,6 +145,18 @@ currency unless stated. `cur` defaults to the first operating currency,
   [{month, spent}×6], split, txns: [{ date, flag, payee, narration, tags,
   links, meta, amount, currency, converted, postings: [{account, amount,
   currency}] }] }`
+- `GET /api/liabilities?basis=&cur=`
+  `{ month, owed, installment, revolving, interest: { month, year,
+  earned_month, earned_year, window: [from, to] }, cost_year,
+  blended_rate, debt_free, cover: { cash, owed, covered, after },
+  upcoming: [{ account, label, date, amount }], notices: [{ kind, account,
+  label, amount, day }], debts: [{ account, label, kind, owed, balances:
+  {CUR: amount}, peak, progress, rate, payment, due_day, next_due,
+  principal_paid, interest_paid, payments: [{ date, total, principal,
+  interest }], history: [{ month, owed }], trail: [{ date, owed, delta }],
+  payoff: { months, month, interest }, cycle: { charges, payments,
+  carried, in_full } }], unpriced }` — rules under "Liabilities" above.
+  Zero is always sent as `0.0`, never `-0.0`.
 - Anything else under `/api/` → 404 JSON; bad month/currency → 400.
 - `/` and static assets → embedded UI (SPA fallback to index.html).
 
@@ -120,6 +177,19 @@ than the ledger. Components map 1:1 to the mockup's renderers: `Sidebar`, `Topba
 `BudgetTable` (VsBar), `Inspector` (TargetCard, HistoryChart,
 CurrencySplit, TxnList). Client state: `{month, basis, cur, cat,
 openTxns, closedGroups}` — same as the mockup's `state` object.
+
+Three pages share the shell: the budget, `Reports` (`/reports`) and
+`Liabilities` (`/liabilities`), routed in `ui/src/router.ts`. The
+Liabilities page is one masthead (owed, the month's and the year's
+interest, a year at these rates, the debt-free month, cash against the
+cards, interest earned, a bar cut per debt, the payments coming up),
+the notices, then a card per debt: a loan's balance by month with the
+projection to zero and a slider that tries a bigger payment
+(`ui/src/debt.ts` amortises the way the server does, to the cent), the
+principal against the interest paid, and the recent payments; a card's
+day-by-day sawtooth with every payment marked and its cycle. Card
+heads, keys and chart scales are shared through `components/Card.tsx`
+and `chart.ts`.
 
 ## Performance
 
@@ -164,6 +234,9 @@ after each red→green cycle (Conventional Commits).
 4. **E2E** — headless Chromium driven over CDP against the release binary
    on `examples/example.beancount`: sidebar chip, friendly names, month
    navigation, currency toggle, inspector interactions, screenshots.
+5. **UI unit tests** — `bun test` over the pure modules (`router`,
+   `months`, `format`, `debt`); the amortisation fixture there matches
+   the core one figure for figure.
 
 ## Out of scope (for now)
 
