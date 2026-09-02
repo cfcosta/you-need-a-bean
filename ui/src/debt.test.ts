@@ -273,7 +273,7 @@ describe("orderVerdict", () => {
     const a = plan(debts, 100, "avalanche");
     const s = plan(debts, 100, "snowball");
     expect(orderVerdict(a, s, "USD")).toBe(
-      "Highest rate first saves $ 6.13; both orders finish the same month. " +
+      "Highest rate first saves $ 6; both orders finish the same month. " +
         "Smallest first clears the Sofa 4 mo earlier, a quick win the numbers do not price.",
     );
   });

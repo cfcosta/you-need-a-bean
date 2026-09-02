@@ -129,7 +129,9 @@ export interface Plan {
   steps: PlanStep[];
 }
 
-const attack = (debts: PlanDebt[], order: Order) =>
+/** The debts in the order the extra reaches them: dearest first, or
+ * smallest first, the tie going to the other rule. */
+export const attack = (debts: PlanDebt[], order: Order) =>
   [...debts].sort((a, b) =>
     order === "avalanche"
       ? b.rate - a.rate || a.owed - b.owed
@@ -206,19 +208,19 @@ export function orderVerdict(
   const saves = cents(snowball.interest - avalanche.interest);
   const sooner = snowball.months - avalanche.months;
   const parts: string[] = [];
-  if (saves >= EPS) {
+  if (saves >= 1) {
     parts.push(
-      `Highest rate first saves ${fmt(saves, cur)}` +
+      `Highest rate first saves ${fmt(saves, cur, 0)}` +
         (sooner > 0
           ? ` and finishes ${duration(sooner)} sooner.`
           : sooner < 0
             ? `, though smallest first finishes ${duration(-sooner)} sooner.`
             : "; both orders finish the same month."),
     );
-  } else if (saves <= -EPS) {
-    parts.push(`Smallest first saves ${fmt(-saves, cur)} here, which is unusual.`);
+  } else if (saves <= -1) {
+    parts.push(`Smallest first saves ${fmt(-saves, cur, 0)} here, which is unusual.`);
   } else {
-    parts.push("The two orders cost the same to within a cent.");
+    parts.push("The two orders cost the same to within a dollar.");
   }
   const first = snowball.steps[0];
   const later = avalanche.steps.find((s) => s.account === first?.account);

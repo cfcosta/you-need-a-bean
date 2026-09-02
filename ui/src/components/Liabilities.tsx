@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import type {
+  Beaten,
   Debt,
   DebtNotice,
   DebtPayment,
@@ -10,19 +11,34 @@ import type {
   TrailPoint,
 } from "../api";
 import { bounds, ticks } from "../chart";
-import type { Amortization } from "../debt";
+import type { Amortization, Order, Plan, PlanDebt } from "../debt";
 import {
   amortize,
+  attack,
+  beatenText,
+  cardLede,
+  costLine,
+  coverLine,
   dayLabel,
   daysBetween,
+  earnedLine,
+  emphasize,
+  foreignText,
+  freeLine,
+  investVerdict,
+  loanLede,
   noticeText,
+  orderVerdict,
   ordinal,
+  payingDown,
+  plan,
+  securedText,
+  shareLine,
   sliderRange,
 } from "../debt";
 import {
   duration,
   fmt,
-  fmtCode,
   fmtCompact,
   monthName,
   monthShort,
@@ -42,6 +58,17 @@ const HUES = 5;
 
 const pct = (v: number) =>
   `${Math.min(100, Math.max(0, v * 100)).toFixed(2)}%`;
+
+/** A sentence with its figures in bold, so a scan still finds them. */
+function Prose({ text, className }: { text: string; className?: string }) {
+  return (
+    <p className={`debt-lede${className != null ? ` ${className}` : ""}`}>
+      {emphasize(text).map((s, i) =>
+        s.strong ? <b key={i}>{s.text}</b> : <span key={i}>{s.text}</span>,
+      )}
+    </p>
+  );
+}
 
 function Stat({
   lbl,
@@ -67,20 +94,26 @@ function Stat({
   );
 }
 
-/** The page's masthead: what is owed, what it costs, and when it ends. */
+/** The page's masthead: what is owed, what that means, and when it
+ * ends. */
 function Masthead({ data, cur }: { data: LiabilitiesView; cur: string }) {
   const i = data.interest;
   const owing = data.debts.filter((d) => d.owed > EPS);
-  const loans = owing.filter((d) => d.kind === "installment");
   const total = owing.reduce((sum, d) => sum + d.owed, 0);
-  const horizon = Math.max(0, ...loans.map((d) => d.payoff?.months ?? 0));
+  const down = payingDown(data.debts);
+  const horizon = Math.max(
+    0,
+    ...data.debts
+      .filter((d) => down.some((p) => p.account === d.account))
+      .map((d) => d.payoff?.months ?? 0),
+  );
   const cover = data.cover;
   const hue = (k: number) => `d${(k % HUES) + 1}`;
 
   const free =
     data.debt_free != null
       ? monthYear(data.debt_free)
-      : loans.length > 0
+      : down.length > 0
         ? "not at this pace"
         : owing.length > 0
           ? "cards aside"
@@ -88,9 +121,18 @@ function Masthead({ data, cur }: { data: LiabilitiesView; cur: string }) {
   const freeHint =
     data.debt_free != null
       ? `${duration(horizon)} at today's payments`
-      : loans.length > 0
+      : down.length > 0
         ? "a payment is not beating its interest"
-        : "no loan to pay down";
+        : "nothing is being paid down";
+  const lede = [
+    costLine(data.cost_year, data.blended_rate, cur),
+    shareLine(data.debts, cur),
+    freeLine(data.debt_free, data.month, data.debts, cur),
+  ]
+    .filter((l): l is string => l != null)
+    .join(" ");
+  const coverText = coverLine(cover, cur);
+  const earnedText = earnedLine(i, cur);
 
   return (
     <div className="report-card fire debt">
@@ -114,23 +156,18 @@ function Masthead({ data, cur }: { data: LiabilitiesView; cur: string }) {
               </>
             )}
           </div>
+          {data.debts.length > 0 && <Prose text={lede} />}
         </div>
         <div className="fire-stats">
           <Stat
-            lbl="Interest this month"
-            v={fmt(i.month, cur)}
-            hint={`${fmt(i.year, cur, 0)} over ${windowLabel(i.window)}`}
-            title="Every posting to an interest expense in a transaction that touched a debt."
-          />
-          <Stat
-            lbl="A year at these rates"
-            v={fmt(data.cost_year, cur, 0)}
+            lbl="Costs a month"
+            v={fmt(data.cost_year / 12, cur, 0)}
             hint={
               data.blended_rate != null
                 ? `${ratio(data.blended_rate)} across everything owed`
                 : "no interest seen yet"
             }
-            title="Each balance times the rate the ledger has been charging on it, added up."
+            title="Each balance times the rate the ledger has been charging on it, added up and spread over the year."
           />
           <Stat lbl="Debt-free" v={free} hint={freeHint} />
           <Stat
@@ -146,13 +183,24 @@ function Masthead({ data, cur }: { data: LiabilitiesView; cur: string }) {
                   ? `${fmt(cover.after, cur, 0)} left after clearing them`
                   : `${fmt(-cover.after, cur, 0)} short of clearing them`
             }
-            title={`${fmt(cover.cash, cur)} in budget accounts, against ${fmt(cover.owed, cur)} on the cards.`}
+            title={coverText ?? undefined}
           />
           <Stat
-            lbl="Interest earned"
-            v={fmt(i.earned_month, cur)}
-            hint={`${fmt(i.earned_year, cur, 0)} over ${windowLabel(i.window)}`}
-            title="What the savings paid, for the figure paid to stand beside."
+            lbl={`Interest paid · ${windowLabel(i.window)}`}
+            v={fmt(i.year, cur, 0)}
+            tone={
+              i.year > EPS || i.earned_year > EPS
+                ? i.earned_year >= i.year
+                  ? "ok"
+                  : "bad"
+                : undefined
+            }
+            hint={
+              i.earned_year > EPS
+                ? `against ${fmt(i.earned_year, cur, 0)} earned in savings`
+                : "and nothing earned in savings"
+            }
+            title={earnedText ?? undefined}
           />
         </div>
       </div>
@@ -173,6 +221,9 @@ function Masthead({ data, cur }: { data: LiabilitiesView; cur: string }) {
               <span key={d.account} className="key-item">
                 <i className={`sw ${hue(k)}`} />
                 {d.label} <b>{fmtCompact(d.owed, cur)}</b>
+                {d.rate != null && d.rate > EPS && (
+                  <span className="at">{ratio(d.rate)}</span>
+                )}
               </span>
             ))}
           </div>
@@ -236,6 +287,38 @@ function Fact({
   );
 }
 
+/** A share of something drawn as a bar, with what it is a share of
+ * written at either end. */
+function Gauge({
+  value,
+  left,
+  right,
+  tone,
+  label,
+}: {
+  value: number;
+  left: ReactNode;
+  right: ReactNode;
+  tone?: "good" | "bad";
+  label: string;
+}) {
+  return (
+    <div
+      className={`gauge${tone != null ? ` ${tone}` : ""}`}
+      role="img"
+      aria-label={label}
+    >
+      <div className="bar">
+        <i style={{ width: pct(value) }} />
+      </div>
+      <div className="cap num">
+        <span>{left}</span>
+        <span>{right}</span>
+      </div>
+    </div>
+  );
+}
+
 /** The one line under a debt's name: what kind it is, what it costs,
  * and when it is paid. */
 function spanOf(d: Debt, cur: string): string {
@@ -250,6 +333,7 @@ function spanOf(d: Debt, cur: string): string {
   } else if (d.due_day != null) {
     parts.push(`paid on the ${ordinal(d.due_day)}`);
   }
+  if (d.collateral != null) parts.push(`secured on ${d.collateral.label}`);
   return parts.join(" · ");
 }
 
@@ -556,17 +640,79 @@ function Payments({ rows, cur }: { rows: DebtPayment[]; cur: string }) {
   );
 }
 
+/** The payment the reader is trying out, and what it would do. */
+function ExtraSlider({
+  payment,
+  month,
+  cur,
+  extra,
+  setExtra,
+  base,
+  faster,
+  what,
+}: {
+  payment: number;
+  month: string;
+  cur: string;
+  extra: number;
+  setExtra: (v: number) => void;
+  base: Amortization;
+  faster: Amortization | null;
+  /** What the usual payment is called: "a month" or "the minimum". */
+  what: string;
+}) {
+  const range = sliderRange(payment);
+  return (
+    <div className="debt-slider">
+      <label>
+        <span className="lbl">Pay more each month</span>
+        <input
+          type="range"
+          min={0}
+          max={range.max}
+          step={range.step}
+          value={extra}
+          onChange={(e) => setExtra(Number(e.currentTarget.value))}
+          aria-valuetext={`${fmt(extra, cur, 0)} more a month`}
+        />
+      </label>
+      <div className="slider-read num">
+        {faster == null ? (
+          <>
+            at <b>{fmt(payment, cur, 0)}</b> {what}, paid off{" "}
+            {monthYear(addMonths(month, base.months))} with{" "}
+            <b>{fmt(base.interest, cur, 0)}</b> more interest
+          </>
+        ) : (
+          <>
+            <b>+{fmt(extra, cur, 0)}</b> a month: paid off{" "}
+            {monthYear(addMonths(month, faster.months))},{" "}
+            <b>{duration(base.months - faster.months)}</b> sooner
+            {base.interest - faster.interest >= 1 && (
+              <>
+                , and <b>{fmt(base.interest - faster.interest, cur, 0)}</b>{" "}
+                less interest
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LoanCard({
   debt: d,
   month,
+  assumed,
   cur,
 }: {
   debt: Debt;
   month: string;
+  assumed: number;
   cur: string;
 }) {
   const [extra, setExtra] = useState(0);
-  const range = sliderRange(d.payment ?? 0);
   const base =
     d.payment != null ? amortize(d.owed, d.rate ?? 0, d.payment) : null;
   const faster =
@@ -581,6 +727,9 @@ function LoanCard({
   if (faster != null) {
     keys.push({ sw: "fast", label: `paying ${fmt(extra, cur, 0)} more` });
   }
+  const c = d.collateral;
+  const ltv = c?.value != null && c.value > EPS ? d.owed / c.value : null;
+  const verdict = d.owed > EPS ? investVerdict(d.rate, assumed) : null;
 
   return (
     <div className="report-card debt-card">
@@ -590,6 +739,7 @@ function LoanCard({
         figure={fmt(d.owed, cur)}
         note={d.progress != null ? `${ratio(d.progress)} paid off` : "owed"}
       />
+      <Prose text={loanLede(d, cur)} className="small" />
       <PayoffChart
         history={d.history}
         month={month}
@@ -611,20 +761,23 @@ function LoanCard({
           }
         />
         <Fact
-          lbl="Paid off"
-          v={d.payoff != null ? monthYear(d.payoff.month) : "—"}
-          hint={
-            d.payoff != null
-              ? `${duration(d.payoff.months)} · ${fmt(d.payoff.interest, cur, 0)} more interest`
-              : d.payment != null
-                ? "not at this payment"
-                : "no payment to project"
-          }
-        />
-        <Fact
           lbl="Paid so far"
           v={fmt(paid, cur, 0)}
           hint={`from a peak of ${fmt(d.peak, cur, 0)}`}
+        />
+        <Fact
+          lbl="Interest so far"
+          v={fmt(d.interest_paid, cur, 0)}
+          tone={d.interest_paid > EPS ? "bad" : undefined}
+          hint={
+            d.payoff != null
+              ? d.payoff.interest > EPS
+                ? `${fmt(d.payoff.interest, cur, 0)} still to come`
+                : "none still to come"
+              : d.payment != null && d.owed > EPS
+                ? "no end at this payment"
+                : "none to come"
+          }
         />
       </div>
       {paid > EPS && (
@@ -641,38 +794,39 @@ function LoanCard({
           />
         </>
       )}
-      {d.payment != null && base != null && d.owed > EPS && (
-        <div className="debt-slider">
-          <label>
-            <span className="lbl">Pay more each month</span>
-            <input
-              type="range"
-              min={0}
-              max={range.max}
-              step={range.step}
-              value={extra}
-              onChange={(e) => setExtra(Number(e.currentTarget.value))}
-              aria-valuetext={`${fmt(extra, cur, 0)} more a month`}
+      {c != null && d.owed > EPS && (
+        <div className="debt-secured">
+          {ltv != null && (
+            <Gauge
+              value={ltv}
+              left={`loan ${fmtCompact(d.owed, cur)} · ${ratio(ltv)} of it`}
+              right={`${c.label} ${fmtCompact(c.value ?? 0, cur)}`}
+              tone={ltv <= 0.8 ? "good" : ltv >= 1 ? "bad" : undefined}
+              label={`The loan against what secures it: ${ratio(ltv)}`}
             />
-          </label>
-          <div className="slider-read num">
-            {faster == null ? (
-              <>
-                at <b>{fmt(d.payment, cur, 0)}</b> a month, paid off{" "}
-                {monthYear(addMonths(month, base.months))} with{" "}
-                <b>{fmt(base.interest, cur, 0)}</b> more interest
-              </>
-            ) : (
-              <>
-                <b>+{fmt(extra, cur, 0)}</b> a month: paid off{" "}
-                {monthYear(addMonths(month, faster.months))},{" "}
-                <b>{duration(base.months - faster.months)}</b> sooner, and{" "}
-                <b>{fmt(base.interest - faster.interest, cur, 0)}</b> less
-                interest
-              </>
-            )}
-          </div>
+          )}
+          <Prose text={securedText(c, d.owed, cur)} className="small" />
         </div>
+      )}
+      {verdict != null && (
+        <Prose
+          text={verdict}
+          className={`verdict${
+            (d.rate ?? 0) <= 1e-9 ? " plain" : (d.rate ?? 0) >= assumed ? " good" : ""
+          }`}
+        />
+      )}
+      {d.payment != null && base != null && d.owed > EPS && (
+        <ExtraSlider
+          payment={d.payment}
+          month={month}
+          cur={cur}
+          extra={extra}
+          setExtra={setExtra}
+          base={base}
+          faster={faster}
+          what="a month"
+        />
       )}
       {d.payments.length > 0 && (
         <Payments rows={d.payments.slice(0, 6)} cur={cur} />
@@ -683,24 +837,39 @@ function LoanCard({
 
 function RevolvingCard({
   debt: d,
+  month,
   today,
+  from,
   cur,
 }: {
   debt: Debt;
+  month: string;
   today: string;
+  /** The first month of the interest window. */
+  from: string | null;
   cur: string;
 }) {
+  const [extra, setExtra] = useState(0);
   const c = d.cycle;
-  const balances = Object.entries(d.balances);
-  const foreign = balances.some(([code]) => code !== cur);
+  const carried = (c?.carried ?? 0) > EPS && d.owed > EPS;
+  const base =
+    carried && d.payment != null
+      ? amortize(d.owed, d.rate ?? 0, d.payment)
+      : null;
+  const faster =
+    carried && d.payment != null && extra > 0
+      ? amortize(d.owed, d.rate ?? 0, d.payment + extra)
+      : null;
   const note =
     c?.in_full === true
       ? "cleared last cycle"
-      : c?.carried != null
-        ? `carrying ${fmtCompact(c.carried, cur)}`
+      : carried
+        ? `carrying ${fmtCompact(c?.carried ?? 0, cur)}`
         : d.owed <= EPS
           ? "nothing owed"
           : "owed";
+  const fx = foreignText(d.foreign, d.owed, cur);
+  const u = d.utilisation;
 
   return (
     <div className="report-card debt-card">
@@ -710,6 +879,7 @@ function RevolvingCard({
         figure={fmt(d.owed, cur)}
         note={note}
       />
+      <Prose text={cardLede(d, cur, from)} className="small" />
       <TrailChart trail={d.trail} today={today} cur={cur} />
       <Key
         items={[
@@ -717,6 +887,15 @@ function RevolvingCard({
           { sw: "pay", label: "payment" },
         ]}
       />
+      {d.limit != null && u != null && (
+        <Gauge
+          value={u}
+          left={`${ratio(u)} of the ${fmtCompact(d.limit, cur)} limit`}
+          right={`${fmtCompact(Math.max(0, d.limit - Math.max(0, d.owed)), cur)} left`}
+          tone={u <= 0.3 ? "good" : u >= 0.9 ? "bad" : undefined}
+          label={`Limit used: ${ratio(u)}`}
+        />
+      )}
       <div className="debt-facts">
         <Fact
           lbl="This month"
@@ -730,7 +909,7 @@ function RevolvingCard({
             d.owed <= EPS
               ? "nothing to pay"
               : d.payment != null
-                ? `${fmt(d.payment, cur)} usual`
+                ? `${fmt(d.payment, cur)} ${carried ? "minimum" : "last time"}`
                 : "none seen yet"
           }
         />
@@ -741,13 +920,175 @@ function RevolvingCard({
           hint={d.rate != null ? `${ratio(d.rate)} a year` : "none charged"}
         />
       </div>
-      {foreign && (
-        <div className="debt-balances mono">
-          {balances.map(([code, v]) => (
-            <span key={code}>{fmtCode(-v, code)}</span>
-          ))}
-        </div>
+      {fx != null && <Prose text={fx} className="small fx" />}
+      {base != null && d.payment != null && (
+        <ExtraSlider
+          payment={d.payment}
+          month={month}
+          cur={cur}
+          extra={extra}
+          setExtra={setExtra}
+          base={base}
+          faster={faster}
+          what="the minimum"
+        />
       )}
+    </div>
+  );
+}
+
+const ORDERS: { order: Order; title: string; hint: string }[] = [
+  {
+    order: "avalanche",
+    title: "Highest rate first",
+    hint: "the least interest",
+  },
+  { order: "snowball", title: "Smallest first", hint: "the quickest win" },
+];
+
+function PlanColumn({
+  order,
+  title,
+  hint,
+  debts,
+  p,
+  month,
+  cur,
+}: {
+  order: Order;
+  title: string;
+  hint: string;
+  debts: PlanDebt[];
+  p: Plan | null;
+  month: string;
+  cur: string;
+}) {
+  const ends = (account: string) => {
+    const s = p?.steps.find((x) => x.account === account);
+    return s != null ? monthYear(addMonths(month, s.months)) : "never";
+  };
+  return (
+    <div className="order-col">
+      <div className="lbl">
+        {title} <span className="hint">· {hint}</span>
+      </div>
+      <div className="order-free num">
+        {p != null ? monthYear(addMonths(month, p.months)) : "never"}
+      </div>
+      <div className="hint num">
+        {p != null
+          ? `${duration(p.months)} · ${fmt(p.interest, cur, 0)} in interest`
+          : "the payments do not beat the interest"}
+      </div>
+      <ol className="order-steps">
+        {attack(debts, order).map((d, i) => (
+          <li key={d.account}>
+            <span className="n num">{i + 1}</span>
+            <span className="who">
+              {d.label}
+              <span className="rate num">
+                {" "}
+                {fmtCompact(d.owed, cur)}
+                {d.rate > EPS ? ` at ${ratio(d.rate)}` : ""}
+              </span>
+            </span>
+            <span className="when num">{ends(d.account)}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** Two orders to pay the same debts in, side by side, at whatever
+ * extra the reader can find each month. */
+function OrderCard({
+  debts,
+  month,
+  cur,
+}: {
+  debts: PlanDebt[];
+  month: string;
+  cur: string;
+}) {
+  const [extra, setExtra] = useState(0);
+  const usual = debts.reduce((s, d) => s + d.payment, 0);
+  const range = sliderRange(usual);
+  const a = plan(debts, extra, "avalanche");
+  const s = plan(debts, extra, "snowball");
+  const saves = a != null && s != null ? s.interest - a.interest : 0;
+
+  return (
+    <div className="report-card order-card">
+      <CardHead
+        title="Which first?"
+        span={`${fmt(usual, cur, 0)} a month goes out on these already · each payment rolls on when its debt ends`}
+        figure={saves > EPS ? fmt(saves, cur, 0) : undefined}
+        note={saves > EPS ? "saved by the dearest first" : undefined}
+      />
+      <div className="debt-slider">
+        <label>
+          <span className="lbl">Extra each month</span>
+          <input
+            type="range"
+            min={0}
+            max={range.max}
+            step={range.step}
+            value={extra}
+            onChange={(e) => setExtra(Number(e.currentTarget.value))}
+            aria-valuetext={`${fmt(extra, cur, 0)} more a month`}
+          />
+          <span className="slider-val num">
+            {extra > 0 ? `+${fmt(extra, cur, 0)}` : "nothing extra"}
+          </span>
+        </label>
+      </div>
+      <div className="order-grid">
+        {ORDERS.map((o) => (
+          <PlanColumn
+            key={o.order}
+            order={o.order}
+            title={o.title}
+            hint={o.hint}
+            debts={debts}
+            p={o.order === "avalanche" ? a : s}
+            month={month}
+            cur={cur}
+          />
+        ))}
+      </div>
+      <Prose text={orderVerdict(a, s, cur)} className="verdict" />
+    </div>
+  );
+}
+
+/** The receipts: every debt that reached zero, and what it cost. */
+function BeatenCard({ beaten, cur }: { beaten: Beaten[]; cur: string }) {
+  return (
+    <div className="report-card beaten-card">
+      <CardHead
+        title="Debts you've beaten"
+        span="paid to zero, most recent first"
+        figure={
+          beaten.length > 1
+            ? fmt(
+                beaten.reduce((s, b) => s + b.peak, 0),
+                cur,
+                0,
+              )
+            : undefined
+        }
+        note={beaten.length > 1 ? "paid off all told" : undefined}
+      />
+      <div className="beaten-rows">
+        {beaten.map((b) => (
+          <div key={b.account} className="beaten-row">
+            <span className="who">{b.label}</span>
+            <span className="peak num">{fmt(b.peak, cur, 0)}</span>
+            <Prose text={beatenText(b, cur)} className="small" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -766,6 +1107,8 @@ export function Liabilities({
   const loans = data.debts.filter((d) => d.kind === "installment");
   const cards = data.debts.filter((d) => d.kind === "revolving");
   const one = loans.length === 0 || cards.length === 0;
+  const down = payingDown(data.debts);
+  const from = data.interest.window?.[0] ?? null;
 
   return (
     <section id="reports" className="debts">
@@ -777,6 +1120,9 @@ export function Liabilities({
             <NoticeRow key={`${n.kind}${n.account}`} n={n} cur={cur} />
           ))}
         </div>
+      )}
+      {down.length > 1 && (
+        <OrderCard debts={down} month={data.month} cur={cur} />
       )}
       {data.debts.length === 0 ? (
         <div className="report-card debt-none">
@@ -791,19 +1137,33 @@ export function Liabilities({
           {loans.length > 0 && (
             <div className="report-col">
               {loans.map((d) => (
-                <LoanCard key={d.account} debt={d} month={data.month} cur={cur} />
+                <LoanCard
+                  key={d.account}
+                  debt={d}
+                  month={data.month}
+                  assumed={data.assumed_return}
+                  cur={cur}
+                />
               ))}
             </div>
           )}
           {cards.length > 0 && (
             <div className="report-col">
               {cards.map((d) => (
-                <RevolvingCard key={d.account} debt={d} today={today} cur={cur} />
+                <RevolvingCard
+                  key={d.account}
+                  debt={d}
+                  month={data.month}
+                  today={today}
+                  from={from}
+                  cur={cur}
+                />
               ))}
             </div>
           )}
         </div>
       )}
+      {data.beaten.length > 0 && <BeatenCard beaten={data.beaten} cur={cur} />}
       {/* The fill under a balance: strongest at the line, fading to the
           baseline, so the band reads as a quantity owed. */}
       <svg className="defs" aria-hidden="true" focusable="false">

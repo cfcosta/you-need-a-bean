@@ -3388,7 +3388,99 @@ button.reg-row:hover {
   background: var(--over);
 }
 .report-card.fire.debt .fire-stats {
-  grid-template-columns: repeat(3, minmax(140px, auto));
+  grid-template-columns: repeat(2, minmax(150px, auto));
+  align-content: start;
+}
+.report-card.fire.debt .fire-main {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+.report-card.fire.debt .debt-lede {
+  margin-top: 14px;
+}
+
+/* The reading under a figure: a sentence or three saying what the
+   numbers mean, with the figures themselves in bold so a scan still
+   lands on them. */
+.debt-lede {
+  max-width: 62ch;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.debt-lede b {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.debt-lede.small {
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.debt-card > .debt-lede {
+  margin: 10px 0 12px;
+}
+.debt-lede.fx {
+  margin-top: 12px;
+}
+
+/* A conclusion the page draws for the reader, set off from the facts
+   it comes from. Plain is a shrug, good is a go, the default is a
+   reading that cuts the other way. */
+.debt-lede.verdict {
+  max-width: none;
+  margin: 14px 0 0;
+  padding: 9px 12px 9px 14px;
+  border-radius: 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-wash);
+}
+.debt-lede.verdict.good {
+  border-left-color: var(--good);
+  background: var(--good-tint);
+}
+.debt-lede.verdict.plain {
+  border-left-color: var(--line-2);
+  background: var(--surface-2);
+}
+
+/* A share drawn as a bar, captioned at both ends with what it is a
+   share of. */
+.gauge {
+  margin-top: 12px;
+}
+.gauge .bar {
+  height: 6px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.gauge .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--warn);
+}
+.gauge.good .bar i {
+  background: var(--good);
+}
+.gauge.bad .bar i {
+  background: var(--over);
+}
+.gauge .cap {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 5px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.debt-secured {
+  margin-top: 4px;
+}
+.debt-secured .debt-lede {
+  margin-top: 8px;
 }
 .debt-stack {
   margin-top: 20px;
@@ -3592,13 +3684,123 @@ button.reg-row:hover {
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
-.debt-balances {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  margin-top: 12px;
-  font-size: 11px;
+.debt-slider .slider-val {
+  white-space: nowrap;
+  min-width: 7ch;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.report-card.fire.debt .key-item .at {
+  color: var(--muted);
+}
+
+/* Two ways to pay the same debts, side by side. Each column is one
+   order: when it ends, what it costs, and the debts in the order the
+   extra reaches them. */
+.order-card .debt-slider {
+  margin-top: 6px;
+  padding-top: 0;
+  border-top: 0;
+}
+.order-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 28px;
+  margin-top: 14px;
+}
+.order-col .lbl .hint {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--muted);
+}
+.order-free {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-top: 4px;
+  font-variation-settings: "opsz" 48;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--ink);
+}
+.order-col > .hint {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.order-steps {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.order-steps li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--ink);
+}
+.order-steps .n {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.order-steps .who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.order-steps .rate {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.order-steps .when {
   color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The receipts. One row per debt that reached zero: what it was at
+   its worst, in the colour of money kept, and what it cost to beat. */
+.beaten-rows {
+  margin-top: 4px;
+}
+.beaten-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.beaten-row:first-child {
+  border-top: 0;
+}
+.beaten-row .who {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.beaten-row .peak {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  font-variation-settings: "opsz" 30;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--good-text);
+  text-align: right;
+}
+.beaten-row .debt-lede {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 .debt-none {
   text-align: center;
@@ -3681,6 +3883,12 @@ button.reg-row:hover {
 }
 @media (max-width: 700px) {
   .debt-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .order-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .report-card.fire.debt .fire-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
