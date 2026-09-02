@@ -8,6 +8,9 @@ const result = await Bun.build({
   target: "browser",
   // Absolute asset URLs, so the SPA fallback works on nested routes.
   publicPath: "/",
+  // A font too big to inline lands as a file of its own; the prefix is
+  // what the server reads as "content-hashed, cache forever".
+  naming: { asset: "chunk-[name]-[hash].[ext]" },
   minify: true,
   sourcemap: "none",
   define: { "process.env.NODE_ENV": '"production"' },

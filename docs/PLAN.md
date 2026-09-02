@@ -110,9 +110,9 @@ editorial finance journal in the Tokyo Night colours, two sets of custom
 properties in `ui/src/index.css`: Night (dark, the default) and Day
 (light). Blue is money that is yours, purple is what the market holds
 for you, green is kept or under, red is over or owed. Figures and titles
-are set in Fraunces, the interface in Inter, account names in JetBrains
-Mono; the fonts live under `ui/src/fonts/` and are inlined into the CSS
-at build time, so the app never reaches for the network. The scheme
+are set in Bricolage Grotesque, the interface in Inter, account names in
+JetBrains Mono; the fonts live under `ui/src/fonts/` and ship inside
+the bundle, so the app never reaches for the network. The scheme
 follows the system by default and can be pinned from the switch at the
 foot of the sidebar; that choice is kept in local storage
 (`ui/src/theme.ts`), not in the URL, since it is about the screen rather

@@ -4,26 +4,23 @@
    you need a bean — the visual system.
 
    A finance journal rather than a dashboard, set in the Tokyo Night
-   colours: one blue that always means "your money", a serif for the
-   figures that matter and a grotesque for everything that merely has
-   to be read. Two schemes share every token name, so a rule written
-   once holds in both; the sidebar and the independence card keep the
-   night in either, the way a magazine keeps its masthead.
+   colours: one blue that always means "your money", a display
+   grotesque with an optical-size axis for the figures that matter and
+   a plain one for everything that merely has to be read. Two schemes
+   share every token name, so a rule written once holds in both; the
+   sidebar and the independence card keep the night in either, the way
+   a magazine keeps its masthead.
    ------------------------------------------------------------------------ */
 
+/* Bricolage carries optical-size and width axes and no italic, so the
+   places that used to lean change weight and width instead. */
 @font-face {
-  font-family: "Fraunces";
+  font-family: "Bricolage Grotesque";
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
   font-display: swap;
-  src: url(./fonts/Fraunces.woff2) format("woff2");
-}
-@font-face {
-  font-family: "Fraunces";
-  font-style: italic;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url(./fonts/Fraunces-Italic.woff2) format("woff2");
+  src: url(./fonts/BricolageGrotesque.woff2) format("woff2");
 }
 @font-face {
   font-family: "Inter";
@@ -46,7 +43,7 @@
   --font-ui:
     "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display:
-    "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    "Bricolage Grotesque", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono:
     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
@@ -367,11 +364,12 @@ a:focus-visible {
 }
 .wordmark-text {
   font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 600;
-  font-style: italic;
-  letter-spacing: -0.015em;
+  font-size: 19px;
+  font-weight: 700;
+  font-stretch: 84%;
+  letter-spacing: -0.01em;
   line-height: 1;
+  font-variation-settings: "opsz" 96;
   color: var(--brand-ink);
 }
 /* Which ledger is open, and how big it is. What that size was read
@@ -821,10 +819,10 @@ a:focus-visible {
   align-items: center;
   gap: 8px;
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 550;
+  font-weight: 680;
+  font-stretch: 94%;
   font-size: 14.5px;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 .grp-head .chev {
@@ -865,10 +863,10 @@ a:focus-visible {
 }
 .cat-row.solo .cat-name .p {
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 550;
+  font-weight: 680;
+  font-stretch: 94%;
   font-size: 14.5px;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
 }
 .cat-row.solo:hover:not(.sel) {
   background: color-mix(in srgb, var(--surface-2) 90%, var(--surface));
@@ -1212,12 +1210,12 @@ a:focus-visible {
 .fire-num {
   font-family: var(--font-display);
   font-size: 48px;
-  font-weight: 450;
-  letter-spacing: -0.03em;
+  font-weight: 500;
+  letter-spacing: -0.025em;
   line-height: 1;
   margin-top: 8px;
   white-space: nowrap;
-  font-variation-settings: "opsz" 120;
+  font-variation-settings: "opsz" 96;
   font-variant-numeric: tabular-nums lining-nums;
   color: var(--ink);
   text-shadow: 0 2px 24px rgba(122, 162, 247, 0.25);
@@ -2521,7 +2519,6 @@ button.reg-row:hover {
 }
 .reg-row.opening .payee {
   font-family: var(--font-display);
-  font-style: italic;
   font-size: 13px;
   font-weight: 500;
   color: var(--muted);
@@ -2954,7 +2951,6 @@ button.reg-row:hover {
   text-align: center;
   color: var(--muted);
   font-family: var(--font-display);
-  font-style: italic;
   font-size: 13px;
 }
 /* The inspector before anything is picked. It fills a whole column, so
