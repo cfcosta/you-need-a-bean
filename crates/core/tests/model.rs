@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use bean_core::loader::load;
-use bean_core::model::{AccountKind, Ledger, MonthKey};
+use bean_core::model::{AccountKind, DebtMeta, Ledger, MonthKey};
 use rust_decimal::Decimal;
 
 fn dec(s: &str) -> Decimal {
@@ -83,6 +83,36 @@ fn classifies_budget_tracking_and_hidden() {
     // ynab: metadata overrides both ways.
     assert_eq!(kind("Assets:Vault"), AccountKind::Tracking);
     assert_eq!(kind("Assets:Old"), AccountKind::Hidden);
+}
+
+#[test]
+fn keeps_what_an_open_directive_says_about_a_debt() {
+    let ledger = ledger();
+    let slate = ledger.account("Liabilities:US:Chase:Slate").unwrap();
+    assert_eq!(slate.debt.limit, Some(dec("5000")));
+    assert_eq!(slate.debt.due, Some(21));
+    // A rate written as a percentage string still reads as a fraction.
+    assert_eq!(slate.debt.rate, Some(dec("0.199")));
+    assert!(slate.debt.collateral.is_none());
+    assert_eq!(slate.currencies, vec!["USD".to_string()]);
+
+    let car = ledger.account("Liabilities:Loan:Car").unwrap();
+    assert_eq!(car.debt.rate, Some(dec("0.0525")));
+    assert_eq!(car.debt.collateral.as_deref(), Some("Assets:Vault"));
+
+    // An account that says nothing carries nothing.
+    let cash = ledger.account("Assets:Cash").unwrap();
+    assert_eq!(cash.debt, DebtMeta::default());
+}
+
+#[test]
+fn remembers_when_an_account_was_closed() {
+    let ledger = ledger();
+    assert_eq!(
+        ledger.account("Assets:Old").unwrap().closed,
+        Some((2026, 3, 1))
+    );
+    assert!(ledger.account("Assets:Cash").unwrap().closed.is_none());
 }
 
 #[test]

@@ -19,6 +19,12 @@ option "operating_currency" "USD"
   ynab: "hidden"
 2025-11-01 open Assets:Points               VACHR
 2025-11-01 open Liabilities:US:Chase:Slate  USD
+  limit: 5000
+  due: 21
+  rate: "19.9%"
+2025-11-01 open Liabilities:Loan:Car        USD
+  rate: 5.25
+  collateral: "Assets:Vault"
 2025-11-01 open Income:Salary               USD
 2025-11-01 open Expenses:Home:Rent          USD
   name: "Monthly Rent"
@@ -26,6 +32,8 @@ option "operating_currency" "USD"
 2025-11-01 open Expenses:Fun:Games          USD
 2025-11-01 open Expenses:Food:Dining:Coffee
 2025-11-01 open Expenses:Vacation
+
+2026-03-01 close Assets:Old
 
 2026-01-02 price EUR  1.05 USD
 2026-01-10 price EUR  1.10 USD

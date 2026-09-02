@@ -138,6 +138,31 @@ pub struct AccountInfo {
     /// `passive`, `Some(false)` for `active`, `None` when the ledger
     /// is silent and the name is all there is to go on.
     pub passive: Option<bool>,
+    /// The currencies the open directive constrained the account to,
+    /// sorted; empty when it named none or the account was never opened.
+    pub currencies: Vec<String>,
+    /// The day of the `close` directive, when there is one.
+    pub closed: Option<Day>,
+    /// What the open directive said about the account as a debt.
+    pub debt: DebtMeta,
+}
+
+/// What an `open` directive says about a debt that its postings cannot:
+/// the rate before any interest is charged, the day a payment is due
+/// before two have landed, the limit on a card, and what a loan is
+/// secured on. Every field is optional and every field is a fact the
+/// ledger's author wrote down, so a page can trust it over a guess.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DebtMeta {
+    /// `rate:` as a yearly fraction: `5.25` or `"5.25%"` both read as
+    /// 0.0525.
+    pub rate: Option<Decimal>,
+    /// `due:` the day of the month a payment is due, 1 through 31.
+    pub due: Option<u8>,
+    /// `limit:` in the account's own currency.
+    pub limit: Option<Decimal>,
+    /// `collateral:` the asset account the debt is secured on.
+    pub collateral: Option<String>,
 }
 
 /// The metadata one `open` directive carried, kept until the accounts
@@ -147,6 +172,8 @@ struct OpenMeta {
     name: Option<String>,
     ynab: Option<String>,
     income: Option<String>,
+    currencies: Vec<String>,
+    debt: DebtMeta,
 }
 
 /// What a posting's `{...}` lot annotation named, resolved to a total.
@@ -431,8 +458,10 @@ impl Leg {
 
 #[derive(Default)]
 struct Builder {
-    /// account → (`name:` metadata, `ynab:` metadata) from open directives.
+    /// account → what its open directive said.
     opens: HashMap<String, OpenMeta>,
+    /// account → the day it was closed.
+    closes: HashMap<String, Day>,
     txns: Vec<Txn>,
     monthly: HashMap<String, BTreeMap<MonthKey, CurrencySums>>,
     txn_index: HashMap<String, BTreeMap<MonthKey, Vec<usize>>>,
@@ -491,14 +520,31 @@ impl Builder {
                     );
                 }
                 DirectiveContent::Open(open) => {
+                    let mut currencies: Vec<String> =
+                        open.currencies.iter().map(|c| c.to_string()).collect();
+                    currencies.sort();
+                    let meta = &directive.metadata;
                     self.opens.insert(
                         open.account.to_string(),
                         OpenMeta {
-                            name: meta_string(&directive.metadata, "name"),
-                            ynab: meta_string(&directive.metadata, "ynab"),
-                            income: meta_string(&directive.metadata, "income"),
+                            name: meta_string(meta, "name"),
+                            ynab: meta_string(meta, "ynab"),
+                            income: meta_string(meta, "income"),
+                            currencies,
+                            debt: DebtMeta {
+                                rate: meta_number(meta, "rate")
+                                    .map(|r| r / Decimal::from(100)),
+                                due: meta_number(meta, "due")
+                                    .and_then(|d| u8::try_from(d).ok())
+                                    .filter(|d| (1..=31).contains(d)),
+                                limit: meta_number(meta, "limit"),
+                                collateral: meta_string(meta, "collateral"),
+                            },
                         },
                     );
+                }
+                DirectiveContent::Close(close) => {
+                    self.closes.insert(close.account.to_string(), date);
                 }
                 _ => {}
             }
@@ -697,6 +743,11 @@ impl Builder {
                     group,
                     kind,
                     passive,
+                    currencies: open
+                        .map(|o| o.currencies.clone())
+                        .unwrap_or_default(),
+                    closed: self.closes.get(name).copied(),
+                    debt: open.map(|o| o.debt.clone()).unwrap_or_default(),
                 },
             );
         }
@@ -794,6 +845,26 @@ fn meta_string(
         (key.to_string() == wanted)
             .then(|| value.as_string().map(str::to_string))
             .flatten()
+    })
+}
+
+/// A numeric metadata value, whether it was written as a number or as a
+/// string: `5.25`, `"5.25"` and `"5.25%"` all read as 5.25.
+fn meta_number(
+    metadata: &beancount_parser::metadata::Map<Decimal>,
+    wanted: &str,
+) -> Option<Decimal> {
+    metadata.iter().find_map(|(key, value)| {
+        if key.to_string() != wanted {
+            return None;
+        }
+        match value {
+            Value::Number(n) => Some(*n),
+            Value::String(s) => {
+                s.trim().trim_end_matches('%').trim().parse().ok()
+            }
+            _ => None,
+        }
     })
 }
 
