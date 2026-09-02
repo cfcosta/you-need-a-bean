@@ -18,7 +18,9 @@ use axum::routing::get;
 use axum::{Json, Router};
 use bean_core::model::{AccountKind, Day, Ledger, MonthKey, Txn};
 use bean_core::query::{AccountRow, CategoryRow, Group};
-use bean_core::reports::{FireScenario, Mover, Payee, Position};
+use bean_core::reports::{
+    Debt, DebtKind, FireScenario, Mover, Notice, NoticeKind, Payee, Position,
+};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use serde_json::{Map, Value, json};
@@ -130,6 +132,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/category/{account}/{month}", get(category_view))
         .route("/api/account/{account}/{month}", get(account_view))
         .route("/api/reports", get(reports))
+        .route("/api/liabilities", get(liabilities))
         .route("/api/document/{id}", get(document))
         .fallback(fallback)
         .with_state(state)
@@ -639,6 +642,141 @@ async fn reports(
             "warnings": view.trust.warnings,
         },
     })))
+}
+
+/// `GET /api/liabilities?basis=&cur=` — what is owed, what it costs,
+/// and when it ends. `basis` is how many months the per-transaction
+/// trail covers.
+async fn liabilities(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Result<Json<Value>, ApiError> {
+    let snapshot = state.snapshot();
+    let (basis, cur) = params(&snapshot, &query)?;
+    let view = snapshot.ledger.liabilities_view(state.today(), basis, &cur);
+    let debts: Vec<Value> = view.debts.iter().map(debt_json).collect();
+    let upcoming: Vec<Value> = view
+        .upcoming
+        .iter()
+        .map(|u| {
+            json!({
+                "account": u.account,
+                "label": u.label,
+                "date": format_day(u.date),
+                "amount": num(u.amount),
+            })
+        })
+        .collect();
+    let notices: Vec<Value> = view.notices.iter().map(notice_json).collect();
+    Ok(Json(json!({
+        "month": view.month.to_string(),
+        "owed": num(view.owed),
+        "installment": num(view.installment),
+        "revolving": num(view.revolving),
+        "interest": {
+            "month": num(view.interest_month),
+            "year": num(view.interest_year),
+            "earned_month": num(view.earned_month),
+            "earned_year": num(view.earned_year),
+            "window": window_json(view.window),
+        },
+        "cost_year": num(view.cost_year),
+        "blended_rate": ratio_json(view.blended_rate),
+        "debt_free": view.debt_free.map_or(Value::Null, |m| json!(m.to_string())),
+        "cover": {
+            "cash": num(view.cover.cash),
+            "owed": num(view.cover.owed),
+            "covered": view.cover.covered,
+            "after": num(view.cover.after),
+        },
+        "upcoming": upcoming,
+        "notices": notices,
+        "debts": debts,
+        "unpriced": view.unpriced,
+    })))
+}
+
+fn debt_json(d: &Debt) -> Value {
+    let payments: Vec<Value> = d
+        .payments
+        .iter()
+        .map(|p| {
+            json!({
+                "date": format_day(p.date),
+                "total": num(p.total),
+                "principal": num(p.principal),
+                "interest": num(p.interest),
+            })
+        })
+        .collect();
+    let history: Vec<Value> = d
+        .history
+        .iter()
+        .map(|p| json!({ "month": p.month.to_string(), "owed": opt_num(p.owed) }))
+        .collect();
+    let trail: Vec<Value> = d
+        .trail
+        .iter()
+        .map(|p| {
+            json!({
+                "date": format_day(p.date),
+                "owed": opt_num(p.owed),
+                "delta": opt_num(p.delta),
+            })
+        })
+        .collect();
+    let payoff = d.payoff.as_ref().map_or(Value::Null, |p| {
+        json!({
+            "months": p.months,
+            "month": p.month.to_string(),
+            "interest": num(p.interest),
+        })
+    });
+    let cycle = d.cycle.as_ref().map_or(Value::Null, |c| {
+        json!({
+            "charges": num(c.charges),
+            "payments": num(c.payments),
+            "carried": opt_num(c.carried),
+            "in_full": c.in_full,
+        })
+    });
+    json!({
+        "account": d.account,
+        "label": d.label,
+        "kind": match d.kind {
+            DebtKind::Revolving => "revolving",
+            DebtKind::Installment => "installment",
+        },
+        "owed": num(d.owed),
+        "balances": amounts_json(&d.balances),
+        "peak": num(d.peak),
+        "progress": ratio_json(d.progress),
+        "rate": ratio_json(d.rate),
+        "payment": opt_num(d.payment),
+        "due_day": d.due_day,
+        "next_due": d.next_due.map(format_day),
+        "principal_paid": num(d.principal_paid),
+        "interest_paid": num(d.interest_paid),
+        "payments": payments,
+        "history": history,
+        "trail": trail,
+        "payoff": payoff,
+        "cycle": cycle,
+    })
+}
+
+fn notice_json(n: &Notice) -> Value {
+    json!({
+        "kind": match n.kind {
+            NoticeKind::Missed => "missed",
+            NoticeKind::Growing => "growing",
+            NoticeKind::Overpaid => "overpaid",
+        },
+        "account": n.account,
+        "label": n.label,
+        "amount": opt_num(n.amount),
+        "day": n.day,
+    })
 }
 
 fn mover_json(m: &Mover) -> Value {

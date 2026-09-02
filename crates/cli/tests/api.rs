@@ -665,3 +665,144 @@ async fn reports_endpoint_details_the_positions_held() {
     assert_eq!(classes[1]["positions"], json!(2));
     assert_eq!(classes[3]["name"], Value::Null);
 }
+
+#[tokio::test]
+async fn liabilities_endpoint_shapes_the_debts() {
+    let app = app_at("reports/liabilities", (2026, 2, 20));
+    let (status, body) = get_at(app, "/api/liabilities?basis=3").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["month"], json!("2026-02"));
+    assert_eq!(body["owed"], json!(10357.69));
+    assert_eq!(body["installment"], json!(9777.89));
+    assert_eq!(body["revolving"], json!(579.8));
+    assert_eq!(
+        body["interest"],
+        json!({
+            "month": 51.13,
+            "year": 231.56,
+            "earned_month": 3.0,
+            "earned_year": 0.0,
+            "window": ["2025-10", "2026-01"],
+        })
+    );
+    assert_eq!(body["cost_year"], json!(669.43));
+    assert_eq!(body["blended_rate"], json!(0.0646));
+    assert_eq!(body["debt_free"], json!("2027-11"));
+    assert_eq!(
+        body["cover"],
+        json!({ "cash": 2243.0, "owed": 579.8, "covered": true, "after": 1663.2 })
+    );
+    assert_eq!(
+        body["upcoming"],
+        json!([
+            {
+                "account": "Liabilities:Card:Store",
+                "label": "Store Card",
+                "date": "2026-02-20",
+                "amount": 20.0,
+            },
+            {
+                "account": "Liabilities:Loan:Car",
+                "label": "Car Loan",
+                "date": "2026-03-15",
+                "amount": 500.0,
+            },
+        ])
+    );
+    assert_eq!(
+        body["notices"],
+        json!([
+            {
+                "kind": "growing",
+                "account": "Liabilities:Card:Store",
+                "label": "Store Card",
+                "amount": 140.0,
+                "day": null,
+            },
+            {
+                "kind": "overpaid",
+                "account": "Liabilities:Card:Old",
+                "label": "Old Card",
+                "amount": 25.0,
+                "day": null,
+            },
+        ])
+    );
+    assert_eq!(body["unpriced"], json!(["GBP"]));
+
+    let debts = body["debts"].as_array().unwrap();
+    assert_eq!(debts.len(), 5);
+    let car = &debts[0];
+    assert_eq!(car["account"], json!("Liabilities:Loan:Car"));
+    assert_eq!(car["label"], json!("Car Loan"));
+    assert_eq!(car["kind"], json!("installment"));
+    assert_eq!(car["owed"], json!(9777.89));
+    assert_eq!(car["balances"], json!({ "USD": -9777.89 }));
+    assert_eq!(car["peak"], json!(12000.0));
+    assert_eq!(car["progress"], json!(0.1852));
+    assert_eq!(car["rate"], json!(0.06));
+    assert_eq!(car["payment"], json!(500.0));
+    assert_eq!(car["due_day"], json!(15));
+    assert_eq!(car["next_due"], json!("2026-03-15"));
+    assert_eq!(car["principal_paid"], json!(2222.11));
+    assert_eq!(car["interest_paid"], json!(277.89));
+    assert_eq!(
+        car["payoff"],
+        json!({ "months": 21, "month": "2027-11", "interest": 537.69 })
+    );
+    assert_eq!(car["cycle"], json!(null));
+    assert_eq!(car["payments"].as_array().unwrap().len(), 5);
+    assert_eq!(
+        car["payments"][0],
+        json!({
+            "date": "2026-02-15",
+            "total": 500.0,
+            "principal": 448.87,
+            "interest": 51.13,
+        })
+    );
+    assert_eq!(car["history"].as_array().unwrap().len(), 5);
+    assert_eq!(
+        car["history"][4],
+        json!({ "month": "2026-02", "owed": 9777.89 })
+    );
+    assert_eq!(
+        car["trail"][0],
+        json!({ "date": "2025-12-01", "owed": 11117.8, "delta": null })
+    );
+    assert_eq!(
+        car["trail"][3],
+        json!({ "date": "2026-02-15", "owed": 9777.89, "delta": -448.87 })
+    );
+
+    let store = &debts[1];
+    assert_eq!(store["kind"], json!("revolving"));
+    assert_eq!(store["rate"], json!(0.24));
+    assert_eq!(store["progress"], json!(null));
+    assert_eq!(store["payoff"], json!(null));
+    assert_eq!(
+        store["cycle"],
+        json!({ "charges": 100.0, "payments": 0.0, "carried": 140.0, "in_full": false })
+    );
+
+    let travel = &debts[3];
+    assert_eq!(travel["balances"], json!({ "EUR": -100.0, "GBP": -40.0 }));
+    assert_eq!(travel["rate"], json!(null));
+    assert_eq!(travel["next_due"], json!(null));
+    assert_eq!(
+        travel["cycle"],
+        json!({ "charges": 110.0, "payments": 0.0, "carried": null, "in_full": null })
+    );
+    assert_eq!(travel["trail"][2]["owed"], json!(null));
+
+    // A ledger that owes nothing says so in the same shape.
+    let app = app_at("reports/income", (2026, 4, 15));
+    let (status, body) = get_at(app, "/api/liabilities").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["owed"], json!(0.0));
+    assert_eq!(body["blended_rate"], json!(null));
+    assert_eq!(body["debt_free"], json!(null));
+    assert_eq!(body["debts"], json!([]));
+    assert_eq!(body["upcoming"], json!([]));
+    assert_eq!(body["notices"], json!([]));
+}
