@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { useState } from "react";
+import type { ReactNode, RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type {
   Beaten,
@@ -9,15 +9,18 @@ import type {
   DebtPoint,
   LiabilitiesView,
   TrailPoint,
+  Upcoming,
 } from "../api";
 import { bounds, ticks } from "../chart";
 import type { Amortization, Order, Plan, PlanDebt } from "../debt";
 import {
+  addDays,
   amortize,
   attack,
   beatenText,
   cardLede,
   costLine,
+  costShares,
   coverLine,
   dayLabel,
   daysBetween,
@@ -25,16 +28,18 @@ import {
   emphasize,
   foreignText,
   freeLine,
+  hues,
   investVerdict,
   loanLede,
   noticeText,
   orderVerdict,
-  ordinal,
   payingDown,
   plan,
+  rateTone,
   securedText,
   shareLine,
   sliderRange,
+  stripMarks,
 } from "../debt";
 import {
   duration,
@@ -47,17 +52,42 @@ import {
   windowLabel,
 } from "../format";
 import { addMonths } from "../months";
-import { CardHead, Key } from "./Card";
+import { Key } from "./Card";
 import { Unpriced } from "./Unpriced";
 
 /** Below this a balance is the dust of a conversion, not a debt. */
 const EPS = 0.005;
 
-/** The stack's colours start again after this many debts. */
-const HUES = 5;
-
 const pct = (v: number) =>
   `${Math.min(100, Math.max(0, v * 100)).toFixed(2)}%`;
+
+/** A name cut to fit a fixed column, with the cut shown. */
+const cut = (s: string, n: number) =>
+  s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s;
+
+/** The colour class of a debt, or the grey of one with nothing on it. */
+const hueOf = (hue: Map<string, string>, account: string) =>
+  hue.get(account) ?? "dn";
+
+/** The width of a box, kept current, so a drawing can be laid out in
+ * pixels instead of scaled up from a fixed canvas. */
+function useWidth<T extends HTMLElement>(
+  fallback = 720,
+): [RefObject<T | null>, number] {
+  const ref = useRef<T>(null);
+  const [w, setW] = useState(fallback);
+  useEffect(() => {
+    const el = ref.current;
+    if (el == null || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width != null && width > 0) setW(Math.round(width));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, w];
+}
 
 /** A sentence with its figures in bold, so a scan still finds them. */
 function Prose({ text, className }: { text: string; className?: string }) {
@@ -94,12 +124,166 @@ function Stat({
   );
 }
 
+/** What is owed and what it costs, as two bars cut the same way, so a
+ * debt that is a sliver of one and a slab of the other shows itself. */
+function Shares({
+  debts,
+  hue,
+  cur,
+}: {
+  debts: Debt[];
+  hue: Map<string, string>;
+  cur: string;
+}) {
+  const shares = costShares(debts);
+  const costed = shares.some((s) => s.cost > 0);
+  const owing = debts.filter((d) => d.owed > EPS);
+  return (
+    <div className="debt-shares">
+      <div className="share-row">
+        <span className="lbl">owed</span>
+        <div className="stack-bar" role="img" aria-label="What is owed, by debt">
+          {shares.map((s) => (
+            <span
+              key={s.account}
+              className={`seg ${hueOf(hue, s.account)}`}
+              style={{ width: pct(s.owed) }}
+              title={`${s.label} · ${ratio(s.owed)} of what is owed`}
+            />
+          ))}
+        </div>
+      </div>
+      {costed && (
+        <div className="share-row">
+          <span className="lbl">cost</span>
+          <div
+            className="stack-bar"
+            role="img"
+            aria-label="What the interest costs, by debt"
+          >
+            {shares
+              .filter((s) => s.cost > 0)
+              .map((s) => (
+                <span
+                  key={s.account}
+                  className={`seg ${hueOf(hue, s.account)}`}
+                  style={{ width: pct(s.cost) }}
+                  title={`${s.label} · ${ratio(s.cost)} of the cost`}
+                />
+              ))}
+          </div>
+        </div>
+      )}
+      <div className="key">
+        {owing.map((d) => (
+          <span key={d.account} className="key-item">
+            <i className={`sw ${hueOf(hue, d.account)}`} />
+            {d.label} <b>{fmtCompact(d.owed, cur)}</b>
+            {d.rate != null && d.rate > EPS && (
+              <span className="at">{ratio(d.rate)}</span>
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The next month as a strip of days, with every payment due on it
+ * standing where it falls. */
+function PayStrip({
+  upcoming,
+  today,
+  hue,
+  cur,
+}: {
+  upcoming: Upcoming[];
+  today: string;
+  hue: Map<string, string>;
+  cur: string;
+}) {
+  const [ref, W] = useWidth<HTMLDivElement>();
+  const PAD = 10;
+  const DAYS = 31;
+  // Two labels closer than this many pixels go in different lanes.
+  const marks = stripMarks(upcoming, today, DAYS, Math.min(0.5, 170 / W));
+  const lanes = Math.max(0, ...marks.map((m) => m.lane)) + 1;
+  const BASE = 12 + 13 * lanes;
+  const H = BASE + 18;
+  const x = (v: number) => PAD + v * (W - 2 * PAD);
+  const anchor = (px: number) =>
+    px < 70 ? "start" : px > W - 70 ? "end" : "middle";
+  const nudge = (px: number) => (px < 70 ? -4 : px > W - 70 ? 4 : 0);
+  const weeks = [0, 7, 14, 21, 28];
+  return (
+    <div className="pay-strip" ref={ref}>
+      <span className="lbl">Coming up</span>
+      <svg
+        className="chart-svg strip"
+        width={W}
+        height={H}
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label="Payments due in the next 31 days"
+      >
+        <line x1={PAD} x2={W - PAD} y1={BASE} y2={BASE} className="strip-line" />
+        {Array.from({ length: DAYS + 1 }, (_, i) => (
+          <line
+            key={i}
+            x1={x(i / DAYS)}
+            x2={x(i / DAYS)}
+            y1={BASE}
+            y2={BASE + (i % 7 === 0 ? 6 : 3)}
+            className="strip-tick"
+          />
+        ))}
+        {weeks.map((i) => (
+          <text
+            key={i}
+            x={x(i / DAYS)}
+            y={BASE + 16}
+            textAnchor={i === 0 ? "start" : "middle"}
+            className="axis"
+          >
+            {i === 0 ? "today" : dayLabel(addDays(today, i))}
+          </text>
+        ))}
+        {marks.map((m) => {
+          const px = x(m.x);
+          const ly = BASE - 13 - m.lane * 13;
+          return (
+            <g key={`${m.account}${m.date}`} className="strip-mark">
+              <title>{`${dayLabel(m.date)} · ${m.label} · ${fmt(m.amount, cur)}`}</title>
+              {m.lane > 0 && (
+                <line x1={px} x2={px} y1={ly + 3} y2={BASE - 6} className="strip-stem" />
+              )}
+              <circle cx={px} cy={BASE} r="4.5" className={`mark ${hueOf(hue, m.account)}`} />
+              <text x={px + nudge(px)} y={ly} textAnchor={anchor(px)} className="strip-label">
+                {m.label} <tspan className="amt">{fmt(m.amount, cur, 0)}</tspan>
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 /** The page's masthead: what is owed, what that means, and when it
  * ends. */
-function Masthead({ data, cur }: { data: LiabilitiesView; cur: string }) {
+function Masthead({
+  data,
+  hue,
+  today,
+  cur,
+}: {
+  data: LiabilitiesView;
+  hue: Map<string, string>;
+  today: string;
+  cur: string;
+}) {
   const i = data.interest;
   const owing = data.debts.filter((d) => d.owed > EPS);
-  const total = owing.reduce((sum, d) => sum + d.owed, 0);
   const down = payingDown(data.debts);
   const horizon = Math.max(
     0,
@@ -108,7 +292,6 @@ function Masthead({ data, cur }: { data: LiabilitiesView; cur: string }) {
       .map((d) => d.payoff?.months ?? 0),
   );
   const cover = data.cover;
-  const hue = (k: number) => `d${(k % HUES) + 1}`;
 
   const free =
     data.debt_free != null
@@ -204,40 +387,9 @@ function Masthead({ data, cur }: { data: LiabilitiesView; cur: string }) {
           />
         </div>
       </div>
-      {owing.length > 0 && (
-        <div className="debt-stack">
-          <div className="stack-bar" role="img" aria-label="What is owed, by debt">
-            {owing.map((d, k) => (
-              <span
-                key={d.account}
-                className={`seg ${hue(k)}`}
-                style={{ width: pct(d.owed / total) }}
-                title={`${d.label} · ${fmt(d.owed, cur)}`}
-              />
-            ))}
-          </div>
-          <div className="key">
-            {owing.map((d, k) => (
-              <span key={d.account} className="key-item">
-                <i className={`sw ${hue(k)}`} />
-                {d.label} <b>{fmtCompact(d.owed, cur)}</b>
-                {d.rate != null && d.rate > EPS && (
-                  <span className="at">{ratio(d.rate)}</span>
-                )}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      {owing.length > 0 && <Shares debts={data.debts} hue={hue} cur={cur} />}
       {data.upcoming.length > 0 && (
-        <div className="fire-steps">
-          <span className="lbl">Coming up</span>
-          {data.upcoming.map((u) => (
-            <span key={`${u.account}${u.date}`} className="step num">
-              {dayLabel(u.date)} · {u.label} · {fmt(u.amount, cur, 0)}
-            </span>
-          ))}
-        </div>
+        <PayStrip upcoming={data.upcoming} today={today} hue={hue} cur={cur} />
       )}
     </div>
   );
@@ -287,6 +439,50 @@ function Fact({
   );
 }
 
+/** A share drawn as a ring, in the debt's colour, with the figure in
+ * the middle. */
+function Ring({
+  value,
+  hue,
+  text,
+  label,
+}: {
+  value: number;
+  hue: string;
+  text: string;
+  label: string;
+}) {
+  const r = 17;
+  const c = 2 * Math.PI * r;
+  const v = Math.min(1, Math.max(0, value));
+  return (
+    <svg
+      className={`debt-ring ${hue}`}
+      width="44"
+      height="44"
+      viewBox="0 0 44 44"
+      role="img"
+      aria-label={label}
+      style={{ ["--dash" as string]: (c * v).toFixed(2) }}
+    >
+      <circle cx="22" cy="22" r={r} className="track" />
+      {v > 0 && (
+        <circle
+          cx="22"
+          cy="22"
+          r={r}
+          className="fill"
+          strokeDasharray={`${(c * v).toFixed(2)} ${c.toFixed(2)}`}
+          transform="rotate(-90 22 22)"
+        />
+      )}
+      <text x="22" y="22" textAnchor="middle" dominantBaseline="central" className="num">
+        {text}
+      </text>
+    </svg>
+  );
+}
+
 /** A share of something drawn as a bar, with what it is a share of
  * written at either end. */
 function Gauge({
@@ -319,22 +515,113 @@ function Gauge({
   );
 }
 
-/** The one line under a debt's name: what kind it is, what it costs,
- * and when it is paid. */
-function spanOf(d: Debt, cur: string): string {
-  const parts = [d.kind === "installment" ? "loan" : "card"];
-  parts.push(d.rate != null ? `${ratio(d.rate)} a year` : "no interest seen");
-  if (d.kind === "installment" && d.payment != null) {
-    parts.push(
-      d.due_day != null
-        ? `${fmt(d.payment, cur, 0)} on the ${ordinal(d.due_day)}`
-        : `${fmt(d.payment, cur, 0)} a month`,
-    );
-  } else if (d.due_day != null) {
-    parts.push(`paid on the ${ordinal(d.due_day)}`);
+interface Pill {
+  text: string;
+  tone: string;
+  title?: string;
+}
+
+/** A debt's head: its ring, its name with what it is as a row of
+ * marks, and what it holds. The marks replace the sentence a subtitle
+ * used to spell out: colour says what the rate is like, the ring says
+ * how far along it is. */
+function DebtHead({
+  debt: d,
+  hue,
+  assumed,
+  cur,
+}: {
+  debt: Debt;
+  hue: string;
+  assumed: number;
+  cur: string;
+}) {
+  const loan = d.kind === "installment";
+  const tone = rateTone(d.rate, assumed);
+  const pills: Pill[] = [];
+  if (tone != null && d.rate != null) {
+    pills.push({
+      text: `${ratio(d.rate)} a year`,
+      tone,
+      title:
+        tone === "free"
+          ? "No interest at all."
+          : tone === "cheap"
+            ? `Less than the ${ratio(assumed)} a portfolio is assumed to make.`
+            : tone === "dear"
+              ? `More than the ${ratio(assumed)} a portfolio is assumed to make.`
+              : "A card's kind of rate: every month carried costs real money.",
+    });
+  } else {
+    pills.push({ text: "no interest seen", tone: "plain" });
   }
-  if (d.collateral != null) parts.push(`secured on ${d.collateral.label}`);
-  return parts.join(" · ");
+  if (loan && d.collateral != null) {
+    pills.push({
+      text: `secured on ${d.collateral.label}`,
+      tone: "plain",
+      title: "The lender can take this if the loan is not paid.",
+    });
+  }
+  if (!loan) {
+    const c = d.cycle;
+    if (d.owed < -EPS) {
+      pills.push({ text: "in credit", tone: "calm" });
+    } else if (c?.in_full === true) {
+      pills.push({ text: "cleared last cycle", tone: "good" });
+    } else if ((c?.carried ?? 0) > EPS) {
+      pills.push({
+        text: `carrying ${fmtCompact(c?.carried ?? 0, cur)}`,
+        tone: "bad",
+        title: "Left over after the last payment, and charging interest.",
+      });
+    }
+    if (d.foreign.length > 0) {
+      pills.push({
+        text: `billed in ${d.foreign.map((f) => f.code).join(", ")}`,
+        tone: "plain",
+      });
+    }
+  }
+  const ring = loan
+    ? {
+        value: d.progress ?? 0,
+        text: d.progress != null ? ratio(d.progress) : "—",
+        label: `${ratio(d.progress ?? 0)} of the loan paid off`,
+      }
+    : {
+        value: d.utilisation ?? 0,
+        text: d.utilisation != null ? ratio(d.utilisation) : "—",
+        label:
+          d.utilisation != null
+            ? `${ratio(d.utilisation)} of the limit used`
+            : "No limit in the ledger",
+      };
+  const note = loan
+    ? `of ${fmt(d.peak, cur, 0)} borrowed`
+    : d.limit != null
+      ? `of a ${fmt(d.limit, cur, 0)} limit`
+      : d.owed <= EPS
+        ? "nothing owed"
+        : "on the card";
+  return (
+    <div className="debt-head">
+      <Ring value={ring.value} hue={hue} text={ring.text} label={ring.label} />
+      <div className="debt-title">
+        <h2>{d.label}</h2>
+        <div className="pills">
+          {pills.map((p) => (
+            <span key={p.text} className={`pill ${p.tone}`} title={p.title}>
+              {p.text}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="card-fig">
+        <span className="card-total num">{fmt(d.owed, cur)}</span>
+        <span className="card-note">{note}</span>
+      </div>
+    </div>
+  );
 }
 
 /** Where a loan has been and where its payments lead: the balance by
@@ -703,11 +990,13 @@ function ExtraSlider({
 
 function LoanCard({
   debt: d,
+  hue,
   month,
   assumed,
   cur,
 }: {
   debt: Debt;
+  hue: string;
   month: string;
   assumed: number;
   cur: string;
@@ -732,13 +1021,8 @@ function LoanCard({
   const verdict = d.owed > EPS ? investVerdict(d.rate, assumed) : null;
 
   return (
-    <div className="report-card debt-card">
-      <CardHead
-        title={d.label}
-        span={spanOf(d, cur)}
-        figure={fmt(d.owed, cur)}
-        note={d.progress != null ? `${ratio(d.progress)} paid off` : "owed"}
-      />
+    <div className={`report-card debt-card ${hue}`}>
+      <DebtHead debt={d} hue={hue} assumed={assumed} cur={cur} />
       <Prose text={loanLede(d, cur)} className="small" />
       <PayoffChart
         history={d.history}
@@ -837,16 +1121,20 @@ function LoanCard({
 
 function RevolvingCard({
   debt: d,
+  hue,
   month,
   today,
   from,
+  assumed,
   cur,
 }: {
   debt: Debt;
+  hue: string;
   month: string;
   today: string;
   /** The first month of the interest window. */
   from: string | null;
+  assumed: number;
   cur: string;
 }) {
   const [extra, setExtra] = useState(0);
@@ -860,25 +1148,12 @@ function RevolvingCard({
     carried && d.payment != null && extra > 0
       ? amortize(d.owed, d.rate ?? 0, d.payment + extra)
       : null;
-  const note =
-    c?.in_full === true
-      ? "cleared last cycle"
-      : carried
-        ? `carrying ${fmtCompact(c?.carried ?? 0, cur)}`
-        : d.owed <= EPS
-          ? "nothing owed"
-          : "owed";
   const fx = foreignText(d.foreign, d.owed, cur);
   const u = d.utilisation;
 
   return (
-    <div className="report-card debt-card">
-      <CardHead
-        title={d.label}
-        span={spanOf(d, cur)}
-        figure={fmt(d.owed, cur)}
-        note={note}
-      />
+    <div className={`report-card debt-card ${hue}`}>
+      <DebtHead debt={d} hue={hue} assumed={assumed} cur={cur} />
       <Prose text={cardLede(d, cur, from)} className="small" />
       <TrailChart trail={d.trail} today={today} cur={cur} />
       <Key
@@ -937,78 +1212,166 @@ function RevolvingCard({
   );
 }
 
-const ORDERS: { order: Order; title: string; hint: string }[] = [
-  {
-    order: "avalanche",
-    title: "Highest rate first",
-    hint: "the least interest",
-  },
-  { order: "snowball", title: "Smallest first", hint: "the quickest win" },
-];
-
-function PlanColumn({
-  order,
-  title,
-  hint,
-  debts,
-  p,
-  month,
-  cur,
-}: {
+interface Track {
   order: Order;
   title: string;
   hint: string;
-  debts: PlanDebt[];
   p: Plan | null;
+}
+
+/** Two orders to pay the same debts in, drawn as bars on one clock:
+ * each debt runs from now to the month it ends, and the two finish
+ * lines are there to compare. */
+function Race({
+  debts,
+  tracks,
+  month,
+  hue,
+  cur,
+}: {
+  debts: PlanDebt[];
+  tracks: Track[];
   month: string;
+  hue: Map<string, string>;
   cur: string;
 }) {
-  const ends = (account: string) => {
-    const s = p?.steps.find((x) => x.account === account);
-    return s != null ? monthYear(addMonths(month, s.months)) : "never";
-  };
+  const [ref, W] = useWidth<HTMLDivElement>();
+  const PAD = 8;
+  const LABEL = Math.min(150, Math.round(W * 0.24));
+  const HEAD = 24;
+  const ROW = 20;
+  const GAP = 14;
+  const AXIS = 22;
+  const n = debts.length;
+  const longest = Math.max(0, ...tracks.map((t) => t.p?.months ?? 0));
+  const M = Math.max(6, (longest > 0 ? longest : 24) + 1);
+  const x0 = LABEL + PAD;
+  const x1 = W - PAD;
+  const x = (m: number) => x0 + (Math.min(m, M) / M) * (x1 - x0);
+  const trackH = HEAD + n * ROW;
+  const H = tracks.length * trackH + GAP * (tracks.length - 1) + AXIS;
+  const every = M > 60 ? 12 : M > 30 ? 6 : M > 14 ? 3 : 1;
+  const axis = Array.from({ length: M }, (_, i) => i + 1)
+    .filter((m) => m % every === 0)
+    .map((m) => {
+      const key = addMonths(month, m);
+      return { m, text: key.endsWith("-01") || every >= 12 ? monthYear(key) : monthShort(key) };
+    });
+  const ends = (p: Plan | null, account: string) =>
+    p?.steps.find((s) => s.account === account)?.months ?? null;
+
   return (
-    <div className="order-col">
-      <div className="lbl">
-        {title} <span className="hint">· {hint}</span>
-      </div>
-      <div className="order-free num">
-        {p != null ? monthYear(addMonths(month, p.months)) : "never"}
-      </div>
-      <div className="hint num">
-        {p != null
-          ? `${duration(p.months)} · ${fmt(p.interest, cur, 0)} in interest`
-          : "the payments do not beat the interest"}
-      </div>
-      <ol className="order-steps">
-        {attack(debts, order).map((d, i) => (
-          <li key={d.account}>
-            <span className="n num">{i + 1}</span>
-            <span className="who">
-              {d.label}
-              <span className="rate num">
-                {" "}
-                {fmtCompact(d.owed, cur)}
-                {d.rate > EPS ? ` at ${ratio(d.rate)}` : ""}
-              </span>
-            </span>
-            <span className="when num">{ends(d.account)}</span>
-          </li>
-        ))}
-      </ol>
+    <div className="race" ref={ref}>
+    <svg
+      className="chart-svg race"
+      width={W}
+      height={H}
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label="When each debt ends, in each order"
+    >
+      {axis.map((a) => (
+        <g key={a.m}>
+          <line x1={x(a.m)} x2={x(a.m)} y1={0} y2={H - AXIS + 4} className="grid" />
+          <text x={x(a.m)} y={H - 6} textAnchor="middle" className="axis">
+            {a.text}
+          </text>
+        </g>
+      ))}
+      <line x1={x0} x2={x0} y1={0} y2={H - AXIS + 4} className="grid now" />
+      <text x={x0} y={H - 6} textAnchor="start" className="axis">
+        now
+      </text>
+      {tracks.map((t, ti) => {
+        const top = ti * (trackH + GAP);
+        const rows = attack(debts, t.order);
+        const summary =
+          t.p != null
+            ? `${monthYear(addMonths(month, t.p.months))} · ${duration(t.p.months)} · ${fmt(t.p.interest, cur, 0)} interest`
+            : "never: the payments do not beat the interest";
+        return (
+          <g key={t.order}>
+            <text x={0} y={top + 13} className="race-head">
+              {t.title}
+              <tspan className="hint"> · {t.hint}</tspan>
+            </text>
+            <text x={x1} y={top + 13} textAnchor="end" className="race-sum">
+              {summary}
+            </text>
+            {t.p != null && (
+              <line
+                x1={x(t.p.months)}
+                x2={x(t.p.months)}
+                y1={top + HEAD - 4}
+                y2={top + trackH}
+                className="race-finish"
+              />
+            )}
+            {rows.map((d, i) => {
+              const y = top + HEAD + i * ROW;
+              const end = ends(t.p, d.account);
+              const bx1 = end != null ? x(end) : x1;
+              const wide = bx1 - x0 > 84;
+              const text = end != null ? monthYear(addMonths(month, end)) : "never";
+              const inside = end != null && bx1 > x1 - 70;
+              return (
+                <g key={d.account} className={`race-row ${hueOf(hue, d.account)}`}>
+                  <title>
+                    {end != null
+                      ? `${d.label}: paid off ${monthYear(addMonths(month, end))}, in ${duration(end)}`
+                      : `${d.label}: never, at this payment`}
+                  </title>
+                  <text x={0} y={y + 14} className="race-name">
+                    {cut(d.label, LABEL < 150 ? 14 : 22)}
+                  </text>
+                  <rect
+                    x={x0}
+                    y={y + 4}
+                    width={Math.max(4, bx1 - x0)}
+                    height={12}
+                    rx={6}
+                    className={`race-bar${end == null ? " never" : ""}`}
+                  />
+                  {wide && d.rate > EPS && (
+                    <text x={x0 + 8} y={y + 14} className="race-in">
+                      {ratio(d.rate)}
+                    </text>
+                  )}
+                  <text
+                    x={inside ? bx1 - 6 : bx1 + 7}
+                    y={y + 14}
+                    textAnchor={inside ? "end" : "start"}
+                    className={`race-end${inside ? " in" : ""}`}
+                  >
+                    {text}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        );
+      })}
+    </svg>
     </div>
   );
 }
+
+const ORDERS: { order: Order; title: string; hint: string }[] = [
+  { order: "avalanche", title: "Highest rate first", hint: "the least interest" },
+  { order: "snowball", title: "Smallest first", hint: "the quickest win" },
+];
 
 /** Two orders to pay the same debts in, side by side, at whatever
  * extra the reader can find each month. */
 function OrderCard({
   debts,
   month,
+  hue,
   cur,
 }: {
   debts: PlanDebt[];
   month: string;
+  hue: Map<string, string>;
   cur: string;
 }) {
   const [extra, setExtra] = useState(0);
@@ -1017,15 +1380,22 @@ function OrderCard({
   const a = plan(debts, extra, "avalanche");
   const s = plan(debts, extra, "snowball");
   const saves = a != null && s != null ? s.interest - a.interest : 0;
+  const tracks: Track[] = ORDERS.map((o) => ({
+    ...o,
+    p: o.order === "avalanche" ? a : s,
+  }));
 
   return (
     <div className="report-card order-card">
-      <CardHead
-        title="Which first?"
-        span={`${fmt(usual, cur, 0)} a month goes out on these already · each payment rolls on when its debt ends`}
-        figure={saves > EPS ? fmt(saves, cur, 0) : undefined}
-        note={saves > EPS ? "saved by the dearest first" : undefined}
-      />
+      <div className="card-head">
+        <h2>Which first?</h2>
+        {saves > EPS && (
+          <div className="card-fig">
+            <span className="card-total num ok">{fmt(saves, cur, 0)}</span>
+            <span className="card-note">saved by the dearest first</span>
+          </div>
+        )}
+      </div>
       <div className="debt-slider">
         <label>
           <span className="lbl">Extra each month</span>
@@ -1042,22 +1412,59 @@ function OrderCard({
             {extra > 0 ? `+${fmt(extra, cur, 0)}` : "nothing extra"}
           </span>
         </label>
+        <div className="slider-read num">
+          <b>{fmt(usual, cur, 0)}</b> goes out on these already
+          {extra > 0 && (
+            <>
+              , <b>{fmt(usual + extra, cur, 0)}</b> with the extra
+            </>
+          )}
+          ; when a debt ends, its payment rolls on to the next
+        </div>
       </div>
-      <div className="order-grid">
-        {ORDERS.map((o) => (
-          <PlanColumn
-            key={o.order}
-            order={o.order}
-            title={o.title}
-            hint={o.hint}
-            debts={debts}
-            p={o.order === "avalanche" ? a : s}
-            month={month}
-            cur={cur}
-          />
-        ))}
-      </div>
+      <Race debts={debts} tracks={tracks} month={month} hue={hue} cur={cur} />
       <Prose text={orderVerdict(a, s, cur)} className="verdict" />
+    </div>
+  );
+}
+
+/** One beaten debt as a receipt: what it was at its worst, how long it
+ * took, and what it cost. */
+function Trophy({ b, cur }: { b: Beaten; cur: string }) {
+  const paid = b.principal_paid + b.interest_paid;
+  const months = Math.max(
+    0,
+    Math.round(daysBetween(b.first, b.last) / 30.4375),
+  );
+  return (
+    <div className="trophy" title={beatenText(b, cur)}>
+      <div className="trophy-top">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm3.1 4.4L7 9.5 4.9 7.4 3.8 8.5 7 11.7l5.2-5.2-1.1-1.1z" />
+        </svg>
+        <span className="who">{b.label}</span>
+      </div>
+      <div className="peak num">{fmt(b.peak, cur, 0)}</div>
+      <div className="span num">
+        {monthYear(b.first.slice(0, 7))} – {monthYear(b.last.slice(0, 7))}
+        {months > 0 && <span className="muted"> · {duration(months)}</span>}
+      </div>
+      {paid > EPS && (
+        <div className="split-bar" aria-hidden="true">
+          <i className="principal" style={{ width: pct(b.principal_paid / paid) }} />
+          <i className="interest" style={{ width: pct(b.interest_paid / paid) }} />
+        </div>
+      )}
+      <div className="trophy-foot num">
+        {b.interest_paid > EPS ? (
+          <>
+            <b>{fmt(b.interest_paid, cur)}</b> interest ·{" "}
+            {ratio(b.interest_paid / Math.max(b.peak, EPS))} of it
+          </>
+        ) : (
+          "not a cent in interest"
+        )}
+      </div>
     </div>
   );
 }
@@ -1066,27 +1473,24 @@ function OrderCard({
 function BeatenCard({ beaten, cur }: { beaten: Beaten[]; cur: string }) {
   return (
     <div className="report-card beaten-card">
-      <CardHead
-        title="Debts you've beaten"
-        span="paid to zero, most recent first"
-        figure={
-          beaten.length > 1
-            ? fmt(
+      <div className="card-head">
+        <h2>Debts you've beaten</h2>
+        {beaten.length > 1 && (
+          <div className="card-fig">
+            <span className="card-total num ok">
+              {fmt(
                 beaten.reduce((s, b) => s + b.peak, 0),
                 cur,
                 0,
-              )
-            : undefined
-        }
-        note={beaten.length > 1 ? "paid off all told" : undefined}
-      />
-      <div className="beaten-rows">
-        {beaten.map((b) => (
-          <div key={b.account} className="beaten-row">
-            <span className="who">{b.label}</span>
-            <span className="peak num">{fmt(b.peak, cur, 0)}</span>
-            <Prose text={beatenText(b, cur)} className="small" />
+              )}
+            </span>
+            <span className="card-note">paid off all told</span>
           </div>
+        )}
+      </div>
+      <div className="trophies">
+        {beaten.map((b) => (
+          <Trophy key={b.account} b={b} cur={cur} />
         ))}
       </div>
     </div>
@@ -1109,11 +1513,12 @@ export function Liabilities({
   const one = loans.length === 0 || cards.length === 0;
   const down = payingDown(data.debts);
   const from = data.interest.window?.[0] ?? null;
+  const hue = hues(data.debts);
 
   return (
     <section id="reports" className="debts">
       <Unpriced codes={data.unpriced} cur={cur} where="every figure here" />
-      <Masthead data={data} cur={cur} />
+      <Masthead data={data} hue={hue} today={today} cur={cur} />
       {data.notices.length > 0 && (
         <div className="notices">
           {data.notices.map((n) => (
@@ -1122,7 +1527,7 @@ export function Liabilities({
         </div>
       )}
       {down.length > 1 && (
-        <OrderCard debts={down} month={data.month} cur={cur} />
+        <OrderCard debts={down} month={data.month} hue={hue} cur={cur} />
       )}
       {data.debts.length === 0 ? (
         <div className="report-card debt-none">
@@ -1136,10 +1541,17 @@ export function Liabilities({
         <div className={`report-grid${one ? " one" : ""}`}>
           {loans.length > 0 && (
             <div className="report-col">
+              <div className="col-head">
+                <span className="lbl">Loans</span>
+                <span className="num">
+                  {fmtCompact(data.installment, cur)} · {loans.length}
+                </span>
+              </div>
               {loans.map((d) => (
                 <LoanCard
                   key={d.account}
                   debt={d}
+                  hue={hueOf(hue, d.account)}
                   month={data.month}
                   assumed={data.assumed_return}
                   cur={cur}
@@ -1149,13 +1561,21 @@ export function Liabilities({
           )}
           {cards.length > 0 && (
             <div className="report-col">
+              <div className="col-head">
+                <span className="lbl">Cards</span>
+                <span className="num">
+                  {fmtCompact(data.revolving, cur)} · {cards.length}
+                </span>
+              </div>
               {cards.map((d) => (
                 <RevolvingCard
                   key={d.account}
                   debt={d}
+                  hue={hueOf(hue, d.account)}
                   month={data.month}
                   today={today}
                   from={from}
+                  assumed={data.assumed_return}
                   cur={cur}
                 />
               ))}

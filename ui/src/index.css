@@ -3384,9 +3384,6 @@ button.reg-row:hover {
 .report-card.fire.debt .fire-num {
   text-shadow: 0 2px 24px rgba(247, 118, 142, 0.25);
 }
-.report-card.fire.debt .fire-steps .step::before {
-  background: var(--over);
-}
 .report-card.fire.debt .fire-stats {
   grid-template-columns: repeat(2, minmax(150px, auto));
   align-content: start;
@@ -3482,8 +3479,93 @@ button.reg-row:hover {
 .debt-secured .debt-lede {
   margin-top: 8px;
 }
-.debt-stack {
+/* Each debt has a colour, and keeps it everywhere on the page: in the
+   bars here, on the strip below, in the ring on its card, and on the
+   race. Grey is a debt with nothing on it. */
+.d1 {
+  --hue: var(--debt-1);
+}
+.d2 {
+  --hue: var(--debt-2);
+}
+.d3 {
+  --hue: var(--debt-3);
+}
+.d4 {
+  --hue: var(--debt-4);
+}
+.d5 {
+  --hue: var(--debt-5);
+}
+.dn {
+  --hue: var(--line-2);
+}
+
+/* What is owed and what it costs, as two bars cut the same way. A debt
+   that is a sliver of the first and a slab of the second is where the
+   interest goes. */
+.debt-shares {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
   margin-top: 20px;
+}
+.share-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.report-card.fire.debt .share-row .lbl {
+  color: var(--muted);
+  opacity: 1;
+  font-size: 9.5px;
+}
+.report-card.fire.debt .debt-shares .key {
+  margin-top: 4px;
+}
+
+/* The next month as a strip of days. Every payment due stands where it
+   falls, in its debt's colour, its label in a lane above so neighbours
+   do not collide. */
+.pay-strip {
+  margin-top: 18px;
+}
+.pay-strip .lbl {
+  display: block;
+  margin-bottom: 4px;
+}
+.chart-svg.strip {
+  overflow: visible;
+}
+.strip-line,
+.strip-tick {
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+.strip-stem {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 1 2;
+  opacity: 0.7;
+}
+.strip-mark .mark {
+  fill: var(--hue);
+  stroke: #131421;
+  stroke-width: 1.5;
+  transition: r 0.15s ease;
+}
+.strip-mark:hover .mark {
+  r: 6;
+}
+.strip-label {
+  font-size: 10.5px;
+  fill: var(--ink-2);
+}
+.strip-label .amt {
+  fill: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 .stack-bar {
   display: flex;
@@ -3536,6 +3618,136 @@ button.reg-row:hover {
 .report-card.fire.debt .key b {
   color: var(--ink);
   font-weight: 600;
+}
+
+/* The column's name and its total, over the cards it holds. */
+.col-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 2px;
+  margin-bottom: -4px;
+}
+.col-head .num {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* A debt's card carries its colour as a light along the top edge. */
+.debt-card {
+  position: relative;
+  overflow: hidden;
+}
+.debt-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--hue), transparent 70%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* The head of a debt's card. Where other cards say what they are in a
+   line under the title, these show it: a ring for how far along the
+   debt is, and a row of marks for what kind of debt it is. */
+.debt-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.debt-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.debt-head h2 {
+  padding-top: 1px;
+}
+.debt-head .card-fig {
+  flex: none;
+  padding-top: 1px;
+}
+.card-total.ok {
+  color: var(--good-text);
+}
+.debt-ring {
+  flex: none;
+  --dash: 0;
+}
+.debt-ring .track {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 4;
+}
+.debt-ring .fill {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 4;
+  stroke-linecap: round;
+  animation: ring-in 1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.debt-ring.dn .fill {
+  stroke: var(--muted);
+}
+.debt-ring text {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+@keyframes ring-in {
+  from {
+    stroke-dashoffset: var(--dash);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.pill[title] {
+  cursor: help;
+}
+.pill.free,
+.pill.good {
+  color: var(--good-text);
+  background: var(--good-tint);
+}
+.pill.cheap,
+.pill.calm {
+  color: var(--accent-ink, var(--accent));
+  background: var(--accent-wash);
+}
+.pill.dear {
+  color: var(--warn-text);
+  background: var(--warn-tint);
+}
+.pill.steep,
+.pill.bad {
+  color: var(--over-text);
+  background: var(--over-tint);
 }
 
 /* What the ledger noticed, one line each. Amber is a payment that has
@@ -3696,111 +3908,139 @@ button.reg-row:hover {
   color: var(--muted);
 }
 
-/* Two ways to pay the same debts, side by side. Each column is one
-   order: when it ends, what it costs, and the debts in the order the
-   extra reaches them. */
+/* Two ways to pay the same debts, drawn as bars on one clock. Each
+   debt runs from now to the month it ends; the two finish lines are
+   the comparison. */
 .order-card .debt-slider {
   margin-top: 6px;
   padding-top: 0;
   border-top: 0;
 }
-.order-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 28px;
+div.race {
   margin-top: 14px;
 }
-.order-col .lbl .hint {
-  text-transform: none;
-  letter-spacing: 0;
+.chart-svg.race {
+  margin-top: 0;
+  overflow: visible;
+}
+.race-head {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+.race-head .hint {
   font-weight: 400;
-  color: var(--muted);
+  fill: var(--muted);
 }
-.order-free {
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-top: 4px;
-  font-variation-settings: "opsz" 48;
+.race-sum {
+  font-size: 10.5px;
+  fill: var(--ink-2);
   font-variant-numeric: tabular-nums lining-nums;
-  color: var(--ink);
 }
-.order-col > .hint {
+.race-name {
   font-size: 10.5px;
-  color: var(--muted);
-  margin-top: 2px;
-  font-variant-numeric: tabular-nums;
+  fill: var(--ink-2);
 }
-.order-steps {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
+.race-bar {
+  fill: var(--hue);
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
 }
-.order-steps li {
+.race-bar.never {
+  opacity: 0.22;
+}
+.race-row:hover .race-bar {
+  opacity: 1;
+}
+.race-in {
+  font-size: 9px;
+  font-weight: 700;
+  fill: var(--bg);
+  pointer-events: none;
+}
+.race-end {
+  font-size: 10px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums lining-nums;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.race-end.in {
+  font-weight: 700;
+  fill: var(--bg);
+  stroke: none;
+}
+.race-finish {
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.55;
+}
+
+/* The receipts. One tile per debt that reached zero: what it was at
+   its worst, in the colour of money kept, how long it took, and what
+   it cost to beat. */
+.trophies {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: 8px;
-  padding: 5px 0;
-  border-top: 1px solid var(--line);
-  font-size: 11.5px;
-  color: var(--ink);
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
 }
-.order-steps .n {
-  color: var(--muted);
-  font-size: 10.5px;
+.trophy {
+  padding: 12px 14px 11px;
+  border-radius: 12px;
+  border: 1px solid var(--good-track);
+  background: var(--good-tint);
+  cursor: help;
 }
-.order-steps .who {
+.trophy-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--good-text);
+}
+.trophy-top .who {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.order-steps .rate {
-  color: var(--muted);
-  font-size: 10.5px;
-}
-.order-steps .when {
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* The receipts. One row per debt that reached zero: what it was at
-   its worst, in the colour of money kept, and what it cost to beat. */
-.beaten-rows {
-  margin-top: 4px;
-}
-.beaten-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 16px;
-  padding: 10px 0;
-  border-top: 1px solid var(--line);
-}
-.beaten-row:first-child {
-  border-top: 0;
-}
-.beaten-row .who {
   font-weight: 600;
   font-size: 12.5px;
   color: var(--ink);
 }
-.beaten-row .peak {
+.trophy .peak {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 500;
-  letter-spacing: -0.015em;
-  font-variation-settings: "opsz" 30;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin-top: 6px;
+  font-variation-settings: "opsz" 36;
   font-variant-numeric: tabular-nums lining-nums;
   color: var(--good-text);
-  text-align: right;
 }
-.beaten-row .debt-lede {
-  grid-column: 1 / -1;
-  margin: 0;
+.trophy .span {
+  font-size: 10.5px;
+  color: var(--ink-2);
+  margin-top: 3px;
+}
+.trophy .span .muted {
+  color: var(--muted);
+}
+.trophy .split-bar {
+  margin-top: 10px;
+}
+.trophy-foot {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 7px;
+}
+.trophy-foot b {
+  color: var(--ink);
+  font-weight: 600;
 }
 .debt-none {
   text-align: center;
@@ -3885,10 +4125,21 @@ button.reg-row:hover {
   .debt-facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .order-grid {
-    grid-template-columns: minmax(0, 1fr);
+  .debt-head {
+    flex-wrap: wrap;
+  }
+  .debt-head .card-fig {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
   }
   .report-card.fire.debt .fire-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .debt-ring .fill {
+    animation: none;
   }
 }

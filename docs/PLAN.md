@@ -150,10 +150,22 @@ priced at the month's end).
   highest rate first (avalanche) and smallest balance first
   (snowball) — with the extra the reader picks and every finished
   debt's payment rolled into the next; the masthead's debt-free
-  sentence uses the same rollover. Each card leads with a sentence
-  that reads its figures (`loanLede`, `cardLede`, `securedText`,
-  `foreignText`, `investVerdict`, `beatenText`), with the figures in
-  bold.
+  sentence uses the same rollover. The two orders are drawn as a
+  race: one bar per debt from now to the month it ends, a finish
+  line per order. Each card leads with a sentence that reads its
+  figures (`loanLede`, `cardLede`, `securedText`, `foreignText`,
+  `investVerdict`, `beatenText`), with the figures in bold.
+- **No subtitles.** Every owing debt gets a colour (`hues`, five
+  hues cycling, biggest debt first) that it keeps everywhere: the
+  masthead's owed-versus-cost bars (`costShares`), the strip of the
+  next 31 days with each payment standing where it falls
+  (`stripMarks` lays labels out in lanes so they never collide), the
+  ring on its card, and its bar in the race. A card's head says what
+  the debt is with a ring (progress for a loan, limit used for a
+  card) and pills — the rate, toned by `rateTone` against the assumed
+  return; secured on what; carrying, cleared, or in credit; billed in
+  which currency — instead of a line of text under the title. Beaten
+  debts are tiles, not rows.
 
 ## HTTP API
 
