@@ -82,8 +82,12 @@ watcher can come later).
 
 ### Liabilities
 
-Everything on the Liabilities page is read from the transactions; no
-metadata is needed, and none is honoured yet.
+Everything on the Liabilities page is read from the transactions. The
+`open` directive may state what the postings cannot, and when it does
+it wins over the guess: `rate:` (a yearly percentage, so `rate: 24`
+is 24%), `due:` (a day of the month, 1–31), `limit:` (in the display
+currency) and `collateral:` (an asset account the loan is secured on,
+priced at the month's end).
 
 - **Owed** = the negation of a `Liabilities:*` account's converted
   balance, so a debt is a positive number; a charge raises it and a
@@ -94,22 +98,27 @@ metadata is needed, and none is honoured yet.
   mastercard, amex, overdraft say card; loan, mortgage, financ, student,
   auto, car, lease say loan — otherwise a debt that took new charges
   after it was opened is a card.
-- **Rate** = the interest posted against the balance it accrued on,
-  annualised, over the newest six interest legs. An interest leg is a
+- **Rate** = `rate:` from the open directive, else the interest posted
+  against the balance it accrued on, annualised, over the newest six
+  interest legs. An interest leg is a
   posting to an `Expenses:` account with "interest" in its name, in a
   transaction that also touches the debt. Interest earned is the same
   reading of `Income:` accounts named that way.
-- **Payment** = the median of the last three payments; **due day** = the
-  median day of the last six, once there are two. `next_due` is the due
+- **Payment** = the median of the last three payments; **due day** =
+  `due:` from the open directive, else the median day of the last six,
+  once there are two. `next_due` is the due
   day in the current month or the next, while something is owed.
 - **Payoff** = months until the balance reaches zero at the current
   payment with interest accruing monthly at `rate / 12` (rounded to the
   cent each month, banker's rounding), plus the interest paid on the
   way; `null` when the payment does not beat the interest. Capped at
-  1,200 months. **Debt-free** = the month the last loan is paid off,
-  `null` while no loan is owed or any loan's payment does not beat its
-  interest; **cost_year** = Σ owed × rate; **blended_rate** = cost_year
-  / owed.
+  1,200 months. Computed for loans and for cards carrying a balance,
+  which are the debts being *paid down*. **Debt-free** = the month the
+  last of those is paid off, `null` while none is owed or any of them
+  has no payoff; **cost_year** = Σ owed × rate; **blended_rate** =
+  cost_year / owed. **assumed_return** = the middle scenario of the
+  independence page, so the pay-down-vs-invest reading on a loan uses
+  the return that page does.
 - **Cycle** (cards): the current month's charges and payments, the
   balance carried past the last payment (charges younger than 31 days
   belong to the cycle being paid into), and whether that payment
@@ -118,12 +127,33 @@ metadata is needed, and none is honoured yet.
   due day has passed by more than three days this month without a
   payment; `growing` — a card that ended higher three months running
   while carrying a balance; `overpaid` — see above.
-- **Upcoming** = the next due payment of every debt within 31 days.
+- **Upcoming** = the next due payment of every debt within 31 days: the
+  usual payment, or everything on a card that is cleared every
+  statement.
+- **Foreign** = the parts of a debt's balance not in the display
+  currency, each converted when it has a price. **Limit** and
+  **utilisation** (`owed / limit`) come from `limit:`; **collateral**
+  from `collateral:`, with the asset's converted month-end value when
+  it can be priced.
+- **Beaten** = debts that are over: nothing owed in any currency,
+  something once was, and either a loan or a closed account (a card at
+  zero that is still open is only between statements). Each keeps its
+  peak, principal and interest paid, the first day anything was owed
+  and the day of the last payment; most recently beaten first.
 - **Cover** = the budget accounts' cash against what the cards hold.
 - **Windows**: the interest and payment figures for "the year" cover
   the twelve complete months before the current one, clamped to the
   ledger; a debt's `trail` (its balance after every transaction) covers
   the `basis` months.
+- **In the UI** (`ui/src/debt.ts`): the "Which first?" card simulates
+  the debts being paid down, month by month, in two orders —
+  highest rate first (avalanche) and smallest balance first
+  (snowball) — with the extra the reader picks and every finished
+  debt's payment rolled into the next; the masthead's debt-free
+  sentence uses the same rollover. Each card leads with a sentence
+  that reads its figures (`loanLede`, `cardLede`, `securedText`,
+  `foreignText`, `investVerdict`, `beatenText`), with the figures in
+  bold.
 
 ## HTTP API
 
@@ -148,14 +178,18 @@ currency unless stated. `cur` defaults to the first operating currency,
 - `GET /api/liabilities?basis=&cur=`
   `{ month, owed, installment, revolving, interest: { month, year,
   earned_month, earned_year, window: [from, to] }, cost_year,
-  blended_rate, debt_free, cover: { cash, owed, covered, after },
-  upcoming: [{ account, label, date, amount }], notices: [{ kind, account,
-  label, amount, day }], debts: [{ account, label, kind, owed, balances:
-  {CUR: amount}, peak, progress, rate, payment, due_day, next_due,
-  principal_paid, interest_paid, payments: [{ date, total, principal,
-  interest }], history: [{ month, owed }], trail: [{ date, owed, delta }],
-  payoff: { months, month, interest }, cycle: { charges, payments,
-  carried, in_full } }], unpriced }` — rules under "Liabilities" above.
+  blended_rate, debt_free, assumed_return, cover: { cash, owed, covered,
+  after }, upcoming: [{ account, label, date, amount }], notices: [{
+  kind, account, label, amount, day }], debts: [{ account, label, kind,
+  owed, balances: {CUR: amount}, foreign: [{ code, amount, converted }],
+  limit, utilisation, collateral: { account, label, value } | null,
+  peak, progress, rate, payment, due_day, next_due, principal_paid,
+  interest_paid, payments: [{ date, total, principal, interest }],
+  history: [{ month, owed }], trail: [{ date, owed, delta }], payoff: {
+  months, month, interest }, cycle: { charges, payments, carried,
+  in_full } }], beaten: [{ account, label, peak, principal_paid,
+  interest_paid, first, last }], unpriced }` — rules under
+  "Liabilities" above.
   Zero is always sent as `0.0`, never `-0.0`.
 - Anything else under `/api/` → 404 JSON; bad month/currency → 400.
 - `/` and static assets → embedded UI (SPA fallback to index.html).
