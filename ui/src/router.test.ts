@@ -28,6 +28,7 @@ describe("parseRoute", () => {
     expect(parseRoute(at("/budget")).month).toBeNull();
     expect(parseRoute(at("/budget/2026-02")).month).toBe("2026-02");
     expect(parseRoute(at("/reports")).page).toBe("reports");
+    expect(parseRoute(at("/liabilities")).page).toBe("liabilities");
   });
 
   test("shrugs off paths that are not ours", () => {
@@ -48,6 +49,7 @@ describe("parseRoute", () => {
     expect(parseRoute(at("/?basis=six")).basis).toBeNull();
     // Reports has no category pane, so a stray cat is not ours to keep.
     expect(parseRoute(at("/reports?cat=Expenses%3AFun")).cat).toBeNull();
+    expect(parseRoute(at("/liabilities?cat=Expenses%3AFun")).cat).toBeNull();
     expect(
       parseRoute(at("/account/Assets%3ACash?cat=Expenses%3AFun")).cat,
     ).toBeNull();
@@ -64,6 +66,7 @@ describe("parseRoute", () => {
     // An account page with no account on it is not a page.
     expect(parseRoute(at("/account")).page).toBe("budget");
     expect(parseRoute(at("/reports")).acct).toBeNull();
+    expect(parseRoute(at("/liabilities")).acct).toBeNull();
   });
 });
 
@@ -131,6 +134,9 @@ describe("routeUrl", () => {
   test("leaves the defaults out", () => {
     expect(routeUrl(state(), DEFAULTS)).toBe("/");
     expect(routeUrl(state({ page: "reports" }), DEFAULTS)).toBe("/reports");
+    expect(routeUrl(state({ page: "liabilities" }), DEFAULTS)).toBe(
+      "/liabilities",
+    );
   });
 
   test("spells out everything else", () => {
@@ -142,6 +148,9 @@ describe("routeUrl", () => {
     );
     expect(routeUrl(state({ cat: "Expenses:Fun" }), DEFAULTS)).toBe(
       "/?cat=Expenses%3AFun",
+    );
+    expect(routeUrl(state({ page: "liabilities", basis: 3 }), DEFAULTS)).toBe(
+      "/liabilities?basis=3",
     );
   });
 
@@ -168,12 +177,16 @@ describe("routeUrl", () => {
     expect(routeUrl(state({ page: "reports", cat: "Expenses:Fun" }), DEFAULTS)).toBe(
       "/reports",
     );
+    expect(
+      routeUrl(state({ page: "liabilities", cat: "Expenses:Fun" }), DEFAULTS),
+    ).toBe("/liabilities");
   });
 
   test("round-trips through the parser", () => {
     for (const s of [
       state(),
       state({ page: "reports", basis: 3 }),
+      state({ page: "liabilities", basis: 12 }),
       state({ month: "2025-12", cur: "EUR", cat: "Expenses:Fun" }),
       state({ page: "account", acct: "Assets:Cash" }),
       state({ page: "account", acct: "Assets:Cash", month: "2026-01" }),
