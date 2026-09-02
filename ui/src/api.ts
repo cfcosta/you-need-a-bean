@@ -588,6 +588,22 @@ export interface Cycle {
   in_full: boolean | null;
 }
 
+/** A slice of a debt held in a currency other than the report's. */
+export interface Foreign {
+  code: string;
+  /** Positive when money is owed. */
+  amount: number;
+  /** In the report's currency, or null when the ledger has no price. */
+  converted: number | null;
+}
+
+/** What a loan is secured on, and what the ledger says it is worth. */
+export interface Collateral {
+  account: string;
+  label: string;
+  value: number | null;
+}
+
 export interface Debt {
   account: string;
   label: string;
@@ -595,6 +611,12 @@ export interface Debt {
   /** Positive when money is owed. */
   owed: number;
   balances: Record<string, number>;
+  foreign: Foreign[];
+  /** The credit limit the account declares, in the report's currency. */
+  limit: number | null;
+  /** owed / limit, floored at zero. */
+  utilisation: number | null;
+  collateral: Collateral | null;
   /** The most that was ever owed. */
   peak: number;
   /** How much of the peak is paid off; loans only. */
@@ -642,6 +664,18 @@ export interface DebtNotice {
   day: number | null;
 }
 
+/** A debt that reached zero: the receipt for it. */
+export interface Beaten {
+  account: string;
+  label: string;
+  peak: number;
+  principal_paid: number;
+  interest_paid: number;
+  /** The first movement on it and the last payment. */
+  first: string;
+  last: string;
+}
+
 export interface LiabilitiesView {
   month: string;
   owed: number;
@@ -663,8 +697,13 @@ export interface LiabilitiesView {
   cover: Cover;
   upcoming: Upcoming[];
   notices: DebtNotice[];
+  /** The yearly return a portfolio is assumed to make, for a loan's
+   * rate to stand against. */
+  assumed_return: number;
   /** Most owed first. */
   debts: Debt[];
+  /** Most recently paid off first. */
+  beaten: Beaten[];
   unpriced: string[];
 }
 
