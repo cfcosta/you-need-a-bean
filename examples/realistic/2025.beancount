@@ -1,12 +1,14 @@
 ;; 2025
 
-2025-01-01 balance Assets:Bank:Checking                41861.97 USD
+2025-01-01 balance Assets:Bank:Checking                38381.97 USD
 
 2025-01-01 balance Assets:Bank:Savings                 48862.70 USD
 
 2025-01-01 balance Assets:Bank:Business                84527.63 USD
 
 2025-01-01 balance Liabilities:Card:Everyday               0.00 USD
+
+2025-01-01 balance Liabilities:Card:Store                  0.00 USD
 
 2025-01-01 * "Ridgeline Properties" "monthly rent"
   Expenses:Home:Rent                           2450.00 USD
@@ -63,6 +65,11 @@
 2025-01-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2025-01-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      278.85 USD
+  Expenses:Financial:Interest                    11.15 USD
+  Assets:Bank:Checking
 
 2025-01-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -443,6 +450,11 @@
 2025-02-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2025-02-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      279.89 USD
+  Expenses:Financial:Interest                    10.11 USD
+  Assets:Bank:Checking
 
 2025-02-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -849,6 +861,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2025-03-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      280.94 USD
+  Expenses:Financial:Interest                     9.06 USD
+  Assets:Bank:Checking
+
 2025-03-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -1102,6 +1119,10 @@
   Assets:Bank:Savings                           149.11 USD
   Income:Investments:Interest
 
+2025-03-31 * "the car, marked to what it would fetch"
+  Assets:Vehicle:Car                           -765.82 USD
+  Equity:Revaluation
+
 2025-04-01 * "Ridgeline Properties" "monthly rent"
   Expenses:Home:Rent                           2450.00 USD
   Assets:Bank:Checking
@@ -1157,6 +1178,11 @@
 2025-04-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2025-04-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      282.00 USD
+  Expenses:Financial:Interest                     8.00 USD
+  Assets:Bank:Checking
 
 2025-04-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -1588,6 +1614,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2025-05-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      283.05 USD
+  Expenses:Financial:Interest                     6.95 USD
+  Assets:Bank:Checking
+
 2025-05-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -1941,6 +1972,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2025-06-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      284.12 USD
+  Expenses:Financial:Interest                     5.88 USD
+  Assets:Bank:Checking
+
 2025-06-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -2242,6 +2278,10 @@
   Assets:Bank:Savings                           163.73 USD
   Income:Investments:Interest
 
+2025-06-30 * "the car, marked to what it would fetch"
+  Assets:Vehicle:Car                           -734.09 USD
+  Equity:Revaluation
+
 2025-06-30 document Assets:Broker:Cash "documents/2025/06/2025-06-30-brokerage.csv"
 
 2025-07-01 * "Ridgeline Properties" "monthly rent"
@@ -2307,6 +2347,11 @@
 2025-07-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2025-07-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      285.18 USD
+  Expenses:Financial:Interest                     4.82 USD
+  Assets:Bank:Checking
 
 2025-07-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -2682,6 +2727,11 @@
   Expenses:Home:Maintenance                     880.00 USD
   Liabilities:Card:Everyday
 
+2025-08-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      286.25 USD
+  Expenses:Financial:Interest                     3.75 USD
+  Assets:Bank:Checking
+
 2025-08-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -3022,6 +3072,11 @@
 2025-09-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2025-09-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      287.32 USD
+  Expenses:Financial:Interest                     2.68 USD
+  Assets:Bank:Checking
 
 2025-09-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -3368,6 +3423,10 @@
   Assets:Bank:Savings                           178.51 USD
   Income:Investments:Interest
 
+2025-09-30 * "the car, marked to what it would fetch"
+  Assets:Vehicle:Car                           -703.70 USD
+  Equity:Revaluation
+
 2025-10-01 * "Ridgeline Properties" "monthly rent"
   Expenses:Home:Rent                           2595.00 USD
   Assets:Bank:Checking
@@ -3424,6 +3483,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2025-10-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      288.40 USD
+  Expenses:Financial:Interest                     1.60 USD
+  Assets:Bank:Checking
+
 2025-10-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -3455,6 +3519,10 @@
 2025-10-07 * "CityTransit" "card top-up"
   Assets:Prepaid:Transit                         60.00 USD
   Assets:Bank:Checking
+
+2025-10-07 * "Hearthside Home" "cleaning supplies"
+  Expenses:Home:Furnishing                      236.84 USD
+  Liabilities:Card:Store
 
 2025-10-08 * "PixelPress" "monthly plan"
   Expenses:Subscriptions:News                    12.00 USD
@@ -3652,6 +3720,10 @@
   Expenses:Charity                              150.00 USD
   Assets:Bank:Checking
 
+2025-10-20 * "Hearthside Home" "kitchen bits"
+  Expenses:Shopping:Household                   148.93 USD
+  Liabilities:Card:Store
+
 2025-10-21 * "IronWorks Gym" "monthly plan"
   Expenses:Health:Gym                            65.00 USD
   Liabilities:Card:Everyday
@@ -3744,6 +3816,10 @@
   Assets:Bank:Business                        18200.00 USD
   Income:Halloran
 
+2025-11-01 * "Hearthside Home" "interest charge"
+  Expenses:Financial:Interest                     7.68 USD
+  Liabilities:Card:Store
+
 2025-11-02 * "Forge IDE" "monthly plan"
   Expenses:Business:Software                     25.00 USD
   Liabilities:Card:Everyday
@@ -3799,6 +3875,11 @@
 2025-11-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2025-11-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      137.98 USD
+  Expenses:Financial:Interest                     0.52 USD
+  Assets:Bank:Checking
 
 2025-11-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -3908,6 +3989,10 @@
   Assets:Retirement:VBDX                        7.0822 VBDX {70.60 USD}
   Assets:Broker:Cash
 
+2025-11-10 * "Hearthside Home" "minimum payment" #autopay
+  Liabilities:Card:Store                         35.00 USD
+  Assets:Bank:Checking
+
 2025-11-11 * "Clearwater Utility" "monthly bill"
   Expenses:Home:Utilities:Water                  45.59 USD
   Assets:Bank:Checking
@@ -3927,6 +4012,8 @@
 2025-11-12 * "Wellspring Pharmacy" "prescription"
   Expenses:Health:Pharmacy                       15.35 USD
   Liabilities:Card:Everyday
+
+2025-11-12 document Liabilities:Loan:Student "documents/2025/11/2025-11-12-student-loan-paid-in-full.html"
 
 2025-11-13 * "Harborline Bank" "cash withdrawal"
   Assets:Cash:Wallet                            200.00 USD
@@ -3956,6 +4043,10 @@
   Expenses:Misc                                  18.55 USD
   Assets:Cash:Wallet
 
+2025-11-16 * "Hearthside Home" "kitchen bits"
+  Expenses:Home:Furnishing                      144.83 USD
+  Liabilities:Card:Store
+
 2025-11-17 * "Photobank" "monthly plan"
   Expenses:Subscriptions:Cloud                    8.99 USD
   Liabilities:Card:Everyday
@@ -3967,6 +4058,10 @@
 2025-11-17 * "Northwind Apparel" "jacket"
   Expenses:Shopping:Clothes                     282.86 USD
   Liabilities:Card:Everyday
+
+2025-11-17 * "Hearthside Home" "hardware"
+  Expenses:Shopping:Household                   175.53 USD
+  Liabilities:Card:Store
 
 2025-11-18 * "Northgate Auto Finance" "car payment"
   Liabilities:Loan:Car                          422.98 USD
@@ -4105,6 +4200,12 @@
   Assets:Bank:Business                        18200.00 USD
   Income:Halloran
 
+2025-12-01 * "Hearthside Home" "interest charge"
+  Expenses:Financial:Interest                    13.51 USD
+  Liabilities:Card:Store
+
+2025-12-01 close Liabilities:Loan:Student
+
 2025-12-02 * "Forge IDE" "monthly plan"
   Expenses:Business:Software                     25.00 USD
   Liabilities:Card:Everyday
@@ -4152,6 +4253,10 @@
 2025-12-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2025-12-05 * "Hearthside Home" "cleaning supplies"
+  Expenses:Home:Furnishing                      242.01 USD
+  Liabilities:Card:Store
 
 2025-12-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -4236,6 +4341,10 @@
 2025-12-10 * "Meridian Brokerage" "retirement buy"
   Assets:Retirement:VBDX                        7.1788 VBDX {69.65 USD}
   Assets:Broker:Cash
+
+2025-12-10 * "Hearthside Home" "minimum payment" #autopay
+  Liabilities:Card:Store                         35.00 USD
+  Assets:Bank:Checking
 
 2025-12-11 * "Clearwater Utility" "monthly bill"
   Expenses:Home:Utilities:Water                  48.70 USD
@@ -4453,3 +4562,7 @@
 2025-12-28 * "Harborline Bank" "savings interest"
   Assets:Bank:Savings                           193.46 USD
   Income:Investments:Interest
+
+2025-12-31 * "the car, marked to what it would fetch"
+  Assets:Vehicle:Car                           -674.55 USD
+  Equity:Revaluation

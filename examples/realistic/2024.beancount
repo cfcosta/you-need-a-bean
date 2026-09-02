@@ -9,7 +9,9 @@
   Assets:Prepaid:Games                           12.50 USD
   Assets:Broker:Cash                           3100.00 USD
   Assets:Old:Sunset                             310.00 USD
+  Assets:Vehicle:Car                          21900.00 USD
   Liabilities:Loan:Car                       -18400.00 USD
+  Liabilities:Loan:Student                    -6240.00 USD
   Equity:Opening-Balances
 
 2024-01-01 * "opening positions"
@@ -89,6 +91,11 @@
 2024-01-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2024-01-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      266.60 USD
+  Expenses:Financial:Interest                    23.40 USD
+  Assets:Bank:Checking
 
 2024-01-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -435,6 +442,11 @@
 2024-02-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2024-02-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      267.60 USD
+  Expenses:Financial:Interest                    22.40 USD
+  Assets:Bank:Checking
 
 2024-02-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -797,6 +809,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2024-03-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      268.60 USD
+  Expenses:Financial:Interest                    21.40 USD
+  Assets:Bank:Checking
+
 2024-03-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -1114,6 +1131,10 @@
   Assets:Bank:Savings                           160.22 USD
   Income:Investments:Interest
 
+2024-03-31 * "the car, marked to what it would fetch"
+  Assets:Vehicle:Car                           -906.98 USD
+  Equity:Revaluation
+
 2024-04-01 * "Ridgeline Properties" "monthly rent"
   Expenses:Home:Rent                           2450.00 USD
   Assets:Bank:Checking
@@ -1173,6 +1194,11 @@
 2024-04-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2024-04-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      269.61 USD
+  Expenses:Financial:Interest                    20.39 USD
+  Assets:Bank:Checking
 
 2024-04-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -1520,6 +1546,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2024-05-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      270.62 USD
+  Expenses:Financial:Interest                    19.38 USD
+  Assets:Bank:Checking
+
 2024-05-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -1861,6 +1892,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2024-06-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      271.64 USD
+  Expenses:Financial:Interest                    18.36 USD
+  Assets:Bank:Checking
+
 2024-06-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -2166,6 +2202,10 @@
   Assets:Bank:Savings                           174.96 USD
   Income:Investments:Interest
 
+2024-06-30 * "the car, marked to what it would fetch"
+  Assets:Vehicle:Car                           -869.42 USD
+  Equity:Revaluation
+
 2024-07-01 * "Ridgeline Properties" "monthly rent"
   Expenses:Home:Rent                           2450.00 USD
   Assets:Bank:Checking
@@ -2245,6 +2285,11 @@
 2024-07-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2024-07-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      272.66 USD
+  Expenses:Financial:Interest                    17.34 USD
+  Assets:Bank:Checking
 
 2024-07-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -2563,6 +2608,11 @@
 2024-08-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2024-08-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      273.68 USD
+  Expenses:Financial:Interest                    16.32 USD
+  Assets:Bank:Checking
 
 2024-08-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -2913,6 +2963,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2024-09-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      274.70 USD
+  Expenses:Financial:Interest                    15.30 USD
+  Assets:Bank:Checking
+
 2024-09-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -3234,6 +3289,10 @@
   Assets:Bank:Savings                           189.87 USD
   Income:Investments:Interest
 
+2024-09-30 * "the car, marked to what it would fetch"
+  Assets:Vehicle:Car                           -833.42 USD
+  Equity:Revaluation
+
 2024-10-01 * "Ridgeline Properties" "monthly rent"
   Expenses:Home:Rent                           2450.00 USD
   Assets:Bank:Checking
@@ -3301,6 +3360,11 @@
 2024-10-05 * "owner draw"
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
+
+2024-10-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      275.73 USD
+  Expenses:Financial:Interest                    14.27 USD
+  Assets:Bank:Checking
 
 2024-10-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
@@ -3684,6 +3748,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2024-11-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      276.77 USD
+  Expenses:Financial:Interest                    13.23 USD
+  Assets:Bank:Checking
+
 2024-11-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -4039,6 +4108,11 @@
   Assets:Bank:Checking                        18300.00 USD
   Assets:Bank:Business
 
+2024-12-05 * "Meridian Student Lending" "student loan payment"
+  Liabilities:Loan:Student                      277.81 USD
+  Expenses:Financial:Interest                    12.19 USD
+  Assets:Bank:Checking
+
 2024-12-06 * "Fiberline" "monthly bill"
   Expenses:Home:Utilities:Internet               79.00 USD
   Assets:Bank:Checking
@@ -4343,3 +4417,7 @@
 2024-12-28 * "Harborline Bank" "savings interest"
   Assets:Bank:Savings                           170.97 USD
   Income:Investments:Interest
+
+2024-12-31 * "the car, marked to what it would fetch"
+  Assets:Vehicle:Car                           -798.89 USD
+  Equity:Revaluation

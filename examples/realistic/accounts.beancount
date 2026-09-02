@@ -4,7 +4,9 @@
 ;; sits — budget, tracking or hidden — for the cases the currency alone
 ;; does not settle. `income:` says whether money from a source arrives
 ;; without work, which is the difference between a FIRE number and a
-;; wish.
+;; wish. On a liability, `rate:` (a yearly percentage), `due:` (a day of
+;; the month), `limit:` and `collateral:` (an asset account) say what
+;; the postings cannot.
 
 2023-12-01 commodity USD
   name: "US Dollar"
@@ -80,12 +82,27 @@
 2023-12-01 open Assets:Old:Sunset                 USD
   name: "Closed Account"
   ynab: "hidden"
+2023-12-01 open Assets:Vehicle:Car                USD
+  name: "The Car"
+  ynab: "tracking"
 2023-12-01 open Liabilities:Card:Everyday         USD
   name: "Everyday Card"
+  limit: 8000
 2023-12-01 open Liabilities:Card:Travel           USD, EUR
   name: "Travel Card"
+  limit: 6000
+2023-12-01 open Liabilities:Card:Store            USD
+  name: "Store Card"
+  limit: 5000
 2023-12-01 open Liabilities:Loan:Car              USD
   name: "Car Loan"
+  collateral: "Assets:Vehicle:Car"
+2023-12-01 open Liabilities:Loan:Student          USD
+  name: "Student Loan"
+2023-12-01 open Liabilities:Loan:Furniture        USD
+  name: "Furniture Financing"
+  rate: 0
+  due: 15
 2023-12-01 open Income:Halloran                   USD
   name: "Halloran Systems"
   income: "active"
@@ -114,6 +131,7 @@
   name: "Airdrops"
   income: "passive"
 2023-12-01 open Equity:Opening-Balances           USD
+2023-12-01 open Equity:Revaluation                USD
 
 2023-12-01 open Expenses:Home:Rent                USD
   name: "Rent"

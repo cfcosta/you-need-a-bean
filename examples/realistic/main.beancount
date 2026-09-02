@@ -16,7 +16,14 @@
 ;;     mid-run, and one nobody has cancelled
 ;;   - power bills that swing with the season
 ;;   - a renovation tagged across five months and four categories
-;;   - two trips, one of them charged in euro and settled later
+;;   - three trips, two of them charged in euro: one settled later, one
+;;     whose euros are still on the card
+;;   - a car loan secured on a car the ledger marks down every quarter,
+;;     a student loan paid off and closed, a sofa on 0% credit whose rate
+;;     and due day only its open directive can say, and a store card
+;;     that ends every month higher than the last
+;;   - a refund that lands after the statement is paid, leaving a card in
+;;     credit
 ;;   - a portfolio bought with a recorded cost, plus staking rewards and
 ;;     an airdrop that arrived with none
 ;;   - gold that stopped being quoted in mid-2025 and is still held

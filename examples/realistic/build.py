@@ -29,8 +29,8 @@ from decimal import Decimal, ROUND_HALF_UP
 
 SEED = 0x5EED_B00C
 START = date(2024, 1, 1)
-TODAY = date(2026, 8, 27)
-LAST = date(2026, 8, 25)          # the current month is deliberately partial
+TODAY = date(2026, 9, 2)
+LAST = date(2026, 9, 1)           # the current month is deliberately partial
 
 rng = random.Random(SEED)
 OUT = os.path.dirname(os.path.abspath(__file__))
@@ -186,9 +186,15 @@ ACCOUNTS = [
     ("Assets:Crypto:ETH", "ETH", "Ether", []),
     ("Assets:Crypto:MESH", "MESH", "Mesh Token", []),
     ("Assets:Old:Sunset", "USD", "Closed Account", [("ynab", "hidden")]),
-    ("Liabilities:Card:Everyday", "USD", "Everyday Card", []),
-    ("Liabilities:Card:Travel", "USD, EUR", "Travel Card", []),
-    ("Liabilities:Loan:Car", "USD", "Car Loan", []),
+    ("Assets:Vehicle:Car", "USD", "The Car", [("ynab", "tracking")]),
+    ("Liabilities:Card:Everyday", "USD", "Everyday Card", [("limit", 8000)]),
+    ("Liabilities:Card:Travel", "USD, EUR", "Travel Card", [("limit", 6000)]),
+    ("Liabilities:Card:Store", "USD", "Store Card", [("limit", 5000)]),
+    ("Liabilities:Loan:Car", "USD", "Car Loan",
+     [("collateral", "Assets:Vehicle:Car")]),
+    ("Liabilities:Loan:Student", "USD", "Student Loan", []),
+    ("Liabilities:Loan:Furniture", "USD", "Furniture Financing",
+     [("rate", 0), ("due", 15)]),
     ("Income:Halloran", "USD", "Halloran Systems", [("income", "active")]),
     ("Income:Cartwright", "USD", "Cartwright Group", [("income", "active")]),
     ("Income:Projects", "USD", "Project Work", [("income", "active")]),
@@ -199,6 +205,7 @@ ACCOUNTS = [
     ("Income:Investments:Staking", "ETH", "Staking Rewards", [("income", "passive")]),
     ("Income:Investments:Airdrops", "MESH", "Airdrops", [("income", "passive")]),
     ("Equity:Opening-Balances", "USD", None, []),
+    ("Equity:Revaluation", "USD", None, []),
 ]
 
 EXPENSES = [
@@ -374,6 +381,11 @@ POWER_SHAPE = {1: 1.55, 2: 1.48, 3: 1.15, 4: 0.92, 5: 0.86, 6: 1.05,
 
 CARD = "Liabilities:Card:Everyday"
 TRAVEL_CARD = "Liabilities:Card:Travel"
+STORE_CARD = "Liabilities:Card:Store"
+CAR_LOAN = "Liabilities:Loan:Car"
+STUDENT_LOAN = "Liabilities:Loan:Student"
+FURNITURE = "Liabilities:Loan:Furniture"
+CAR = "Assets:Vehicle:Car"
 CHECKING = "Assets:Bank:Checking"
 SAVINGS = "Assets:Bank:Savings"
 BUSINESS = "Assets:Bank:Business"
@@ -384,9 +396,10 @@ DOCUMENTS = []   # (date, account, relative path, kind) — files written later
 
 
 def day(y, m, dd):
+    """The dd-th of the month, or its last day when it has fewer. Whether
+    that day is inside the ledger is `in_month`'s question."""
     last = month_end(y, m).day
-    when = date(y, m, min(dd, last))
-    return min(when, LAST)
+    return date(y, m, min(dd, last))
 
 
 def in_month(when, y, m):
@@ -463,14 +476,112 @@ def car_loan(y, m):
     when = day(y, m, 18)
     if not in_month(when, y, m):
         return
-    outstanding = -BOOK.balance("Liabilities:Loan:Car")
+    outstanding = -BOOK.balance(CAR_LOAN)
     interest = d(outstanding * Decimal("0.0044"))
     principal = d(Decimal("465.00") - interest)
     txn(when, "*", "Northgate Auto Finance", "car payment", [
-        {"account": "Liabilities:Loan:Car", "amount": principal, "currency": "USD"},
+        {"account": CAR_LOAN, "amount": principal, "currency": "USD"},
         {"account": "Expenses:Financial:Interest", "amount": interest, "currency": "USD"},
         {"account": CHECKING},
     ])
+
+
+def car_value(y, m):
+    """What the car would fetch, a little less every quarter, marked
+    down against equity: the loan is secured on it, and a loan measured
+    against nothing is just a number."""
+    if m not in (3, 6, 9, 12):
+        return
+    when = month_end(y, m)
+    if when > LAST:
+        return
+    age = (y - START.year) * 12 + (m - START.month) + 1
+    worth = d(Decimal("21900") * Decimal("0.986") ** age)
+    drop = d(BOOK.balance(CAR) - worth)
+    if drop <= 0:
+        return
+    txn(when, "*", None, "the car, marked to what it would fetch", [
+        {"account": CAR, "amount": -drop, "currency": "USD"},
+        {"account": "Equity:Revaluation"},
+    ])
+
+
+def student_loan(y, m):
+    """Paid on the 5th until nothing is left, then closed the month
+    after: a debt the page can only show as beaten."""
+    when = day(y, m, 5)
+    if not in_month(when, y, m):
+        return
+    outstanding = -BOOK.balance(STUDENT_LOAN)
+    if outstanding <= 0:
+        return
+    interest = d(outstanding * Decimal("0.00375"))
+    principal = min(d(Decimal("290.00") - interest), outstanding)
+    txn(when, "*", "Meridian Student Lending", "student loan payment", [
+        {"account": STUDENT_LOAN, "amount": principal, "currency": "USD"},
+        {"account": "Expenses:Financial:Interest", "amount": interest, "currency": "USD"},
+        {"account": CHECKING},
+    ])
+    if principal >= outstanding:
+        closed = date(y + (m == 12), 1 if m == 12 else m + 1, 1)
+        BOOK.add(closed, f"{closed} close {STUDENT_LOAN}", sort=3)
+
+
+def furniture(y, m):
+    """A sofa on two years of interest-free credit. No interest leg will
+    ever say what the rate is, and one payment is not enough to say
+    when it is due, so the open directive says both."""
+    if (y, m) == (2026, 7):
+        txn(date(2026, 7, 20), "*", "Alder & Oak", "sofa, 24 months interest-free", [
+            {"account": "Expenses:Home:Furnishing", "amount": d(1_800.00),
+             "currency": "USD"},
+            {"account": FURNITURE},
+        ])
+    when = day(y, m, 15)
+    owed = -BOOK.balance(FURNITURE)
+    if owed > 0 and in_month(when, y, m):
+        txn(when, "*", "Alder & Oak", "instalment", [
+            {"account": FURNITURE, "amount": min(d(75.00), owed), "currency": "USD"},
+            {"account": CHECKING},
+        ])
+
+
+# The store card draws from its own generator so that adding it did not
+# re-roll every month of everything else.
+STORE_FROM = (2025, 10)
+store_rng = random.Random(SEED + 0x5702E)
+
+
+def store_card(y, m):
+    """A store card taken out in the autumn of 2025 and never cleared
+    since: interest on the 1st, the minimum on the 10th, and more put
+    on it every month than comes off."""
+    if (y, m) < STORE_FROM:
+        return
+    when = day(y, m, 1)
+    owed = -BOOK.balance(STORE_CARD)
+    if owed > 0 and in_month(when, y, m):
+        simple(when, "Hearthside Home", "interest charge",
+               "Expenses:Financial:Interest", d(owed * Decimal("0.0199")),
+               STORE_CARD)
+    when = day(y, m, 10)
+    owed = -BOOK.balance(STORE_CARD)
+    if owed > 0 and in_month(when, y, m):
+        minimum = min(max(d(35.00), d(owed * Decimal("0.03"))), owed)
+        txn(when, "*", "Hearthside Home", "minimum payment", [
+            {"account": STORE_CARD, "amount": minimum, "currency": "USD"},
+            {"account": CHECKING},
+        ], tags=["autopay"])
+    top = month_end(y, m).day
+    if LAST.year == y and LAST.month == m:
+        top = min(top, LAST.day)
+    days = list(range(3, min(top, 27) + 1))
+    count = min(len(days), store_rng.randint(1, 2))
+    for dd in sorted(store_rng.sample(days, count)):
+        simple(day(y, m, dd), "Hearthside Home", store_rng.choice(SAID["household"]),
+               store_rng.choice(["Expenses:Shopping:Household",
+                                 "Expenses:Home:Furnishing"]),
+               money(store_rng, 60, 260), STORE_CARD)
 
 
 def everyday_spend(y, m):
@@ -728,7 +839,9 @@ def opening():
         {"account": "Assets:Prepaid:Games", "amount": d(12.50), "currency": "USD"},
         {"account": BROKER, "amount": d(3_100.00), "currency": "USD"},
         {"account": "Assets:Old:Sunset", "amount": d(310.00), "currency": "USD"},
-        {"account": "Liabilities:Loan:Car", "amount": d(-18_400.00), "currency": "USD"},
+        {"account": CAR, "amount": d(21_900.00), "currency": "USD"},
+        {"account": CAR_LOAN, "amount": d(-18_400.00), "currency": "USD"},
+        {"account": STUDENT_LOAN, "amount": d(-6_240.00), "currency": "USD"},
         {"account": "Equity:Opening-Balances"},
     ])
     txn(START, "*", None, "opening positions", [
@@ -805,6 +918,10 @@ def one_offs(y, m):
         lisbon()
     if (y, m) == (2026, 5):
         kyoto()
+    if (y, m) == (2026, 8):
+        porto()
+        simple(date(2026, 8, 12), "Voltcart", "monitor",
+               "Expenses:Shopping:Electronics", d(489.00), CARD)
 
     # One name on one transaction: a reference, not a project. The card
     # sets these aside and says how many.
@@ -894,6 +1011,44 @@ def lisbon():
          "price": price("EUR", date(2025, 10, 2))},
         {"account": CHECKING},
     ])
+
+
+def porto():
+    """The trip whose euros are still on the card: the flights were paid
+    with the August statement, the week abroad was not."""
+    trip = "trip-porto"
+    simple(date(2026, 8, 3), "Meridian Air", "Porto, outbound",
+           "Expenses:Travel:Flights", d(1_120.00), TRAVEL_CARD, links=[trip])
+    for when, payee, narration, account, amount in [
+        (date(2026, 8, 21), "Casa do Rio", "lodging, five nights",
+         "Expenses:Travel:Lodging", d(615.00)),
+        (date(2026, 8, 22), "Taberna Douro", "dinner",
+         "Expenses:Food:Dining", d(74.30)),
+        (date(2026, 8, 23), "Metro do Porto", "transit pass",
+         "Expenses:Travel:Local", d(30.00)),
+        (date(2026, 8, 24), "Café Majestic", "coffee",
+         "Expenses:Food:Coffee", d(11.40)),
+        (date(2026, 8, 25), "Mercado do Bolhão", "market lunch",
+         "Expenses:Food:Dining", d(38.60)),
+        (date(2026, 8, 26), "Livraria Lello", "books",
+         "Expenses:Shopping:Books", d(52.00)),
+        (date(2026, 8, 27), "Casa da Música", "tickets",
+         "Expenses:Entertainment:Events", d(64.00)),
+    ]:
+        txn(when, "*", payee, narration, [
+            {"account": account, "amount": amount, "currency": "EUR"},
+            {"account": TRAVEL_CARD, "amount": -amount, "currency": "EUR"},
+        ], links=[trip])
+
+
+def refunds(y, m):
+    """After the statement is paid, a return lands: the card owes its
+    holder for a few days, which is the one way a liability goes
+    negative. The purchase itself is in `one_offs`, so the statement
+    that paid for it is the one before this runs."""
+    if (y, m) == (2026, 8):
+        simple(date(2026, 8, 30), "Voltcart", "monitor returned",
+               "Expenses:Shopping:Electronics", d(-489.00), CARD)
 
 
 def kyoto():
@@ -1012,6 +1167,19 @@ def paperwork():
                      [("Outbound, seat 22F", "970.00 USD"),
                       ("Return, seat 22F", "970.00 USD")],
                      "1,940.00 USD"))
+    document(date(2026, 8, 3), "Expenses:Travel:Flights", "trip",
+             "2026-08-03-porto-itinerary.html",
+             receipt("Meridian Air — itinerary",
+                     [("Outbound, seat 17C", "560.00 USD"),
+                      ("Return, seat 17C", "560.00 USD")],
+                     "1,120.00 USD"))
+    document(date(2025, 11, 12), STUDENT_LOAN, "loan",
+             "2025-11-12-student-loan-paid-in-full.html",
+             receipt("Meridian Student Lending — paid in full",
+                     [("Original principal", "6,240.00 USD"),
+                      ("Interest over the term", "462.02 USD"),
+                      ("Balance", "0.00 USD")],
+                     "paid in full"))
 
 
 # --------------------------------------------------------------------------
@@ -1019,7 +1187,7 @@ def paperwork():
 # --------------------------------------------------------------------------
 
 def assertions(when):
-    for account in (CHECKING, SAVINGS, BUSINESS, "Liabilities:Card:Everyday"):
+    for account in (CHECKING, SAVINGS, BUSINESS, CARD, STORE_CARD):
         amount = d(BOOK.balance(account))
         BOOK.add(when, f"{when} balance {account:<32}{amount:>12} USD", sort=0)
 
@@ -1037,6 +1205,13 @@ def build():
         investing(y, m)
         one_offs(y, m)
         pay_cards(y, m)
+        # None of these draw on the shared generator, so they come last
+        # and leave every other month exactly as it was.
+        student_loan(y, m)
+        furniture(y, m)
+        car_value(y, m)
+        store_card(y, m)
+        refunds(y, m)
         if (y, m) in ((2024, 12), (2025, 12)):
             assertions(date(y + 1, 1, 1))
     paperwork()
@@ -1061,7 +1236,14 @@ HEADER_MAIN = '''\
 ;;     mid-run, and one nobody has cancelled
 ;;   - power bills that swing with the season
 ;;   - a renovation tagged across five months and four categories
-;;   - two trips, one of them charged in euro and settled later
+;;   - three trips, two of them charged in euro: one settled later, one
+;;     whose euros are still on the card
+;;   - a car loan secured on a car the ledger marks down every quarter,
+;;     a student loan paid off and closed, a sofa on 0% credit whose rate
+;;     and due day only its open directive can say, and a store card
+;;     that ends every month higher than the last
+;;   - a refund that lands after the statement is paid, leaving a card in
+;;     credit
 ;;   - a portfolio bought with a recorded cost, plus staking rewards and
 ;;     an airdrop that arrived with none
 ;;   - gold that stopped being quoted in mid-2025 and is still held
@@ -1087,7 +1269,9 @@ HEADER_ACCOUNTS = '''\
 ;; sits — budget, tracking or hidden — for the cases the currency alone
 ;; does not settle. `income:` says whether money from a source arrives
 ;; without work, which is the difference between a FIRE number and a
-;; wish.
+;; wish. On a liability, `rate:` (a yearly percentage), `due:` (a day of
+;; the month), `limit:` and `collateral:` (an asset account) say what
+;; the postings cannot.
 '''
 
 HEADER_PRICES = '''\
@@ -1124,7 +1308,8 @@ def render():
             if name:
                 fh.write(f'  name: "{name}"\n')
             for key, value in meta:
-                fh.write(f'  {key}: "{value}"\n')
+                shown = value if isinstance(value, (int, Decimal)) else f'"{value}"'
+                fh.write(f"  {key}: {shown}\n")
         fh.write("\n")
         for account, name in EXPENSES:
             fh.write(f"2023-12-01 open {account:<34}USD\n")
@@ -1162,8 +1347,8 @@ if __name__ == "__main__":
     render()
     total = sum(1 for _ in BOOK.entries)
     print(f"{total} directives, {len(DOCUMENTS)} documents")
-    for account in (CHECKING, SAVINGS, BUSINESS, BROKER, CARD,
-                    "Liabilities:Loan:Car"):
+    for account in (CHECKING, SAVINGS, BUSINESS, BROKER, CARD, STORE_CARD,
+                    CAR_LOAN, STUDENT_LOAN, FURNITURE, TRAVEL_CARD):
         low = BOOK.lows.get((account, "USD"), Decimal(0))
         inflow, outflow = BOOK.flows[account]
         n = len(MONTHS)
