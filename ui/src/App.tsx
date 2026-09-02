@@ -30,6 +30,8 @@ import { Topbar } from "./components/Topbar";
 import { monthWindow } from "./months";
 import type { Page } from "./router";
 import { DEFAULT_BASIS, parseRoute, resolveRoute, routeUrl } from "./router";
+import type { ThemePref } from "./theme";
+import { applyTheme, browserStorage, loadPref, savePref } from "./theme";
 
 // How often we ask the server whether it has reread the ledger. Cheap
 // enough to go unnoticed, quick enough that a save feels immediate.
@@ -58,6 +60,9 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [theme, setTheme] = useState<ThemePref>(() =>
+    loadPref(browserStorage()),
+  );
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Where the URL last pointed, so the next write knows whether it is a
   // navigation (new history entry) or a change of view (rewrite).
@@ -100,6 +105,13 @@ export function App() {
       alive = false;
     };
   }, []);
+
+  // The scheme is a choice about the browser, not the ledger, so it lives
+  // on the document and in local storage rather than in the URL.
+  useEffect(() => {
+    applyTheme(theme, document.documentElement);
+    savePref(theme, browserStorage());
+  }, [theme]);
 
   // The server rereads the ledger when its files change. Follow it, so
   // saving a file in your editor shows up here without a refresh.
@@ -305,6 +317,8 @@ export function App() {
           acctHref={acctHref}
           onNavigate={navigate}
           onAccount={openAccount}
+          theme={theme}
+          onTheme={setTheme}
         />
         <main id="main">
           <Topbar
@@ -385,6 +399,25 @@ export function App() {
           />
         )}
       </div>
+      {/* The fills the charts share. Gold is money that is yours, copper is
+          money the market holds for you, coral is money owed; each fades
+          toward its baseline so the band reads as a quantity, not a block. */}
+      <svg className="defs" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="g-gold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style={{ stopColor: "var(--accent)" }} stopOpacity="0.55" />
+            <stop offset="1" style={{ stopColor: "var(--accent)" }} stopOpacity="0.04" />
+          </linearGradient>
+          <linearGradient id="g-copper" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style={{ stopColor: "var(--copper)" }} stopOpacity="0.6" />
+            <stop offset="1" style={{ stopColor: "var(--copper)" }} stopOpacity="0.06" />
+          </linearGradient>
+          <linearGradient id="g-debt" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style={{ stopColor: "var(--over)" }} stopOpacity="0.08" />
+            <stop offset="1" style={{ stopColor: "var(--over)" }} stopOpacity="0.5" />
+          </linearGradient>
+        </defs>
+      </svg>
       <div
         id="scrim"
         className={sidebarOpen ? "show" : ""}

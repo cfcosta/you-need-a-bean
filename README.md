@@ -50,5 +50,5 @@ every report something to report on. All of it invented — no part of it
 comes from anyone's books. `examples/realistic/build.py` regenerates it,
 which is also how to move its dates forward once they age.
 
-Design and computation rules live in `docs/PLAN.md`; the pixel reference
-for the UI is `docs/mockup-v3.html`.
+Design and computation rules live in `docs/PLAN.md`; `docs/mockup-v3.html`
+is the layout the UI grew out of, though the look has moved on since.

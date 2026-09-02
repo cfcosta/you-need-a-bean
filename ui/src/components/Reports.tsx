@@ -238,6 +238,10 @@ function NetWorthChart({
     });
   }
   const slot = n > 1 ? (W - 2 * PAD) / (n - 1) : W;
+  // A year centred on the first or last point would hang off the edge
+  // of the chart, so the labels at either end lean inward instead.
+  const anchor = (px: number) =>
+    px < PAD + 20 ? "start" : px > W - PAD - 20 ? "end" : "middle";
 
   return (
     <>
@@ -281,7 +285,7 @@ function NetWorthChart({
             key={l.i}
             x={x(l.i)}
             y={H - 5}
-            textAnchor="middle"
+            textAnchor={anchor(x(l.i))}
             className="axis"
           >
             {l.text}
@@ -1915,7 +1919,7 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
   return (
     <section id="reports">
       <Unpriced codes={data.unpriced} cur={cur} where="every report here" />
-      <div className="report-card">
+      <div className="report-card fire">
         <div className="fire-top">
           <div className="fire-main">
             <div className="lbl">Financial independence · 4% rule</div>

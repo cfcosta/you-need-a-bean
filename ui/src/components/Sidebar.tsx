@@ -3,6 +3,8 @@ import type { MouseEvent } from "react";
 import type { AccountRow, MonthView, Summary } from "../api";
 import { fmt } from "../format";
 import type { Page } from "../router";
+import { THEMES } from "../theme";
+import type { ThemePref } from "../theme";
 
 /** A click the app should handle itself, rather than letting the browser
  * open a tab or a window. */
@@ -70,6 +72,79 @@ function AccountList({
   );
 }
 
+const THEME_LABEL: Record<ThemePref, string> = {
+  auto: "Auto",
+  light: "Paper",
+  dark: "Roast",
+};
+const THEME_TITLE: Record<ThemePref, string> = {
+  auto: "follow the system's colour scheme",
+  light: "the light scheme",
+  dark: "the dark scheme",
+};
+
+function ThemeIcon({ which }: { which: ThemePref }) {
+  if (which === "light") {
+    return (
+      <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        <path
+          d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.4 1.4M11.55 11.55l1.4 1.4M3.05 12.95l1.4-1.4M11.55 4.45l1.4-1.4"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+  if (which === "dark") {
+    return (
+      <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M13.6 10.2A5.8 5.8 0 0 1 5.8 2.4a6.2 6.2 0 1 0 7.8 7.8z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 2.6a5.4 5.4 0 0 0 0 10.8z" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Roast, paper, or whatever the system says. The choice is remembered
+ * per browser; it is a fact about the screen, not about the ledger. */
+function ThemeSwitch({
+  theme,
+  onTheme,
+}: {
+  theme: ThemePref;
+  onTheme: (pref: ThemePref) => void;
+}) {
+  return (
+    <div className="side-foot">
+      <div className="theme-seg" role="group" aria-label="Colour scheme">
+        {THEMES.map((t) => (
+          <button
+            key={t}
+            type="button"
+            className={t === theme ? "on" : ""}
+            aria-pressed={t === theme}
+            title={THEME_TITLE[t]}
+            onClick={() => onTheme(t)}
+          >
+            <ThemeIcon which={t} />
+            {THEME_LABEL[t]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar({
   summary,
   view,
@@ -81,6 +156,8 @@ export function Sidebar({
   acctHref,
   onNavigate,
   onAccount,
+  theme,
+  onTheme,
 }: {
   summary: Summary;
   view: MonthView | null;
@@ -93,6 +170,9 @@ export function Sidebar({
   acctHref: (account: string) => string;
   onNavigate: (page: Page) => void;
   onAccount: (account: string) => void;
+  /** The colour scheme in force, and the switch for it. */
+  theme: ThemePref;
+  onTheme: (pref: ThemePref) => void;
 }) {
   return (
     <nav
@@ -211,6 +291,8 @@ export function Sidebar({
           />
         </>
       )}
+
+      <ThemeSwitch theme={theme} onTheme={onTheme} />
     </nav>
   );
 }

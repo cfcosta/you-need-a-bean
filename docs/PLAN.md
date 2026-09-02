@@ -9,11 +9,12 @@ you-need-a-bean examples/example.beancount
 # → serving http://127.0.0.1:2326  (parsed 2,412 directives across 1 file in 38ms)
 ```
 
-The visual reference is `docs/mockup-v3.html` (Tokyo Night theme). The
-implementation must match it faithfully: dark sidebar with ledger chip and
-account balances, monthly budget table with "vs typical" bullet bars, right
-inspector with target card / 6-month chart / currency split / transaction
-list with expandable metadata.
+The layout follows `docs/mockup-v3.html`: dark sidebar with ledger chip
+and account balances, monthly budget table with "vs typical" bullet bars,
+right inspector with target card / 6-month chart / currency split /
+transaction list with expandable metadata. The look has since moved on
+from the mockup's Tokyo Night palette to the "Roast" and "Paper" schemes
+described under UI below.
 
 ## Architecture
 
@@ -104,10 +105,18 @@ currency unless stated. `cur` defaults to the first operating currency,
 
 ## UI
 
-Bun + React 19 + Tailwind v4 (`bun-plugin-tailwind`, tokens declared with
-`@theme` from the mockup's Tokyo Night palette; the Day variant rides
-`prefers-color-scheme: light` exactly as in the mockup). Components map
-1:1 to the mockup's renderers: `Sidebar`, `Topbar`, `StatStrip`,
+Bun + React 19 + Tailwind v4 (`bun-plugin-tailwind`). The design is an
+editorial finance journal in two schemes, both sets of custom properties
+in `ui/src/index.css`: "Roast" (dark, the default) and "Paper" (light).
+Gold is money that is yours, copper is what the market holds for you,
+sage is kept or under, coral is over or owed. Figures and titles are set
+in Fraunces, the interface in Inter, account names in JetBrains Mono; the
+fonts live under `ui/src/fonts/` and are inlined into the CSS at build
+time, so the app never reaches for the network. The scheme follows the
+system by default and can be pinned from the switch at the foot of the
+sidebar; that choice is kept in local storage (`ui/src/theme.ts`), not in
+the URL, since it is about the screen rather than the ledger. Components
+map 1:1 to the mockup's renderers: `Sidebar`, `Topbar`, `StatStrip`,
 `BudgetTable` (VsBar), `Inspector` (TargetCard, HistoryChart,
 CurrencySplit, TxnList). Client state: `{month, basis, cur, cat,
 openTxns, closedGroups}` — same as the mockup's `state` object.
