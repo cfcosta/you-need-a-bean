@@ -269,6 +269,27 @@ export function Sidebar({
           </svg>
           Reports
         </a>
+        <a
+          className={`nav-item${page === "liabilities" ? " active" : ""}`}
+          href={href("liabilities")}
+          aria-current={page === "liabilities" ? "page" : undefined}
+          onClick={(e) => {
+            if (!plain(e)) return;
+            e.preventDefault();
+            onNavigate("liabilities");
+          }}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path d="M1 4.5A1.5 1.5 0 0 1 2.5 3h11A1.5 1.5 0 0 1 15 4.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 11.5v-7zM2.5 5v6.5h11V5h-11zM2.5 6.5h11v1.5h-11z" />
+          </svg>
+          Liabilities
+        </a>
       </div>
 
       {view && (

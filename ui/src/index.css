@@ -86,6 +86,11 @@
   --alloc-3: #7dcfff;
   --alloc-4: #73daca;
   --alloc-5: #565f89;
+  --debt-1: #f7768e;
+  --debt-2: #ff9e64;
+  --debt-3: #e0af68;
+  --debt-4: #bb9af7;
+  --debt-5: #7dcfff;
   --glow: rgba(122, 162, 247, 0.1);
   --grain: 0.05;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.35);
@@ -128,6 +133,11 @@
     --alloc-3: #007197;
     --alloc-4: #118c74;
     --alloc-5: #7c84a3;
+    --debt-1: #f52a65;
+    --debt-2: #b15c00;
+    --debt-3: #8c6c3e;
+    --debt-4: #9854f1;
+    --debt-5: #007197;
     --glow: rgba(46, 125, 233, 0.14);
     --grain: 0.045;
     --shadow: 0 1px 2px rgba(52, 59, 88, 0.08), 0 10px 28px rgba(52, 59, 88, 0.1);
@@ -167,6 +177,11 @@
   --alloc-3: #007197;
   --alloc-4: #118c74;
   --alloc-5: #7c84a3;
+  --debt-1: #f52a65;
+  --debt-2: #b15c00;
+  --debt-3: #8c6c3e;
+  --debt-4: #9854f1;
+  --debt-5: #007197;
   --glow: rgba(46, 125, 233, 0.14);
   --grain: 0.045;
   --shadow: 0 1px 2px rgba(52, 59, 88, 0.08), 0 10px 28px rgba(52, 59, 88, 0.1);
@@ -3344,4 +3359,328 @@ button.reg-row:hover {
 }
 .pj-left-item:hover {
   color: var(--ink);
+}
+
+/* Liabilities. The masthead is the reports one lit from the other side:
+   what is owed glows red where net worth glows blue, and the stack
+   under the figure is the same bar the independence card draws, cut
+   into one piece per debt. */
+.report-card.fire.debt {
+  background:
+    radial-gradient(900px 380px at 6% -10%, rgba(247, 118, 142, 0.2), transparent 60%),
+    radial-gradient(600px 320px at 100% 110%, rgba(255, 158, 100, 0.14), transparent 60%),
+    linear-gradient(160deg, #1f2335, #131421);
+}
+.report-card.fire.debt::before {
+  background: repeating-radial-gradient(
+    circle at 104% -30%,
+    transparent 0 14px,
+    rgba(247, 118, 142, 0.06) 14px 15px
+  );
+}
+.report-card.fire.debt .lbl {
+  color: var(--over);
+}
+.report-card.fire.debt .fire-num {
+  text-shadow: 0 2px 24px rgba(247, 118, 142, 0.25);
+}
+.report-card.fire.debt .fire-steps .step::before {
+  background: var(--over);
+}
+.report-card.fire.debt .fire-stats {
+  grid-template-columns: repeat(3, minmax(140px, auto));
+}
+.debt-stack {
+  margin-top: 20px;
+}
+.stack-bar {
+  display: flex;
+  gap: 2px;
+  height: 9px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.stack-bar .seg {
+  height: 100%;
+  min-width: 2px;
+  transform-origin: left center;
+  animation: grow 1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.stack-bar .seg:first-child {
+  border-radius: 99px 0 0 99px;
+}
+.stack-bar .seg:last-child {
+  border-radius: 0 99px 99px 0;
+}
+.stack-bar .seg:only-child {
+  border-radius: 99px;
+}
+.seg.d1,
+.key .sw.d1 {
+  background: var(--debt-1);
+}
+.seg.d2,
+.key .sw.d2 {
+  background: var(--debt-2);
+}
+.seg.d3,
+.key .sw.d3 {
+  background: var(--debt-3);
+}
+.seg.d4,
+.key .sw.d4 {
+  background: var(--debt-4);
+}
+.seg.d5,
+.key .sw.d5 {
+  background: var(--debt-5);
+}
+.report-card.fire.debt .key {
+  margin-top: 9px;
+  color: var(--ink-2);
+}
+.report-card.fire.debt .key b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* What the ledger noticed, one line each. Amber is a payment that has
+   not gone out, red is a balance that keeps growing, green is money
+   the other way round. */
+.notices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.notices .notice {
+  margin-bottom: 0;
+  cursor: default;
+}
+.notice.bad {
+  border-color: var(--over-track);
+  background: var(--over-tint);
+}
+.notice.bad svg {
+  color: var(--over-text);
+}
+.notice.calm {
+  border-color: var(--good-track);
+  background: var(--good-tint);
+}
+.notice.calm svg {
+  color: var(--good-text);
+}
+
+/* One card per debt. The chart is the card's argument; the facts under
+   it are the three numbers a reader would otherwise ask for. */
+.debt-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin-top: 14px;
+}
+.fact .v {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variation-settings: "opsz" 30;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--ink);
+}
+.fact .v.ok {
+  color: var(--good-text);
+}
+.fact .v.bad {
+  color: var(--over-text);
+}
+.fact .hint {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.split-bar {
+  display: flex;
+  height: 5px;
+  margin-top: 12px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.split-bar i,
+.pay-row .bar i {
+  display: block;
+  height: 100%;
+}
+.split-bar .principal,
+.pay-row .bar .principal,
+.key .sw.principal {
+  background: var(--accent);
+}
+.split-bar .interest,
+.pay-row .bar .interest,
+.key .sw.interest {
+  background: var(--over);
+}
+.debt-slider {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.debt-slider label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.debt-slider .lbl {
+  white-space: nowrap;
+}
+.debt-slider input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--over);
+  cursor: pointer;
+}
+.slider-read {
+  margin-top: 7px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.slider-read b {
+  color: var(--ink);
+  font-weight: 650;
+}
+.pay-rows {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.pay-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.pay-rows .lbl + .pay-row {
+  margin-top: 6px;
+}
+.pay-row .d {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.pay-row .bar {
+  display: flex;
+  height: 6px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.pay-row .t {
+  text-align: right;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.debt-balances {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.debt-none {
+  text-align: center;
+  padding: 44px 20px;
+}
+.debt-none p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.report-grid.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* The debt charts. The band is the balance, red like every other
+   debt on the site; a dashed line is a future, and green is the one
+   the reader is trying out. */
+.chart-svg .debt-area {
+  fill: url(#g-owed);
+}
+.chart-svg .debt-line {
+  fill: none;
+  stroke: var(--over);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-svg .debt-proj {
+  fill: none;
+  stroke: var(--over);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.75;
+}
+.chart-svg .debt-fast {
+  fill: none;
+  stroke: var(--good);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 4;
+}
+.chart-svg .debt-dot {
+  fill: var(--over);
+}
+.chart-svg .debt-pay {
+  fill: var(--good);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+.chart-svg .cap.owed {
+  fill: var(--over-text);
+}
+.chart-svg .cap.fast {
+  fill: var(--good-text);
+}
+.chart-svg .grid.now {
+  stroke: var(--line-2);
+  stroke-dasharray: 2 3;
+}
+.chart-svg .grid.end {
+  stroke: var(--over);
+  stroke-dasharray: 2 3;
+  opacity: 0.55;
+}
+.chart-svg .grid.end.fast {
+  stroke: var(--good);
+}
+.key .sw.proj,
+.key .sw.fast {
+  height: 0;
+  border-radius: 0;
+  border-top: 2px dashed var(--over);
+  background: none;
+}
+.key .sw.fast {
+  border-top-color: var(--good);
+}
+.key .sw.pay {
+  border-radius: 99px;
+  background: var(--good);
+}
+@media (max-width: 700px) {
+  .debt-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

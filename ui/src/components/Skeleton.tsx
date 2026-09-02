@@ -55,6 +55,22 @@ export function ReportsSkeleton() {
   );
 }
 
+export function LiabilitiesSkeleton() {
+  return (
+    <section id="reports" aria-busy="true" aria-label="Loading liabilities">
+      <CardBones body={96} />
+      <div className="report-grid">
+        <div className="report-col">
+          <CardBones body={190} />
+        </div>
+        <div className="report-col">
+          <CardBones body={150} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function AccountSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading account">

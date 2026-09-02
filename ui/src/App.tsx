@@ -4,6 +4,7 @@ import type {
   AccountView,
   CategoryView,
   MonthView,
+  LiabilitiesView,
   ReportsView,
   Summary,
 } from "./api";
@@ -11,18 +12,21 @@ import {
   getAccount,
   getCategory,
   getMonth,
+  getLiabilities,
   getReports,
   getSummary,
 } from "./api";
 import { Account } from "./components/Account";
 import { BudgetTable } from "./components/BudgetTable";
 import { Inspector } from "./components/Inspector";
+import { Liabilities } from "./components/Liabilities";
 import { Reports } from "./components/Reports";
 import { Sidebar } from "./components/Sidebar";
 import {
   AccountSkeleton,
   BootSkeleton,
   Fatal,
+  LiabilitiesSkeleton,
   ReportsSkeleton,
 } from "./components/Skeleton";
 import { StatStrip } from "./components/StatStrip";
@@ -51,6 +55,7 @@ export function App() {
   const [catChosen, setCatChosen] = useState(false);
   const [view, setView] = useState<MonthView | null>(null);
   const [reports, setReports] = useState<ReportsView | null>(null);
+  const [debts, setDebts] = useState<LiabilitiesView | null>(null);
   const [catView, setCatView] = useState<CategoryView | null>(null);
   const [acctView, setAcctView] = useState<AccountView | null>(null);
   const [openTxns, setOpenTxns] = useState<ReadonlySet<number>>(new Set());
@@ -207,6 +212,17 @@ export function App() {
     let alive = true;
     getReports(basis, cur)
       .then((r) => alive && setReports(r))
+      .catch((e: Error) => alive && showToast(e.message));
+    return () => {
+      alive = false;
+    };
+  }, [page, basis, cur, revision]);
+
+  useEffect(() => {
+    if (page !== "liabilities" || cur == null) return;
+    let alive = true;
+    getLiabilities(basis, cur)
+      .then((r) => alive && setDebts(r))
       .catch((e: Error) => alive && showToast(e.message));
     return () => {
       alive = false;
@@ -372,6 +388,17 @@ export function App() {
               <Reports data={reports} cur={cur} />
             ) : (
               <ReportsSkeleton />
+            ))}
+          {page === "liabilities" &&
+            (debts != null ? (
+              <Liabilities
+                data={debts}
+                cur={cur}
+                today={summary.today}
+                basis={basis}
+              />
+            ) : (
+              <LiabilitiesSkeleton />
             ))}
           {page === "account" &&
             (acctView != null && acctView.account === acct ? (

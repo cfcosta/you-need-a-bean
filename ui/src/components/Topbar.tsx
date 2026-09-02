@@ -35,6 +35,9 @@ export function Topbar({
   const prev = i > 0 ? months[i - 1] : null;
   const next = i >= 0 && i < months.length - 1 ? months[i + 1] : null;
 
+  const title =
+    page === "reports" ? "Reports" : page === "liabilities" ? "Liabilities" : null;
+
   return (
     <div id="topbar">
       <button id="burger" aria-label="Open navigation" onClick={onBurger}>
@@ -48,9 +51,9 @@ export function Topbar({
           <path d="M1 3h14v1.5H1V3zm0 4.25h14v1.5H1v-1.5zM1 11.5h14V13H1v-1.5z" />
         </svg>
       </button>
-      {page === "reports" ? (
+      {title != null ? (
         <div className="month-label page-title">
-          <h1>Reports</h1>
+          <h1>{title}</h1>
         </div>
       ) : (
       <div className="month-pager">
@@ -114,7 +117,7 @@ export function Topbar({
         {/* The same window, read two ways: the months a target is
             taken from, and the months an account's chart covers. */}
         <span className="seg-label">
-          {page === "account" ? "History" : "Target"}
+          {page === "account" || page === "liabilities" ? "History" : "Target"}
         </span>
         <div className="seg" role="group" aria-label="Average window">
           {BASES.map((b) => (
@@ -124,7 +127,9 @@ export function Topbar({
               title={
                 page === "account"
                   ? `The last ${b} months of this account`
-                  : b === basis
+                  : page === "liabilities"
+                    ? `The last ${b} months of each debt`
+                    : b === basis
                     ? `The median month with spending in the previous ${b} (${windowLabel(window)})`
                     : `The median month with spending in the previous ${b}`
               }
