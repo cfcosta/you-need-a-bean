@@ -187,11 +187,24 @@ priced at the month's end).
   highest rate first (avalanche) and smallest balance first
   (snowball) — with the extra the reader picks and every finished
   debt's payment rolled into the next; the masthead's debt-free
-  sentence uses the same rollover. The two orders are drawn as a
-  race: one bar per debt from now to the month it ends, a finish
-  line per order. Each card leads with a sentence that reads its
-  figures (`loanLede`, `cardLede`, `securedText`, `foreignText`,
-  `investVerdict`, `beatenText`), with the figures in bold.
+  stat hints at the same rollover ("Mar 2028 with payments rolling
+  on"). The two orders are drawn as a race: one bar per debt from
+  now to the month it ends, a finish line per order.
+- **No prose.** A card does not explain its figures in paragraphs;
+  each fact has a place. The masthead's share bars print each debt's
+  share inside the segment (when it is wide enough), and its costs
+  stat hints the year's cost at the blended rate. A loan's pay-down-
+  or-invest call is a `Verdict` chip (`verdict`: "Clear it first",
+  "Invest instead" or "No hurry", with the reason beside it, toned
+  go/hold/free); what secures it is a gauge captioned with the loan
+  against the asset and what selling it would leave clear or short.
+  A card's interest-paid cell hints since when; its in-credit pill
+  explains itself on hover. Under every slider a `Readout` row of
+  figures says what the setting comes to (the payment, the payoff
+  month, the interest to come; with an extra, how much sooner and
+  how much less interest). The one paragraph left is the
+  foreign-currency line (`foreignText`), which has no figure to be;
+  `beatenText` is a trophy's tooltip.
 - **No subtitles.** Every owing debt gets a colour (`hues`, five
   hues cycling, biggest debt first) that it keeps everywhere: the
   masthead's owed-versus-cost bars (`costShares`), the strip of the
@@ -205,10 +218,10 @@ priced at the month's end).
   debts are tiles, not rows.
 - **This month** (`PlanCard`): the cash in budget accounts drawn as a
   bar cut into what is due in the next 31 days, a typical month of
-  spending, the fixed costs kept back, and what is spare, with a
-  sentence that reads the sum (`roomText`) and, when the spare covers
-  the carried card balances, how many months of fixed costs would
-  still be in hand. Under it, a row per payment to send (`monthPlan`):
+  spending, the fixed costs kept back, and what is spare; the spare
+  is cut again into what the plan sends to the debts and what is left
+  over, and the key names every part (the spare even at zero, so an
+  empty plan says why). Under it, a row per payment to send (`monthPlan`):
   the day, the debt in its colour, the amount and what is left on the
   debt after it. The rows start from `upcoming`; the spare is then
   placed down the chosen order (`targets`: the debts being paid down,
@@ -216,8 +229,9 @@ priced at the month's end).
   paper that money does better invested), each debt taking what
   clears it before the next gets any, and a debt whose payment already
   went this month gets a row dated today. A toggle picks the order
-  when more than one debt is in line; what is left over is said in a
-  sentence (`leftText`). "Add the due dates to your calendar" builds
+  when more than one debt is in line; when a loan was skipped, the
+  "left over" key item says so on hover. "Add the due dates to your
+  calendar" (its tooltip says what the file is) builds
   an iCalendar file (`ui/src/ics.ts`, `dueEvents`): one all-day event
   per upcoming payment, repeating monthly on the due day for the
   payoff's months (twelve for a card cleared in full, whose amount
@@ -226,20 +240,24 @@ priced at the month's end).
   at 75 octets and text escaped as RFC 5545 asks. A due day past a
   month's end skips that month, as the standard has it.
 - **Which first?** starts its slider at the usual monthly surplus
-  (`sliderStart`, snapped to the slider's step) and says so
-  (`monthlyText`), so the race opens on what the reader can actually
-  sustain rather than on zero.
+  (`sliderStart`, snapped to the slider's step) and marks that spot
+  on the range with a "usual" tick, so the race opens on what the
+  reader can actually sustain rather than on zero; the readout under
+  it adds the usual payments, the extra and the month's total. The
+  card's figure is what the dearest-first order saves, or the
+  debt-free month when the two orders come to the same.
 - **On a carried card**: "What is carried" is the makeup as a bar in
   the card's colour, fading from the biggest part to the smallest, a
   row per part (what it was for, how many charges since when, what is
-  owed and the interest it has run up) and a sentence naming the rate
-  being paid on what (`makeupText`). "On the treadmill" is a pair of
-  bars per month, what went on the card against what came off it,
+  owed and the interest it has run up). "On the treadmill" is a pair
+  of bars per month, what went on the card against what came off it,
   interest stacked on the charges in red, the months the pace is read
-  over drawn in full and the earlier ones faded, then the sentence
-  with the real monthly change, the honest payoff month against the
-  one the payment alone suggests, and the interest on the way
-  (`treadmillText`).
+  over drawn in full and the earlier ones faded, then three fact
+  cells (`treadmillFacts`): the real net a month (paid against
+  charged), where that pace leads against where the minimum alone
+  says ("never" when the payments trail the charges, only cover
+  them, or the interest outruns them), and the interest on the way
+  against the minimum's.
 
 ## HTTP API
 
@@ -315,9 +333,11 @@ card: a loan's balance by month with the
 projection to zero and a slider that tries a bigger payment
 (`ui/src/debt.ts` amortises the way the server does, to the cent), the
 principal against the interest paid, and the recent payments; a card's
-day-by-day sawtooth with every payment marked and its cycle. Card
-heads, keys and chart scales are shared through `components/Card.tsx`
-and `chart.ts`.
+day-by-day sawtooth with every payment marked and its cycle. No card
+explains itself in a paragraph: its figures, chips and marks carry
+what a sentence would have said (see "No prose" under Liabilities
+above). Card heads, keys and chart scales are shared through
+`components/Card.tsx` and `chart.ts`.
 
 ## Performance
 

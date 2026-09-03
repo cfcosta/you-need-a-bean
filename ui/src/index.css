@@ -3401,13 +3401,9 @@ button.reg-row:hover {
   flex: 1 1 380px;
   min-width: 0;
 }
-.report-card.fire.debt .debt-lede {
-  margin-top: 14px;
-}
 
-/* The reading under a figure: a sentence or three saying what the
-   numbers mean, with the figures themselves in bold so a scan still
-   lands on them. */
+/* The one paragraph left on a card, where a fact has no figure to be:
+   what a balance in another currency does to the bill. */
 .debt-lede {
   max-width: 62ch;
   margin: 0;
@@ -3424,31 +3420,60 @@ button.reg-row:hover {
   font-size: 11.5px;
   line-height: 1.5;
 }
-.debt-card > .debt-lede {
-  margin: 10px 0 12px;
-}
 .debt-lede.fx {
   margin-top: 12px;
 }
 
-/* A conclusion the page draws for the reader, set off from the facts
-   it comes from. Plain is a shrug, good is a go, the default is a
-   reading that cuts the other way. */
-.debt-lede.verdict {
-  max-width: none;
-  margin: 14px 0 0;
-  padding: 9px 12px 9px 14px;
-  border-radius: 10px;
+/* A conclusion the page draws for the reader: the call in a couple of
+   words, the reason beside it. Go is a green light, free is a shrug,
+   hold is a reading that cuts the other way. */
+.verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  margin-top: 12px;
+  padding: 7px 11px;
+  border-radius: 9px;
   border-left: 3px solid var(--accent);
   background: var(--accent-wash);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
 }
-.debt-lede.verdict.good {
+.verdict b {
+  color: var(--ink);
+  font-weight: 650;
+  white-space: nowrap;
+}
+.verdict.go {
   border-left-color: var(--good);
   background: var(--good-tint);
 }
-.debt-lede.verdict.plain {
+.verdict.free {
   border-left-color: var(--line-2);
   background: var(--surface-2);
+}
+
+/* A row of figures under a slider, each with what it is beside it. */
+.readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 16px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.readout b {
+  color: var(--ink);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.readout .ok b {
+  color: var(--good-text);
+}
+.readout .bad b {
+  color: var(--over-text);
 }
 
 /* A share drawn as a bar, captioned at both ends with what it is a
@@ -3484,9 +3509,6 @@ button.reg-row:hover {
 }
 .debt-secured {
   margin-top: 4px;
-}
-.debt-secured .debt-lede {
-  margin-top: 8px;
 }
 /* Each debt has a colour, and keeps it everywhere on the page: in the
    bars here, on the strip below, in the ring on its card, and on the
@@ -3599,6 +3621,24 @@ button.reg-row:hover {
 }
 .stack-bar .seg:only-child {
   border-radius: 99px;
+}
+/* The masthead's bars are tall enough to print each share inside. */
+.stack-bar.shares {
+  height: 12px;
+}
+.shares .seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.shares .seg b {
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: #16161e;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 .seg.d1,
 .key .sw.d1 {
@@ -3863,14 +3903,41 @@ button.reg-row:hover {
   accent-color: var(--over);
   cursor: pointer;
 }
-.slider-read {
-  margin-top: 7px;
-  font-size: 11.5px;
-  color: var(--ink-2);
+/* The range, with a mark where the usual month's surplus falls. */
+.debt-slider .range {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
 }
-.slider-read b {
-  color: var(--ink);
-  font-weight: 650;
+.debt-slider .range input[type="range"] {
+  width: 100%;
+}
+.debt-slider .range .tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--ink);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.debt-slider .range .tick-lbl {
+  position: absolute;
+  top: 100%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.debt-slider.ticked .readout {
+  margin-top: 18px;
 }
 .pay-rows {
   margin-top: 14px;
@@ -4159,9 +4226,6 @@ div.race {
 .room {
   margin-top: 14px;
 }
-.room + .debt-lede {
-  margin-top: 12px;
-}
 .seg.due,
 .key .sw.due {
   background: var(--over);
@@ -4173,6 +4237,10 @@ div.race {
 .seg.buffer,
 .key .sw.buffer {
   background: var(--muted);
+}
+.seg.sent,
+.key .sw.sent {
+  background: var(--accent);
 }
 .seg.spare,
 .key .sw.spare {
@@ -4280,10 +4348,6 @@ div.race {
   border-color: var(--accent);
   color: var(--accent-ink);
 }
-.plan-foot .hint {
-  font-size: 10.5px;
-  color: var(--muted);
-}
 
 /* A section inside a debt's card, ruled off from the one above. */
 .debt-section {
@@ -4291,8 +4355,8 @@ div.race {
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
-.debt-section > .debt-lede {
-  margin-top: 10px;
+.tread-facts {
+  margin-top: 12px;
 }
 
 /* What is carried: the balance cut by what the charges were for, the

@@ -1,22 +1,20 @@
 /**
  * The arithmetic behind the liabilities page that the server does not
  * do for it: the payoff at a payment the reader is only trying out,
- * the order to attack the debts in, and the sentences the cards say.
+ * the order to attack the debts in, and the readings the cards draw.
  *
- * The server sends facts. Every sentence here is a reading of them,
- * so the page can say what a number means instead of labelling it.
+ * The server sends facts. What is here is a reading of them: the page
+ * shows what a number means with a figure, a mark or a call rather
+ * than a paragraph.
  */
 
 import type {
   Beaten,
-  Collateral,
   Cover,
   Debt,
   DebtKind,
   DebtNotice,
-  Extra,
   Foreign,
-  MakeupRow,
   Upcoming,
 } from "./api";
 import {
@@ -187,93 +185,6 @@ export function plan(debts: PlanDebt[], extra: number, order: Order): Plan | nul
   return null;
 }
 
-/** Which order to pay in, given both plans at the same extra. */
-export function orderVerdict(
-  avalanche: Plan | null,
-  snowball: Plan | null,
-  cur: string,
-): string {
-  if (avalanche == null && snowball == null) {
-    return "Neither order gets there: the payments do not beat the interest.";
-  }
-  if (avalanche == null) return "Only smallest first gets there.";
-  if (snowball == null) return "Only highest rate first gets there.";
-  const same =
-    avalanche.months === snowball.months &&
-    avalanche.interest === snowball.interest &&
-    avalanche.steps.every(
-      (s, i) =>
-        s.account === snowball.steps[i]?.account &&
-        s.months === snowball.steps[i]?.months,
-    );
-  if (same) {
-    return "Both orders come out the same here: nothing to choose between them.";
-  }
-  const saves = cents(snowball.interest - avalanche.interest);
-  const sooner = snowball.months - avalanche.months;
-  const parts: string[] = [];
-  if (saves >= 1) {
-    parts.push(
-      `Highest rate first saves ${fmt(saves, cur, 0)}` +
-        (sooner > 0
-          ? ` and finishes ${duration(sooner)} sooner.`
-          : sooner < 0
-            ? `, though smallest first finishes ${duration(-sooner)} sooner.`
-            : "; both orders finish the same month."),
-    );
-  } else if (saves <= -1) {
-    parts.push(`Smallest first saves ${fmt(-saves, cur, 0)} here, which is unusual.`);
-  } else {
-    parts.push("The two orders cost the same to within a dollar.");
-  }
-  const first = snowball.steps[0];
-  const later = avalanche.steps.find((s) => s.account === first?.account);
-  if (first != null && later != null && later.months > first.months) {
-    parts.push(
-      `Smallest first clears the ${first.label} ${duration(later.months - first.months)} earlier, ` +
-        "a quick win the numbers do not price.",
-    );
-  }
-  return parts.join(" ");
-}
-
-/** Whether an extra dollar does more against this loan or in a
- * portfolio making `assumed` a year. */
-export function investVerdict(rate: number | null, assumed: number): string | null {
-  if (rate == null) return null;
-  if (rate <= 1e-9) {
-    return (
-      "At 0% there is nothing to gain by paying this early: the same money " +
-      "earns more in a savings account."
-    );
-  }
-  if (rate >= assumed) {
-    return (
-      `Paying this down returns ${ratio(rate)} guaranteed, more than the ` +
-      `${ratio(assumed)} a portfolio is assumed to make. Clear it before investing more.`
-    );
-  }
-  return (
-    `This costs ${ratio(rate)}, less than the ${ratio(assumed)} a portfolio is ` +
-    "assumed to make. On paper the money does better invested, though a " +
-    "paid-off loan has no bad years."
-  );
-}
-
-/** What a loan is secured on, and whether selling it would clear the loan. */
-export function securedText(c: Collateral, owed: number, cur: string): string {
-  if (c.value == null || c.value <= EPS) {
-    return `Secured by ${c.label}, which has no price in the ledger.`;
-  }
-  const share = ratio(owed / c.value);
-  const gap = c.value - owed;
-  return gap >= 0
-    ? `Secured by ${c.label}, worth ${fmt(c.value, cur, 0)}. The loan is ${share} of that, ` +
-        `so selling it would clear the loan with ${fmt(gap, cur, 0)} to spare.`
-    : `Secured by ${c.label}, worth ${fmt(c.value, cur, 0)}. The loan is ${share} of that: ` +
-        `selling it would leave ${fmt(-gap, cur, 0)} still owed.`;
-}
-
 const NAMES: Record<string, string> = {
   USD: "dollar",
   EUR: "euro",
@@ -347,183 +258,6 @@ export function dayLabel(date: string): string {
   return `${Number(date.slice(8, 10))} ${monthShort(date)}`;
 }
 
-/** What a loan's card says under its name: what goes out, how far
- * along it is, and where it ends. */
-export function loanLede(d: Debt, cur: string): string {
-  const parts: string[] = [];
-  if (d.payment != null) {
-    const last = d.payments[0];
-    const when =
-      d.due_day != null ? `on the ${ordinal(d.due_day)}` : "each month";
-    const split =
-      last == null
-        ? ""
-        : last.interest > EPS
-          ? `, and last time ${fmt(last.interest, cur)} of it was interest`
-          : ", all of it principal";
-    parts.push(`${fmt(d.payment, cur, 0)} goes out ${when}${split}.`);
-  } else {
-    parts.push("No payment seen yet.");
-  }
-  if (d.progress != null) {
-    const done =
-      d.progress <= EPS
-        ? "None"
-        : d.progress >= 1 - EPS
-          ? "All"
-          : ratio(d.progress);
-    parts.push(`${done} of the ${fmt(d.peak, cur, 0)} borrowed is paid off.`);
-  }
-  if (d.payoff != null) {
-    const more =
-      d.payoff.interest > EPS
-        ? `with ${fmt(d.payoff.interest, cur, 0)} more in interest`
-        : "with no interest to come";
-    parts.push(`At this pace it is gone by ${monthYear(d.payoff.month)}, ${more}.`);
-  } else if (d.payment != null && d.owed > EPS) {
-    parts.push("At this payment it never ends: the interest outruns it.");
-  }
-  return parts.join(" ");
-}
-
-/** What a card's card says under its name. `from` is the first month
- * of the window the interest was counted over. */
-export function cardLede(d: Debt, cur: string, from: string | null): string {
-  const c = d.cycle;
-  if (d.owed < -EPS) {
-    return (
-      `${fmt(-d.owed, cur)} in credit: a refund or a payment landed after the ` +
-      "balance was cleared, and the next statement starts from there."
-    );
-  }
-  if (c?.in_full === true) {
-    if (d.owed <= EPS) return "Cleared in full last cycle, and nothing charged since.";
-    const parts = [`${fmt(d.owed, cur)} charged since`];
-    if (d.limit != null && d.utilisation != null) {
-      parts.push(`${ratio(d.utilisation)} of the ${fmt(d.limit, cur, 0)} limit`);
-    }
-    if (d.next_due != null) parts.push(`due ${dayLabel(d.next_due)}`);
-    return `Cleared in full last cycle. ${parts.join(", ")}.`;
-  }
-  if (c?.carried != null && c.carried > EPS) {
-    const at = d.rate != null ? ` at ${ratio(d.rate)}` : "";
-    const since = from != null ? ` since ${monthYear(from)}` : "";
-    const cost =
-      d.interest_paid > EPS
-        ? `, which has cost ${fmt(d.interest_paid, cur, 0)} in interest${since}`
-        : "";
-    const head = `Carrying ${fmt(c.carried, cur)} from month to month${at}${cost}.`;
-    if (d.payment == null) return head;
-    const min = `At the ${fmt(d.payment, cur, 0)} minimum`;
-    const tail =
-      d.payoff != null
-        ? `${min} it takes ${duration(d.payoff.months)}` +
-          (d.payoff.interest > EPS
-            ? ` and ${fmt(d.payoff.interest, cur, 0)} more.`
-            : ".")
-        : `${min} it never clears.`;
-    return `${head} ${tail}`;
-  }
-  return `${fmt(d.owed, cur)} on the card.`;
-}
-
-/** What carrying everything costs. */
-export function costLine(
-  costYear: number,
-  blended: number | null,
-  cur: string,
-): string {
-  if (costYear <= EPS) return "Nothing here is charging interest.";
-  const mix = blended != null ? `, ${ratio(blended)} blended` : "";
-  return (
-    `Carrying this costs about ${fmt(costYear / 12, cur, 0)} a month, ` +
-    `${fmt(costYear, cur, 0)} a year at today's balances and rates${mix}.`
-  );
-}
-
-const share = (v: number) => (v >= 0.9995 ? "all" : ratio(v));
-
-/** Which debt is the biggest and which is the dearest, when those are
- * not the same one. */
-export function shareLine(debts: Debt[], cur: string): string | null {
-  void cur;
-  const owing = debts.filter((d) => d.owed > EPS);
-  if (owing.length < 2) return null;
-  const total = owing.reduce((s, d) => s + d.owed, 0);
-  const cost = (d: Debt) => d.owed * (d.rate ?? 0);
-  const costs = owing.reduce((s, d) => s + cost(d), 0);
-  const biggest = owing.reduce((a, b) => (b.owed > a.owed ? b : a));
-  const done =
-    biggest.progress != null ? `, and ${ratio(biggest.progress)} paid off` : "";
-  if (costs <= EPS) {
-    return (
-      `The ${biggest.label} is the biggest, ${ratio(biggest.owed / total)} of what is owed, ` +
-      "and none of it is charging interest."
-    );
-  }
-  const dearest = owing.reduce((a, b) => (cost(b) > cost(a) ? b : a));
-  if (dearest.account === biggest.account) {
-    return (
-      `The ${biggest.label} is both the biggest and the dearest: ` +
-      `${ratio(biggest.owed / total)} of what is owed and ${share(cost(biggest) / costs)} of the cost.`
-    );
-  }
-  return (
-    `The ${dearest.label} is ${ratio(dearest.owed / total)} of what is owed but ` +
-    `${share(cost(dearest) / costs)} of the cost; the ${biggest.label} is the biggest${done}.`
-  );
-}
-
-/** How much an extra hundred a month is worth, in months off the end. */
-const HUNDRED = 100;
-
-/** When the last debt ends, and what would move that. `free` is the
- * server's date, at each debt's own payment kept up forever. */
-export function freeLine(
-  free: string | null,
-  month: string,
-  debts: Debt[],
-  cur: string,
-): string | null {
-  const down = payingDown(debts);
-  if (down.length === 0) return null;
-  const base = plan(down, 0, "avalanche");
-  const more = plan(down, HUNDRED, "avalanche");
-  if (free == null) {
-    const never =
-      "At today's payments the last debt never clears: a payment is not beating its interest.";
-    return more != null
-      ? `${never} ${fmt(HUNDRED, cur, 0)} more a month would end it in ${duration(more.months)}.`
-      : never;
-  }
-  const last = debts
-    .filter((d) => down.some((p) => p.account === d.account) && d.payoff != null)
-    .reduce<Debt | null>(
-      (a, b) => (a == null || (b.payoff?.months ?? 0) > (a.payoff?.months ?? 0) ? b : a),
-      null,
-    );
-  const who =
-    last != null
-      ? `, and that is the ${last.label}${last.kind === "revolving" ? " at its minimum" : ""}`
-      : "";
-  let text = `At today's payments the last debt clears in ${monthYear(free)}${who}.`;
-  if (base != null) {
-    const rolled = addMonths(month, base.months);
-    const sooner = rolled < free;
-    if (sooner) {
-      text += ` Roll each payment into the next debt as one ends and it is ${monthYear(rolled)} instead`;
-    }
-    if (more != null && more.months < base.months) {
-      text += sooner
-        ? `; ${fmt(HUNDRED, cur, 0)} more a month on top brings that forward ${duration(base.months - more.months)}.`
-        : ` ${fmt(HUNDRED, cur, 0)} more a month brings that forward ${duration(base.months - more.months)}.`;
-    } else if (sooner) {
-      text += ".";
-    }
-  }
-  return text;
-}
-
 /** Whether the cash on hand covers the cards. */
 export function coverLine(cover: Cover, cur: string): string | null {
   if (cover.owed <= EPS) return null;
@@ -552,6 +286,31 @@ export function earnedLine(
     `Over ${windowLabel(i.window)}, ${fmt(i.year, cur, 0)} went out in interest and ` +
     `${fmt(i.earned_year, cur, 0)} came in from savings: ${verdict}.`
   );
+}
+
+/** What the page calls on a loan: whether an extra dollar does more
+ * against it or in a portfolio making `assumed` a year. A call in a
+ * couple of words, and the reason in a few more. */
+export interface Verdict {
+  call: string;
+  why: string;
+  /** go: pay it down; hold: invest instead; free: nothing to gain. */
+  tone: "go" | "hold" | "free";
+}
+
+export function verdict(rate: number | null, assumed: number): Verdict | null {
+  if (rate == null) return null;
+  if (rate <= 1e-9) {
+    return {
+      call: "No hurry",
+      why: "at 0% the same money earns more in savings",
+      tone: "free",
+    };
+  }
+  const paper = `the ${ratio(assumed)} a portfolio is assumed to make`;
+  return rate >= assumed
+    ? { call: "Clear it first", why: `${ratio(rate)} guaranteed beats ${paper}`, tone: "go" }
+    : { call: "Invest instead", why: `${ratio(rate)} is under ${paper}`, tone: "hold" };
 }
 
 /** The things in a sentence a reader scans for: amounts, shares,
@@ -706,12 +465,6 @@ export function stripMarks(
   return marks;
 }
 
-/** "a", "a and b", "a, b and c" */
-const list = (items: string[]) =>
-  items.length <= 1
-    ? (items[0] ?? "")
-    : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
-
 /** One line of this month's plan: what goes to a debt, and when. */
 export interface PlanRow {
   account: string;
@@ -817,76 +570,6 @@ export function dueEvents(
   });
 }
 
-/** What is spare this month, what the cash was counted against to get
- * there, and whether it clears what the cards carry. */
-export function roomText(x: Extra, carried: number, cur: string): string {
-  const parts: string[] = [];
-  if (x.due > EPS) parts.push(`${fmt(x.due, cur, 0)} due in the next 31 days`);
-  if (x.spend > EPS) {
-    parts.push(`a typical ${fmt(x.spend, cur, 0)} month of spending`);
-  }
-  if (x.buffer > EPS) {
-    parts.push(`${fmt(x.buffer, cur, 0)} of fixed costs kept back`);
-  }
-  if (x.now <= EPS) {
-    if (x.cash <= EPS) {
-      return "Nothing is spare this month: there is no cash in budget accounts.";
-    }
-    const by =
-      parts.length > 0 ? `is spoken for by ${list(parts)}.` : "is all there is.";
-    return `Nothing is spare this month: the ${fmt(x.cash, cur, 0)} in budget accounts ${by}`;
-  }
-  let text =
-    `${fmt(x.now, cur, 0)} is spare this month: the ${fmt(x.cash, cur, 0)} in budget accounts` +
-    (parts.length > 0 ? `, less ${list(parts)}.` : ".");
-  if (carried > EPS) {
-    if (x.now >= carried - EPS) {
-      const months =
-        x.buffer > EPS ? Math.floor((x.now - carried + x.buffer) / x.buffer) : 0;
-      text +=
-        ` That clears the ${fmt(carried, cur)} carried on the cards outright` +
-        (months > 0
-          ? `, with ${months} ${months === 1 ? "month" : "months"} of fixed costs still in hand.`
-          : ".");
-    } else {
-      text += ` That is ${ratio(x.now / carried)} of the ${fmt(carried, cur)} carried on the cards.`;
-    }
-  }
-  return text;
-}
-
-/** Where the part of the spare that no debt takes goes. `placed` is
- * whether any of it went to a debt; `cheap` counts the loans passed
- * over for costing less than investing returns. */
-export function leftText(
-  left: number,
-  placed: boolean,
-  cheap: number,
-  assumed: number,
-  cur: string,
-): string {
-  const paper = `the ${ratio(assumed)} a portfolio is assumed to make`;
-  if (!placed) {
-    return cheap > 0
-      ? `None of it goes to the debts: nothing here costs more than ${paper}, ` +
-          `so on paper the ${fmt(left, cur, 0)} does better invested.`
-      : "Nothing here to send it to.";
-  }
-  const head = `${fmt(left, cur, 0)} of it is left once ${cheap > 0 ? "those are" : "everything is"} cleared.`;
-  return cheap > 0
-    ? `${head} The rest costs less than ${paper}, so on paper it does better invested.`
-    : head;
-}
-
-/** Why the extra-each-month slider starts where it does. */
-export function monthlyText(x: Extra, cur: string): string | null {
-  if (x.monthly <= EPS) return null;
-  return (
-    `Most months about ${fmt(x.monthly, cur, 0)} is left over after everything, ` +
-    "the debts included, so the slider starts there."
-  );
-}
-
 /** The usual month's surplus snapped onto the slider's steps, and
  * kept within its range. */
 export function sliderStart(
@@ -899,73 +582,69 @@ export function sliderStart(
   );
 }
 
-/** A carried card against what keeps going on it: what went in, what
- * came back, the net, and where that really leads — against the
- * payoff the minimum alone promises. */
-export function treadmillText(d: Debt, cur: string): string | null {
-  const t = d.treadmill;
-  if (t == null) return null;
-  const span = t.pace === 1 ? "Last month" : `Over the last ${t.pace} months`;
-  const back =
-    t.charged > EPS
-      ? `${fmt(t.charged, cur, 0)} was charged back`
-      : "nothing was charged back";
-  const head = `${span} ${fmt(t.paid, cur, 0)} went into the ${d.label} and ${back}, so it is`;
-  if (t.net < -EPS) {
-    return (
-      `${head} growing by ${fmt(-t.net, cur, 0)} a month: the payments are ` +
-      "not keeping up with what goes on it."
-    );
-  }
-  if (t.net <= EPS) {
-    return `${head} standing still: the payments only cover what goes on it.`;
-  }
-  const really = t.charged > EPS ? "really " : "";
-  let text = `${head} ${really}shrinking by ${fmt(t.net, cur, 0)} a month.`;
-  if (t.payoff == null) {
-    return `${text} At that pace it never clears: the interest outruns it.`;
-  }
-  const stated = d.payoff;
-  if (stated == null || stated.month === t.payoff.month || d.payment == null) {
-    return `${text} At that pace it is gone ${monthYear(t.payoff.month)}.`;
-  }
-  text +=
-    ` At that pace it is gone ${monthYear(t.payoff.month)}, not the ` +
-    `${monthYear(stated.month)} the ${fmt(d.payment, cur, 0)} minimum alone suggests`;
-  return t.payoff.interest - stated.interest >= 1
-    ? `${text}, and the interest on the way is ${fmt(t.payoff.interest, cur, 0)}, ` +
-        `not ${fmt(stated.interest, cur, 0)}.`
-    : `${text}.`;
+/** A figure with a label over it and a hint under it: what a card's
+ * fact cell holds. */
+export interface FactRead {
+  lbl: string;
+  v: string;
+  hint: string;
+  tone?: "ok" | "bad";
 }
 
-/** "Groceries" → "groceries"; the charges that said nothing about
- * what they were for are other things. */
-const thing = (label: string) =>
-  label === "Other" ? "other things" : label.toLowerCase();
-
-/** What a carried balance is made of, oldest charges first, and what
- * the rate is doing to each part. */
-export function makeupText(d: Debt, cur: string): string | null {
-  const m = d.makeup;
-  const first = m?.rows[0];
-  if (m == null || first == null) return null;
-  const n = m.rows.reduce((s, r) => s + r.count, 0);
-  const head = `The ${fmt(m.total, cur)} on it is ${n} ${n === 1 ? "charge" : "charges"} not yet paid off`;
-  const item = (r: MakeupRow) =>
-    `${fmt(r.owed, cur)} of ${thing(r.label)} from ${monthYear(r.since)}`;
-  if (d.rate == null || d.rate <= EPS) {
-    return `${head}: ${list(m.rows.map(item))}.`;
+/** A carried card's treadmill read as figures: what it really moves
+ * by a month, where that pace leads against where the minimum alone
+ * says, and the interest on the way. Null off the treadmill. */
+export function treadmillFacts(d: Debt, cur: string): FactRead[] | null {
+  const t = d.treadmill;
+  if (t == null) return null;
+  const stated = d.payoff;
+  const net: FactRead = {
+    lbl: "Net a month",
+    v: t.net > EPS ? `+${fmt(t.net, cur, 0)}` : fmt(t.net, cur, 0),
+    hint: `${fmt(t.paid, cur, 0)} paid · ${t.charged > EPS ? `${fmt(t.charged, cur, 0)} charged` : "nothing charged"}`,
+  };
+  if (t.net > EPS) net.tone = "ok";
+  else if (t.net < -EPS) net.tone = "bad";
+  if (t.payoff == null) {
+    return [
+      net,
+      {
+        lbl: "At that pace",
+        v: "never",
+        hint:
+          t.net < -EPS
+            ? "the payments trail the charges"
+            : t.net <= EPS
+              ? "the payments only cover the charges"
+              : "the interest outruns it",
+        tone: "bad",
+      },
+    ];
   }
-  const rest = m.rows.slice(1);
-  let text = `${head}. You are paying ${ratio(d.rate)} on ${item(first)}`;
-  if (first.interest > EPS) {
-    text += `, which has cost ${fmt(first.interest, cur)} so far`;
-  }
-  if (rest.length > 0) text += `, and on ${list(rest.map(item))}`;
-  text += ".";
-  const interest = m.rows.reduce((s, r) => s + r.interest, 0);
-  if (rest.length > 0 && interest > EPS) {
-    text += ` Altogether they have run up ${fmt(interest, cur)} in interest.`;
-  }
-  return text;
+  const agrees = stated != null && stated.month === t.payoff.month;
+  const interest: FactRead = {
+    lbl: "Interest on the way",
+    v: fmt(t.payoff.interest, cur, 0),
+    hint:
+      stated == null
+        ? "at that pace"
+        : Math.abs(stated.interest - t.payoff.interest) >= 1
+          ? `${fmt(stated.interest, cur, 0)} at the minimum alone`
+          : "as the minimum says",
+  };
+  if (t.payoff.interest > EPS) interest.tone = "bad";
+  return [
+    net,
+    {
+      lbl: "At that pace",
+      v: monthYear(t.payoff.month),
+      hint:
+        stated == null
+          ? "the minimum alone never gets there"
+          : agrees
+            ? "as the minimum says"
+            : `not the ${monthYear(stated.month)} the minimum says`,
+    },
+    interest,
+  ];
 }
