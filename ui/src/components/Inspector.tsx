@@ -419,7 +419,7 @@ function InspectorBody({
         <h3
           title={
             view.window != null
-              ? `the median month with payments in ${windowLabel(view.window)} (${basis} mo)`
+              ? `averaged over ${windowLabel(view.window)} (${basis} mo)`
               : undefined
           }
         >
@@ -430,7 +430,7 @@ function InspectorBody({
           <span className="target-sub"> / month</span>
         </div>
         {view.window == null && (
-          <div className="target-sub">no earlier months with payments yet</div>
+          <div className="target-sub">no earlier months to average yet</div>
         )}
         <div className={`target-meter meter ${st}`}>
           <span className="fill" style={{ width: `${meterPct}%` }} />

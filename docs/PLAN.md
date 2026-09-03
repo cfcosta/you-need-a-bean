@@ -64,7 +64,8 @@ watcher can come later).
 - **Average ("typical")** with basis N at month M = mean of monthly spend
   over the N calendar months strictly before M, clamped to the ledger's
   first activity month. Missing months inside the window count as 0.
-  Empty window → no target (UI shows "—", no percentage).
+  Empty window → no target (UI shows "—", no percentage), and so is an
+  average of zero: there is nothing to measure the month against.
 - **Status**: ratio r = spent/avg; `over` if r > 1, `warn` if r > 0.85,
   else `good` (mockup thresholds).
 - **Conversion** to the display currency at date D (end of selected month):

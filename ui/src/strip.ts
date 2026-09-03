@@ -26,7 +26,7 @@ export interface StripBars {
   /** Each 0…1 of the biggest of the three, so the bars compare. */
   income: number;
   spent: number;
-  /** Null when no earlier month had payments to take a median from. */
+  /** Null when nothing precedes the month to average. */
   typical: number | null;
   /** The gap between income and spending, as a length. */
   net: number;

@@ -23,69 +23,70 @@ fn m(s: &str) -> MonthKey {
 fn typical_uses_trailing_window_clamped_to_first_activity() {
     let ledger = ledger();
     let typ = |account: &str, month: &str, basis: u32| {
-        ledger.typical(account, m(month), basis, "USD")
+        ledger
+            .typical(account, m(month), basis, "USD")
+            .map(|d| d.round_dp(2))
     };
 
     // Window [2025-11, 2026-01] clamps to first activity (2025-12):
-    // the median of {30, 100}.
+    // the mean of {30, 100}.
     assert_eq!(
         typ("Expenses:Food:Groceries", "2026-02", 3),
         Some(dec("65"))
     );
-    // Only December before January: that one month is the median.
+    // Only December before January: that one month is the mean.
     assert_eq!(
         typ("Expenses:Food:Groceries", "2026-01", 6),
         Some(dec("30"))
     );
     // The first month has no window at all.
     assert_eq!(typ("Expenses:Food:Groceries", "2025-12", 6), None);
-    // Months without spend don't count: rent was paid once inside the
-    // window, so typical rent is that payment.
-    assert_eq!(typ("Expenses:Home:Rent", "2026-04", 12), Some(dec("500")));
-    // A window whose months never saw spending has no typical at all.
-    assert_eq!(typ("Expenses:Home:Rent", "2026-02", 3), None);
-    // History converts at each month's own end date: 30 BRL → 6 USD.
+    // Months without spend count as zero: one 500 rent spread over the
+    // four months of the window averages 125.
+    assert_eq!(typ("Expenses:Home:Rent", "2026-04", 12), Some(dec("125")));
+    // A window whose months never saw spending averages zero — which
+    // is a real answer, not a missing one.
+    assert_eq!(typ("Expenses:Home:Rent", "2026-02", 3), Some(dec("0")));
+    // History converts at each month's own end date: 30 BRL → 6 USD in
+    // January and nothing in December, so the two months mean 3.
     assert_eq!(
         typ("Expenses:Food:Dining:Coffee", "2026-02", 6),
-        Some(dec("6"))
+        Some(dec("3"))
     );
 }
 
 #[test]
-fn typical_is_the_median_month_with_real_payments() {
+fn typical_is_the_mean_of_every_window_month() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures/outliers/main.beancount");
     let ledger = Ledger::build(load(&path).unwrap());
+    let typ = |account: &str, month: &str, basis: u32| {
+        ledger
+            .typical(account, m(month), basis, "USD")
+            .map(|d| d.round_dp(2))
+    };
 
-    // Vet runs 150/mo with one 900 emergency. The typical month is the
-    // median, 150 — the spike doesn't drag it anywhere.
+    // Vet runs 150/mo with one 900 emergency. The mean carries the
+    // spike rather than stepping around it: 1,500 over five months.
+    assert_eq!(typ("Expenses:Spiky:Vet", "2026-03", 12), Some(dec("300")));
+    // A shorter window gives the spike more of the say: {150, 150, 900}.
+    assert_eq!(typ("Expenses:Spiky:Vet", "2026-03", 3), Some(dec("400")));
+    // The months in between count as zero, not as absent: two 1,200
+    // bills across a three-month window average 800.
+    assert_eq!(typ("Expenses:Old:Server", "2026-01", 12), Some(dec("800")));
+    // A net refund subtracts instead of dropping its month, so Gadgets
+    // means {0, 300, -50} rather than reading its one purchase back.
     assert_eq!(
-        ledger.typical("Expenses:Spiky:Vet", m("2026-03"), 12, "USD"),
-        Some(dec("150"))
-    );
-    // Same inside a shorter window: median of {150, 150, 900}.
-    assert_eq!(
-        ledger.typical("Expenses:Spiky:Vet", m("2026-03"), 3, "USD"),
-        Some(dec("150"))
-    );
-    // Even count: the median averages the two middle months.
-    assert_eq!(
-        ledger.typical("Expenses:Old:Server", m("2026-01"), 12, "USD"),
-        Some(dec("1200"))
-    );
-    // A net-refund month is a month without payments: it doesn't count,
-    // so Gadgets' typical is its one real purchase, not median{-50, 300}.
-    assert_eq!(
-        ledger.typical("Expenses:Spiky:Gadgets", m("2026-03"), 3, "USD"),
-        Some(dec("300"))
+        typ("Expenses:Spiky:Gadgets", "2026-03", 3),
+        Some(dec("83.33"))
     );
 
-    // The headline typical is the median real month — the median of
-    // the window months' totals {1350, 1350, 150, 510, 910} — not the
-    // sum of every category's median (1,710), which would bill each
-    // sporadic category every month.
+    // The headline typical means the window months' whole totals
+    // {1350, 1350, 150, 510, 910}. A mean is linear where a median was
+    // not, so it now agrees with adding the group averages up, give or
+    // take the cent each of those rounds away.
     let view = ledger.month_view(m("2026-03"), 12, "USD");
-    assert_eq!(view.typical, Some(dec("910")));
+    assert_eq!(view.typical, Some(dec("854")));
 }
 
 #[test]
@@ -108,19 +109,18 @@ fn table_sorts_on_trailing_year_spend_whatever_the_basis() {
         old.categories.iter().map(|c| c.label.as_str()).collect();
     assert_eq!(labels, vec!["Server", "Lamp"]);
 
-    // Rank and typical are decoupled: Vet's year (1,500) outweighs
-    // Gadgets' (250) even though Gadgets' typical month is bigger.
     let spiky = &view.groups[1];
     let labels: Vec<&str> =
         spiky.categories.iter().map(|c| c.label.as_str()).collect();
     assert_eq!(labels, vec!["Vet", "Gadgets"]);
-    assert_eq!(spiky.categories[0].avg, Some(dec("150")));
-    assert_eq!(spiky.categories[1].avg, Some(dec("300")));
+    assert_eq!(spiky.categories[0].avg, Some(dec("400")));
+    assert_eq!(spiky.categories[1].avg, Some(dec("83.33")));
 
-    // The displayed typical still honors the chosen basis: nothing in
-    // the window means no typical, top slot or not.
-    assert_eq!(old.categories[0].avg, None);
-    assert_eq!(old.categories[1].avg, Some(dec("10")));
+    // Rank and typical are decoupled: the server spent nothing in the
+    // window, so it averages zero and still keeps the top slot on the
+    // year it had, above a lamp that averages more.
+    assert_eq!(old.categories[0].avg, Some(dec("0")));
+    assert_eq!(old.categories[1].avg, Some(dec("6.67")));
 }
 
 #[test]
@@ -142,8 +142,9 @@ fn month_view_aggregates_groups_and_totals() {
     let food = &view.groups[1];
     assert_eq!(food.spent, dec("106"));
     assert_eq!(food.avg, Some(dec("30")));
-    // Same rule inside the group: coffee has no average yet, so it
-    // trails groceries despite being alphabetically first.
+    // The same trailing-year rank inside the group: coffee has spent
+    // less over the year, so it trails groceries despite being
+    // alphabetically first.
     let labels: Vec<&str> =
         food.categories.iter().map(|c| c.label.as_str()).collect();
     assert_eq!(labels, vec!["Groceries", "Dining · Coffee"]);
@@ -163,9 +164,10 @@ fn month_view_aggregates_groups_and_totals() {
     assert_eq!(games.ratio, Some(dec("0.9")));
     assert_eq!(games.status, Some(Status::Warn));
 
-    // A window that exists but never saw rent gives no typical.
+    // A window that exists but never saw rent averages zero, which is
+    // no target to measure a month against.
     let rent = &view.groups[2].categories[0];
-    assert_eq!(rent.avg, None);
+    assert_eq!(rent.avg, Some(dec("0")));
     assert_eq!(rent.ratio, None);
     assert_eq!(rent.status, None);
 }
@@ -326,16 +328,16 @@ fn views_quantize_money_at_the_leaves_so_sums_add_up() {
     assert_eq!(view.spent, dec("9.99"));
     assert_eq!(view.income, dec("100.00"));
 
-    // Typicals round at the leaf too, and skip no-spend months: only
-    // January in the [Jan, Feb] window saw spending, so the typical is
-    // January itself — 3.333 → 3.33 per category. The headline typical
-    // medians the raw month totals instead of summing rounded leaves,
-    // so it reads 9.999 → 10.00.
+    // Typicals round at the leaf too. Only January in the [Jan, Feb]
+    // window saw spending, so each category means 3.333 over two
+    // months — 1.6665 → 1.67, and 3.34 for the pair. The headline
+    // typical means the raw month totals instead of summing rounded
+    // leaves, so it reads 4.9995 → 5.00 and not 5.01.
     let march = ledger.month_view(m("2026-03"), 3, "USD");
     let food = &march.groups[0];
-    assert_eq!(food.categories[0].avg, Some(dec("3.33")));
-    assert_eq!(food.avg, Some(dec("6.66")));
-    assert_eq!(march.typical, Some(dec("10.00")));
+    assert_eq!(food.categories[0].avg, Some(dec("1.67")));
+    assert_eq!(food.avg, Some(dec("3.34")));
+    assert_eq!(march.typical, Some(dec("5.00")));
 
     // The inspector shows the same cents as the table row.
     let cat = ledger

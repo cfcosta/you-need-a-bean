@@ -38,7 +38,7 @@ describe("stripBars", () => {
     expect(b.typical).toBeCloseTo(0.5);
   });
 
-  it("has no typical mark when no earlier month had payments", () => {
+  it("has no typical mark when nothing precedes the month", () => {
     const b = stripBars(view({ income: 100, spent: 50 }));
     expect(b.typical).toBeNull();
     expect(b.income).toBeCloseTo(1);

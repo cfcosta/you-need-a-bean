@@ -36,9 +36,8 @@ pub struct CategoryRow {
     pub label: String,
     /// This month's spend in the display currency (convertible part only).
     pub spent: Decimal,
-    /// The typical month: the median of the window months that saw
-    /// real payments; `None` when there is no window or none of them
-    /// did.
+    /// The typical month: the mean spend across every month of the
+    /// window; `None` when there is no window.
     pub avg: Option<Decimal>,
     /// spent / avg; `None` when there is no positive typical.
     pub ratio: Option<Decimal>,
@@ -70,8 +69,8 @@ pub struct MonthView {
     pub month: MonthKey,
     pub income: Decimal,
     pub spent: Decimal,
-    /// What a normal whole month costs: the median of the window
-    /// months' total spend, months with real payments only.
+    /// What a normal whole month costs: the mean of the window
+    /// months' total spend.
     pub typical: Option<Decimal>,
     pub groups: Vec<Group>,
     pub budget_accounts: Vec<AccountRow>,
@@ -179,11 +178,10 @@ impl Ledger {
         (from <= to && to < month).then_some((from, to))
     }
 
-    /// The typical month: the median of the window months with real
-    /// payments, each converted at its own end date. Months where
-    /// nothing was paid — zero or a net refund — don't count at all,
-    /// and a median can't be dragged by a one-off emergency. `None`
-    /// when there is no window or no month in it saw payments.
+    /// The typical month: what the account averaged over the window,
+    /// each month converted at its own end date. `None` only when
+    /// there is no window — a window that saw no spending averages
+    /// zero, which is an answer rather than a gap.
     pub fn typical(
         &self,
         account: &str,
@@ -191,31 +189,31 @@ impl Ledger {
         basis: u32,
         cur: &str,
     ) -> Option<Decimal> {
-        self.median_active(month, basis, |m| {
-            self.spent_converted(account, m, cur)
-        })
+        self.mean_month(month, basis, |m| self.spent_converted(account, m, cur))
     }
 
-    /// The median of `spend_in` across the window months where it was
-    /// actually paid (> 0) — the one definition of "typical" shared by
-    /// the category rows and the whole-month tile.
-    fn median_active(
+    /// The mean of `spend_in` across every month of the window — the
+    /// one definition of "typical" shared by the category rows and the
+    /// whole-month tile. Quiet months count as the zero they were, so
+    /// a bill paid twice a year averages a sixth of itself each month
+    /// rather than reading as if it fell due every one.
+    fn mean_month(
         &self,
         month: MonthKey,
         basis: u32,
         spend_in: impl Fn(MonthKey) -> Decimal,
     ) -> Option<Decimal> {
         let (from, to) = self.window(month, basis)?;
-        let mut spends = Vec::new();
+        let mut total = Decimal::ZERO;
+        let mut months = 0u32;
         let mut m = from;
         while m <= to {
-            let spent = spend_in(m);
-            if spent > Decimal::ZERO {
-                spends.push(spent);
-            }
+            total += spend_in(m);
+            months += 1;
             m = m.next();
         }
-        (!spends.is_empty()).then(|| median(&mut spends))
+        // `window` only hands back a range with a month in it.
+        Some(total / Decimal::from(months))
     }
 
     /// Total converted spend over an inclusive month range, each month
@@ -359,12 +357,12 @@ impl Ledger {
                 .then_with(|| a.name.cmp(&b.name))
         });
 
-        // The headline typical is the median real month — the median
-        // of the window months' total spend — not the sum of the
-        // category medians, which would bill every sporadic category
-        // every month and read far above any month that ever happened.
+        // The headline typical means the window months' whole totals
+        // rather than adding up the rows'. A mean is linear, so the
+        // two agree — but the rows each round to the cent first, and
+        // over a long table those roundings drift.
         let typical = self
-            .median_active(month, basis, |m| {
+            .mean_month(month, basis, |m| {
                 groups
                     .iter()
                     .flat_map(|g| &g.categories)

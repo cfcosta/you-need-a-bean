@@ -70,7 +70,7 @@ export function StatStrip({
       </div>
       <div
         className="tile"
-        title={`the median month with payments in ${windowLabel(window)}`}
+        title={`averaged over ${windowLabel(window)}`}
       >
         <div className="lbl">Typical month</div>
         <div className="val num">

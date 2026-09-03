@@ -90,8 +90,9 @@ async fn month_endpoint_shapes_groups_and_accounts() {
     assert_eq!(games["ratio"], json!(0.9));
     assert_eq!(games["status"], json!("warn"));
     let rent = &body["groups"][2]["categories"][0];
-    // No rent inside the window: no typical to show at all.
-    assert_eq!(rent["avg"], Value::Null);
+    // No rent inside the window: it averages zero, and zero is no
+    // target to measure the month against.
+    assert_eq!(rent["avg"], json!(0.0));
     assert_eq!(rent["status"], Value::Null);
 
     let cash = &body["accounts"]["budget"][0];
