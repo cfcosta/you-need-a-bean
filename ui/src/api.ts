@@ -636,6 +636,72 @@ export interface Debt {
   trail: TrailPoint[];
   payoff: Payoff | null;
   cycle: Cycle | null;
+  /** A carried card against its own new charges. */
+  treadmill: Treadmill | null;
+  /** What a carried balance is made of. */
+  makeup: Makeup | null;
+}
+
+/** One month of a carried card's treadmill: what went on it, what
+ * came off it, and the interest in between. */
+export interface TreadmillMonth {
+  month: string;
+  /** New charges, interest left out. */
+  charges: number;
+  payments: number;
+  interest: number;
+}
+
+/** A carried card measured against what keeps going on it. The
+ * card's `payoff` pays the balance down as if nothing more were
+ * charged; this reads the net, and says where that really leads. */
+export interface Treadmill {
+  /** Oldest first, over the basis. */
+  months: TreadmillMonth[];
+  /** Complete months the pace is read over. */
+  pace: number;
+  charged: number;
+  paid: number;
+  /** Paid less charged, a month; negative when the card is growing. */
+  net: number;
+  /** Where `net` a month leads; null when it never gets there. */
+  payoff: Payoff | null;
+}
+
+/** A slice of a carried balance: the oldest unpaid charges to one
+ * expense account, and the interest they have run up. */
+export interface MakeupRow {
+  /** Empty when the charge said nothing about what it was for. */
+  account: string;
+  label: string;
+  owed: number;
+  charged: number;
+  /** Accrued on these charges so far, paid or not. */
+  interest: number;
+  since: string;
+  count: number;
+}
+
+export interface Makeup {
+  /** Biggest first. */
+  rows: MakeupRow[];
+  total: number;
+}
+
+/** What is safe to send over the usual payments: this month, from the
+ * cash on hand, and each month, from what is usually left over. */
+export interface Extra {
+  cash: number;
+  /** Due in the next 31 days. */
+  due: number;
+  /** A typical month of cash-paid spending. */
+  spend: number;
+  /** A month of the fixed costs, kept back. */
+  buffer: number;
+  /** cash − due − spend − buffer, floored at zero. */
+  now: number;
+  /** The usual month's surplus after every payment, floored at zero. */
+  monthly: number;
 }
 
 /** Whether the cash on hand covers what is on the cards. */
@@ -695,6 +761,7 @@ export interface LiabilitiesView {
   /** When the last loan is paid off, at today's payments. */
   debt_free: string | null;
   cover: Cover;
+  extra: Extra;
   upcoming: Upcoming[];
   notices: DebtNotice[];
   /** The yearly return a portfolio is assumed to make, for a loan's

@@ -14,7 +14,9 @@ import type {
   Debt,
   DebtKind,
   DebtNotice,
+  Extra,
   Foreign,
+  MakeupRow,
   Upcoming,
 } from "./api";
 import {
@@ -25,6 +27,7 @@ import {
   ratio,
   windowLabel,
 } from "./format";
+import type { CalendarEvent } from "./ics";
 import { addMonths } from "./months";
 
 /** How far ahead a payoff is followed before it is called never. The
@@ -554,7 +557,7 @@ export function earnedLine(
 /** The things in a sentence a reader scans for: amounts, shares,
  * months and spans. */
 const STRONG =
-  /([−-]?(?:\$|€|£|¥|R\$|CA\$|A\$|MX\$|₹|₩|[A-Z]{3}) [\d,]+(?:\.\d+)?|\d+(?:\.\d+)?%|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}|\d+ yr(?: \d+ mo)?|\d+ mo)/g;
+  /([−-]?(?:\$|€|£|¥|R\$|CA\$|A\$|MX\$|₹|₩|[A-Z]{3}) [\d,]+(?:\.\d+)?|\d+(?:\.\d+)?%|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}|\d+ yr(?: \d+ mo)?\b|\d+ mo\b)/g;
 
 export interface Segment {
   text: string;
@@ -701,4 +704,268 @@ export function stripMarks(
     m.lane = marks.slice(0, i).filter((p) => m.x - p.x < near).length;
   });
   return marks;
+}
+
+/** "a", "a and b", "a, b and c" */
+const list = (items: string[]) =>
+  items.length <= 1
+    ? (items[0] ?? "")
+    : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+
+/** One line of this month's plan: what goes to a debt, and when. */
+export interface PlanRow {
+  account: string;
+  label: string;
+  date: string;
+  /** What goes out anyway. */
+  usual: number;
+  /** What the spare adds on top. */
+  extra: number;
+  /** Left on the debt after both. */
+  after: number;
+}
+
+export interface MonthPlan {
+  /** By the day they go out. */
+  rows: PlanRow[];
+  /** The part of the spare with nowhere to go. */
+  left: number;
+}
+
+/** The debts the spare goes to, in `order`: the ones being paid
+ * down, less the loans cheaper than the return a portfolio is assumed
+ * to make, where the same money does better invested. A card is
+ * always in line: nothing invested beats a card's rate. */
+export function targets(debts: Debt[], order: Order, assumed: number): PlanDebt[] {
+  return attack(payingDown(debts), order).filter(
+    (d) => d.kind === "revolving" || d.rate >= assumed - 1e-9,
+  );
+}
+
+/** This month's payments: every one coming up at its usual amount,
+ * and the spare `lump` placed on top down the attack order — as much
+ * as each debt can take, on the day its payment goes, or today when
+ * its payment has already gone. */
+export function monthPlan(
+  debts: Debt[],
+  upcoming: Upcoming[],
+  lump: number,
+  order: Order,
+  assumed: number,
+  today: string,
+): MonthPlan {
+  const owed = new Map(debts.map((d) => [d.account, d.owed]));
+  const rows: PlanRow[] = upcoming.map((u) => ({
+    account: u.account,
+    label: u.label,
+    date: u.date,
+    usual: u.amount,
+    extra: 0,
+    after: cents(Math.max(0, (owed.get(u.account) ?? 0) - u.amount)),
+  }));
+  let left = cents(Math.max(0, lump));
+  for (const t of targets(debts, order, assumed)) {
+    if (left <= 0) break;
+    const row = rows.find((r) => r.account === t.account) ?? {
+      account: t.account,
+      label: t.label,
+      date: today,
+      usual: 0,
+      extra: 0,
+      after: cents(t.owed),
+    };
+    const pay = cents(Math.min(left, row.after));
+    if (pay <= 0) continue;
+    if (!rows.includes(row)) rows.push(row);
+    row.extra = cents(row.extra + pay);
+    row.after = cents(row.after - pay);
+    left = cents(left - pay);
+  }
+  rows.sort(
+    (a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label),
+  );
+  return { rows, left };
+}
+
+/** The payments coming up as calendar events, each repeating on its
+ * day for as long as the debt has left: the payoff for a loan or a
+ * carried card, a year for a card cleared every statement, whose
+ * amount is whatever is on it by then. */
+export function dueEvents(
+  upcoming: Upcoming[],
+  debts: Debt[],
+  cur: string,
+): CalendarEvent[] {
+  return upcoming.map((u) => {
+    const d = debts.find((x) => x.account === u.account);
+    const loan = d?.kind !== "revolving";
+    const paying = loan || (d?.cycle?.carried ?? 0) > EPS;
+    const after = cents(Math.max(0, (d?.owed ?? 0) - u.amount));
+    return {
+      uid: `${u.account}@you-need-a-bean`,
+      date: u.date,
+      summary: paying
+        ? `${u.label}: ${fmt(u.amount, cur, 0)} due`
+        : `${u.label}: statement due`,
+      description: paying
+        ? `The ${loan ? "usual payment on the loan" : "minimum on the card"}; ` +
+          `${fmt(after, cur)} left after it.`
+        : `Whatever is on the card by then; ${fmt(u.amount, cur)} this time.`,
+      day: Number(u.date.slice(8, 10)),
+      count: paying && d?.payoff != null ? d.payoff.months : 12,
+    };
+  });
+}
+
+/** What is spare this month, what the cash was counted against to get
+ * there, and whether it clears what the cards carry. */
+export function roomText(x: Extra, carried: number, cur: string): string {
+  const parts: string[] = [];
+  if (x.due > EPS) parts.push(`${fmt(x.due, cur, 0)} due in the next 31 days`);
+  if (x.spend > EPS) {
+    parts.push(`a typical ${fmt(x.spend, cur, 0)} month of spending`);
+  }
+  if (x.buffer > EPS) {
+    parts.push(`${fmt(x.buffer, cur, 0)} of fixed costs kept back`);
+  }
+  if (x.now <= EPS) {
+    if (x.cash <= EPS) {
+      return "Nothing is spare this month: there is no cash in budget accounts.";
+    }
+    const by =
+      parts.length > 0 ? `is spoken for by ${list(parts)}.` : "is all there is.";
+    return `Nothing is spare this month: the ${fmt(x.cash, cur, 0)} in budget accounts ${by}`;
+  }
+  let text =
+    `${fmt(x.now, cur, 0)} is spare this month: the ${fmt(x.cash, cur, 0)} in budget accounts` +
+    (parts.length > 0 ? `, less ${list(parts)}.` : ".");
+  if (carried > EPS) {
+    if (x.now >= carried - EPS) {
+      const months =
+        x.buffer > EPS ? Math.floor((x.now - carried + x.buffer) / x.buffer) : 0;
+      text +=
+        ` That clears the ${fmt(carried, cur)} carried on the cards outright` +
+        (months > 0
+          ? `, with ${months} ${months === 1 ? "month" : "months"} of fixed costs still in hand.`
+          : ".");
+    } else {
+      text += ` That is ${ratio(x.now / carried)} of the ${fmt(carried, cur)} carried on the cards.`;
+    }
+  }
+  return text;
+}
+
+/** Where the part of the spare that no debt takes goes. `placed` is
+ * whether any of it went to a debt; `cheap` counts the loans passed
+ * over for costing less than investing returns. */
+export function leftText(
+  left: number,
+  placed: boolean,
+  cheap: number,
+  assumed: number,
+  cur: string,
+): string {
+  const paper = `the ${ratio(assumed)} a portfolio is assumed to make`;
+  if (!placed) {
+    return cheap > 0
+      ? `None of it goes to the debts: nothing here costs more than ${paper}, ` +
+          `so on paper the ${fmt(left, cur, 0)} does better invested.`
+      : "Nothing here to send it to.";
+  }
+  const head = `${fmt(left, cur, 0)} of it is left once ${cheap > 0 ? "those are" : "everything is"} cleared.`;
+  return cheap > 0
+    ? `${head} The rest costs less than ${paper}, so on paper it does better invested.`
+    : head;
+}
+
+/** Why the extra-each-month slider starts where it does. */
+export function monthlyText(x: Extra, cur: string): string | null {
+  if (x.monthly <= EPS) return null;
+  return (
+    `Most months about ${fmt(x.monthly, cur, 0)} is left over after everything, ` +
+    "the debts included, so the slider starts there."
+  );
+}
+
+/** The usual month's surplus snapped onto the slider's steps, and
+ * kept within its range. */
+export function sliderStart(
+  monthly: number,
+  range: { max: number; step: number },
+): number {
+  return Math.max(
+    0,
+    Math.min(range.max, Math.round(monthly / range.step) * range.step),
+  );
+}
+
+/** A carried card against what keeps going on it: what went in, what
+ * came back, the net, and where that really leads — against the
+ * payoff the minimum alone promises. */
+export function treadmillText(d: Debt, cur: string): string | null {
+  const t = d.treadmill;
+  if (t == null) return null;
+  const span = t.pace === 1 ? "Last month" : `Over the last ${t.pace} months`;
+  const back =
+    t.charged > EPS
+      ? `${fmt(t.charged, cur, 0)} was charged back`
+      : "nothing was charged back";
+  const head = `${span} ${fmt(t.paid, cur, 0)} went into the ${d.label} and ${back}, so it is`;
+  if (t.net < -EPS) {
+    return (
+      `${head} growing by ${fmt(-t.net, cur, 0)} a month: the payments are ` +
+      "not keeping up with what goes on it."
+    );
+  }
+  if (t.net <= EPS) {
+    return `${head} standing still: the payments only cover what goes on it.`;
+  }
+  const really = t.charged > EPS ? "really " : "";
+  let text = `${head} ${really}shrinking by ${fmt(t.net, cur, 0)} a month.`;
+  if (t.payoff == null) {
+    return `${text} At that pace it never clears: the interest outruns it.`;
+  }
+  const stated = d.payoff;
+  if (stated == null || stated.month === t.payoff.month || d.payment == null) {
+    return `${text} At that pace it is gone ${monthYear(t.payoff.month)}.`;
+  }
+  text +=
+    ` At that pace it is gone ${monthYear(t.payoff.month)}, not the ` +
+    `${monthYear(stated.month)} the ${fmt(d.payment, cur, 0)} minimum alone suggests`;
+  return t.payoff.interest - stated.interest >= 1
+    ? `${text}, and the interest on the way is ${fmt(t.payoff.interest, cur, 0)}, ` +
+        `not ${fmt(stated.interest, cur, 0)}.`
+    : `${text}.`;
+}
+
+/** "Groceries" → "groceries"; the charges that said nothing about
+ * what they were for are other things. */
+const thing = (label: string) =>
+  label === "Other" ? "other things" : label.toLowerCase();
+
+/** What a carried balance is made of, oldest charges first, and what
+ * the rate is doing to each part. */
+export function makeupText(d: Debt, cur: string): string | null {
+  const m = d.makeup;
+  const first = m?.rows[0];
+  if (m == null || first == null) return null;
+  const n = m.rows.reduce((s, r) => s + r.count, 0);
+  const head = `The ${fmt(m.total, cur)} on it is ${n} ${n === 1 ? "charge" : "charges"} not yet paid off`;
+  const item = (r: MakeupRow) =>
+    `${fmt(r.owed, cur)} of ${thing(r.label)} from ${monthYear(r.since)}`;
+  if (d.rate == null || d.rate <= EPS) {
+    return `${head}: ${list(m.rows.map(item))}.`;
+  }
+  const rest = m.rows.slice(1);
+  let text = `${head}. You are paying ${ratio(d.rate)} on ${item(first)}`;
+  if (first.interest > EPS) {
+    text += `, which has cost ${fmt(first.interest, cur)} so far`;
+  }
+  if (rest.length > 0) text += `, and on ${list(rest.map(item))}`;
+  text += ".";
+  const interest = m.rows.reduce((s, r) => s + r.interest, 0);
+  if (rest.length > 0 && interest > EPS) {
+    text += ` Altogether they have run up ${fmt(interest, cur)} in interest.`;
+  }
+  return text;
 }

@@ -7,8 +7,11 @@ import type {
   DebtNotice,
   DebtPayment,
   DebtPoint,
+  Extra,
   LiabilitiesView,
+  Makeup,
   TrailPoint,
+  Treadmill,
   Upcoming,
 } from "../api";
 import { bounds, ticks } from "../chart";
@@ -24,22 +27,31 @@ import {
   coverLine,
   dayLabel,
   daysBetween,
+  dueEvents,
   earnedLine,
   emphasize,
   foreignText,
   freeLine,
   hues,
   investVerdict,
+  leftText,
   loanLede,
+  makeupText,
+  monthPlan,
+  monthlyText,
   noticeText,
   orderVerdict,
   payingDown,
   plan,
   rateTone,
+  roomText,
   securedText,
   shareLine,
   sliderRange,
+  sliderStart,
   stripMarks,
+  targets,
+  treadmillText,
 } from "../debt";
 import {
   duration,
@@ -51,6 +63,7 @@ import {
   ratio,
   windowLabel,
 } from "../format";
+import { calendar } from "../ics";
 import { addMonths } from "../months";
 import { Key } from "./Card";
 import { Unpriced } from "./Unpriced";
@@ -390,6 +403,201 @@ function Masthead({
       {owing.length > 0 && <Shares debts={data.debts} hue={hue} cur={cur} />}
       {data.upcoming.length > 0 && (
         <PayStrip upcoming={data.upcoming} today={today} hue={hue} cur={cur} />
+      )}
+    </div>
+  );
+}
+
+/** Which debt the spare goes to first. */
+function OrderToggle({
+  order,
+  setOrder,
+}: {
+  order: Order;
+  setOrder: (o: Order) => void;
+}) {
+  return (
+    <div className="seg" role="group" aria-label="Which debt the spare goes to first">
+      {ORDERS.map((o) => (
+        <button
+          key={o.order}
+          type="button"
+          className={o.order === order ? "on" : ""}
+          title={o.hint}
+          onClick={() => setOrder(o.order)}
+        >
+          {o.title}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The cash in budget accounts cut into what it is spoken for by and
+ * what is spare, so the spare figure shows where it came from. */
+function RoomBar({ x, cur }: { x: Extra; cur: string }) {
+  const parts = [
+    { sw: "due", v: x.due, label: "due in 31 days" },
+    { sw: "spend", v: x.spend, label: "a month of spending" },
+    { sw: "buffer", v: x.buffer, label: "fixed costs kept back" },
+    { sw: "spare", v: x.now, label: "spare" },
+  ].filter((p) => p.v > EPS);
+  if (parts.length === 0) return null;
+  const base = Math.max(
+    x.cash,
+    parts.reduce((s, p) => s + p.v, 0),
+    EPS,
+  );
+  return (
+    <div className="room">
+      <div
+        className="stack-bar room-bar"
+        role="img"
+        aria-label={`The ${fmt(x.cash, cur, 0)} in budget accounts, and what it is spoken for by`}
+      >
+        {parts.map((p) => (
+          <span
+            key={p.sw}
+            className={`seg ${p.sw}`}
+            style={{ width: pct(p.v / base) }}
+            title={`${p.label} · ${fmt(p.v, cur)}`}
+          />
+        ))}
+      </div>
+      <Key
+        items={parts.map((p) => ({
+          sw: p.sw,
+          label: (
+            <>
+              {p.label} <b>{fmtCompact(p.v, cur)}</b>
+            </>
+          ),
+        }))}
+      />
+    </div>
+  );
+}
+
+/** This month's payments, with the spare placed on top of them: what
+ * to send to each debt, on what day, and what is left on it after.
+ * The spare is worked out from the cash, not asked for. */
+function PlanCard({
+  data,
+  hue,
+  today,
+  cur,
+}: {
+  data: LiabilitiesView;
+  hue: Map<string, string>;
+  today: string;
+  cur: string;
+}) {
+  const [order, setOrder] = useState<Order>("avalanche");
+  const x = data.extra;
+  const assumed = data.assumed_return;
+  const carried = data.debts.reduce(
+    (s, d) =>
+      s +
+      (d.kind === "revolving" && d.owed > EPS
+        ? Math.min(d.owed, Math.max(0, d.cycle?.carried ?? 0))
+        : 0),
+    0,
+  );
+  const { rows, left } = monthPlan(
+    data.debts,
+    data.upcoming,
+    x.now,
+    order,
+    assumed,
+    today,
+  );
+  const inLine = targets(data.debts, order, assumed);
+  const cheap = payingDown(data.debts).length - inLine.length;
+  const placed = rows.some((r) => r.extra > EPS);
+  const total = rows.reduce((s, r) => s + r.usual + r.extra, 0);
+  const download = () => {
+    const text = calendar(dueEvents(data.upcoming, data.debts, cur), today);
+    const url = URL.createObjectURL(
+      new Blob([text], { type: "text/calendar;charset=utf-8" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "payments.ics";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  return (
+    <div className="report-card plan-card">
+      <div className="card-head">
+        <h2>This month</h2>
+        <div className="card-fig">
+          <span className="card-total num">{fmt(total, cur, 0)}</span>
+          <span className="card-note">
+            {rows.length === 0
+              ? "nothing to send"
+              : rows.length === 1
+                ? "one payment to send"
+                : `${rows.length} payments to send`}
+          </span>
+        </div>
+      </div>
+      <RoomBar x={x} cur={cur} />
+      <Prose text={roomText(x, carried, cur)} className="small" />
+      {rows.length > 0 && (
+        <div className="plan-rows">
+          <div className="plan-bar">
+            <span className="lbl">Send</span>
+            {x.now > EPS && inLine.length > 1 && (
+              <OrderToggle order={order} setOrder={setOrder} />
+            )}
+          </div>
+          {rows.map((r) => (
+            <div
+              key={r.account}
+              className={`plan-row num ${hueOf(hue, r.account)}`}
+            >
+              <span className="d">{dayLabel(r.date)}</span>
+              <i className="dot" aria-hidden="true" />
+              <span className="who">{r.label}</span>
+              <span className="amt">
+                {fmt(r.usual + r.extra, cur)}
+                {r.extra > EPS && (
+                  <span className="plus">
+                    {r.usual > EPS
+                      ? `${fmt(r.usual, cur, 0)} usual + ${fmt(r.extra, cur, 0)} extra`
+                      : "all of it extra, any day"}
+                  </span>
+                )}
+              </span>
+              <span className="after">
+                {r.after > EPS ? `${fmt(r.after, cur)} left` : "cleared"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {left > EPS && (
+        <Prose text={leftText(left, placed, cheap, assumed, cur)} className="small" />
+      )}
+      {data.upcoming.length > 0 && (
+        <div className="plan-foot">
+          <button type="button" className="plan-btn" onClick={download}>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M3 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm.5 4v7h9V6h-9zM5 1h1.5v2H5V1zm4.5 0H11v2H9.5V1zM5 8h2v2H5V8zm3 0h2v2H8V8z" />
+            </svg>
+            Add the due dates to your calendar
+          </button>
+          <span className="hint">
+            an .ics file: one repeating event per debt
+          </span>
+        </div>
       )}
     </div>
   );
@@ -904,6 +1112,150 @@ function TrailChart({
   );
 }
 
+/** What a carried balance is made of: the card's colour fading from
+ * the biggest part to the smallest, then a row per part with what it
+ * was for, how long it has been there, and what it has cost. */
+function MakeupRows({ m, cur }: { m: Makeup; cur: string }) {
+  const total = Math.max(m.total, EPS);
+  const fade = (i: number) => Math.max(0.3, 1 - i * 0.2);
+  return (
+    <div className="makeup">
+      <div
+        className="stack-bar makeup-bar"
+        role="img"
+        aria-label="What the carried balance is made of"
+      >
+        {m.rows.map((r, i) => (
+          <span
+            key={r.account || "other"}
+            className="seg"
+            style={{ width: pct(r.owed / total), opacity: fade(i) }}
+            title={`${r.label} · ${fmt(r.owed, cur)}`}
+          />
+        ))}
+      </div>
+      {m.rows.map((r, i) => (
+        <div key={r.account || "other"} className="makeup-row num">
+          <i className="sw" style={{ opacity: fade(i) }} aria-hidden="true" />
+          <div className="l">
+            <span className="who">{r.label}</span>
+            <span className="hint">
+              {r.count === 1 ? "one charge" : `${r.count} charges`} · since{" "}
+              {monthYear(r.since)}
+            </span>
+          </div>
+          <div className="r">
+            <span className="owed">{fmt(r.owed, cur)}</span>
+            <span className={`hint${r.interest > EPS ? " int" : ""}`}>
+              {r.interest > EPS
+                ? `${fmt(r.interest, cur)} interest`
+                : "no interest yet"}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A carried card's months as pairs of bars: what went on it against
+ * what came off it. The balance shrinks only where the second bar is
+ * the taller. The months the pace is read over are drawn in full;
+ * the ones before them are faded. */
+function TreadmillChart({ t, cur }: { t: Treadmill; cur: string }) {
+  const [ref, W] = useWidth<HTMLDivElement>();
+  const H = 124;
+  const TOP = 18;
+  const BOT = 18;
+  const PAD = 8;
+  const n = t.months.length;
+  const top = Math.max(
+    1e-9,
+    ...t.months.flatMap((m) => [m.charges + m.interest, m.payments]),
+  );
+  const slot = (W - 2 * PAD) / Math.max(1, n);
+  const gap = Math.max(2, Math.min(6, slot * 0.08));
+  const bw = Math.max(3, (slot - 3 * gap) / 2);
+  const y = (v: number) => TOP + ((top - v) * (H - TOP - BOT)) / top;
+  const recent = new Set(t.months.slice(-t.pace).map((m) => m.month));
+  const caps = slot >= 64;
+  return (
+    <div className="treadmill" ref={ref}>
+      <svg
+        className="chart-svg"
+        width={W}
+        height={H}
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label="What went on the card against what came off it, by month"
+      >
+        <line x1={PAD} x2={W - PAD} y1={y(0)} y2={y(0)} className="grid zero" />
+        {t.months.map((m, i) => {
+          const x0 = PAD + i * slot + gap;
+          const on = m.charges + m.interest;
+          return (
+            <g key={m.month} className={`tm${recent.has(m.month) ? "" : " old"}`}>
+              <title>
+                {`${monthYear(m.month)}\ncharged ${fmt(m.charges, cur)}` +
+                  (m.interest > EPS ? ` + ${fmt(m.interest, cur)} interest` : "") +
+                  `\npaid ${fmt(m.payments, cur)}`}
+              </title>
+              <rect
+                x={x0}
+                y={y(m.charges)}
+                width={bw}
+                height={Math.max(0, y(0) - y(m.charges))}
+                className="tm-charges"
+              />
+              {m.interest > EPS && (
+                <rect
+                  x={x0}
+                  y={y(on)}
+                  width={bw}
+                  height={Math.max(0, y(m.charges) - y(on))}
+                  className="tm-interest"
+                />
+              )}
+              <rect
+                x={x0 + bw + gap}
+                y={y(m.payments)}
+                width={bw}
+                height={Math.max(0, y(0) - y(m.payments))}
+                className="tm-pay"
+              />
+              {caps && on > EPS && (
+                <text x={x0 + bw / 2} y={y(on) - 4} textAnchor="middle" className="tm-cap">
+                  {fmtCompact(on, cur)}
+                </text>
+              )}
+              {caps && m.payments > EPS && (
+                <text
+                  x={x0 + bw + gap + bw / 2}
+                  y={y(m.payments) - 4}
+                  textAnchor="middle"
+                  className="tm-cap"
+                >
+                  {fmtCompact(m.payments, cur)}
+                </text>
+              )}
+              <text x={x0 + bw + gap / 2} y={H - 5} textAnchor="middle" className="axis">
+                {monthShort(m.month)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <Key
+        items={[
+          { sw: "tm-charges", label: "charged" },
+          { sw: "tm-interest", label: "interest" },
+          { sw: "tm-pay", label: "paid" },
+        ]}
+      />
+    </div>
+  );
+}
+
 function Payments({ rows, cur }: { rows: DebtPayment[]; cur: string }) {
   const top = Math.max(1e-9, ...rows.map((r) => r.total));
   return (
@@ -1150,6 +1502,8 @@ function RevolvingCard({
       : null;
   const fx = foreignText(d.foreign, d.owed, cur);
   const u = d.utilisation;
+  const made = makeupText(d, cur);
+  const tread = treadmillText(d, cur);
 
   return (
     <div className={`report-card debt-card ${hue}`}>
@@ -1196,6 +1550,20 @@ function RevolvingCard({
         />
       </div>
       {fx != null && <Prose text={fx} className="small fx" />}
+      {d.makeup != null && (
+        <div className="debt-section">
+          <div className="lbl">What is carried</div>
+          <MakeupRows m={d.makeup} cur={cur} />
+          {made != null && <Prose text={made} className="small" />}
+        </div>
+      )}
+      {d.treadmill != null && (
+        <div className="debt-section">
+          <div className="lbl">On the treadmill</div>
+          <TreadmillChart t={d.treadmill} cur={cur} />
+          {tread != null && <Prose text={tread} className="small" />}
+        </div>
+      )}
       {base != null && d.payment != null && (
         <ExtraSlider
           payment={d.payment}
@@ -1367,16 +1735,19 @@ function OrderCard({
   debts,
   month,
   hue,
+  spare,
   cur,
 }: {
   debts: PlanDebt[];
   month: string;
   hue: Map<string, string>;
+  spare: Extra;
   cur: string;
 }) {
-  const [extra, setExtra] = useState(0);
   const usual = debts.reduce((s, d) => s + d.payment, 0);
-  const range = sliderRange(usual);
+  const range = sliderRange(Math.max(usual, spare.monthly));
+  const [extra, setExtra] = useState(() => sliderStart(spare.monthly, range));
+  const monthly = monthlyText(spare, cur);
   const a = plan(debts, extra, "avalanche");
   const s = plan(debts, extra, "snowball");
   const saves = a != null && s != null ? s.interest - a.interest : 0;
@@ -1421,6 +1792,7 @@ function OrderCard({
           )}
           ; when a debt ends, its payment rolls on to the next
         </div>
+        {monthly != null && <Prose text={monthly} className="small" />}
       </div>
       <Race debts={debts} tracks={tracks} month={month} hue={hue} cur={cur} />
       <Prose text={orderVerdict(a, s, cur)} className="verdict" />
@@ -1526,8 +1898,18 @@ export function Liabilities({
           ))}
         </div>
       )}
+      {data.debts.length > 0 &&
+        (data.upcoming.length > 0 || data.extra.now > EPS) && (
+          <PlanCard data={data} hue={hue} today={today} cur={cur} />
+        )}
       {down.length > 1 && (
-        <OrderCard debts={down} month={data.month} hue={hue} cur={cur} />
+        <OrderCard
+          debts={down}
+          month={data.month}
+          hue={hue}
+          spare={data.extra}
+          cur={cur}
+        />
       )}
       {data.debts.length === 0 ? (
         <div className="report-card debt-none">

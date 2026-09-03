@@ -11,23 +11,31 @@ import {
   coverLine,
   dayLabel,
   daysBetween,
+  dueEvents,
   earnedLine,
   emphasize,
   foreignText,
   freeLine,
   hues,
   investVerdict,
+  leftText,
   loanLede,
+  makeupText,
+  monthPlan,
+  monthlyText,
   noticeText,
   orderVerdict,
   ordinal,
   payingDown,
   plan,
   rateTone,
+  roomText,
   securedText,
   shareLine,
   sliderRange,
+  sliderStart,
   stripMarks,
+  treadmillText,
 } from "./debt";
 
 /** A debt with nothing on it, for a test to fill in the parts it is about. */
@@ -54,6 +62,8 @@ const debt = (over: Partial<Debt>): Debt => ({
   trail: [],
   payoff: null,
   cycle: null,
+  treadmill: null,
+  makeup: null,
   ...over,
 });
 
@@ -594,6 +604,14 @@ describe("emphasize", () => {
       { text: ".", strong: false },
     ]);
   });
+
+  test("leaves a span alone when the unit is the start of a longer word", () => {
+    expect(emphasize("Over the last 3 months, 1 yr 2 months ago.")).toEqual([
+      { text: "Over the last 3 months, ", strong: false },
+      { text: "1 yr", strong: true },
+      { text: " 2 months ago.", strong: false },
+    ]);
+  });
 });
 
 describe("costShares", () => {
@@ -685,5 +703,380 @@ describe("addDays", () => {
     expect(addDays("2026-09-28", 5)).toBe("2026-10-03");
     expect(addDays("2026-12-30", 3)).toBe("2027-01-02");
     expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+  });
+});
+
+describe("monthPlan", () => {
+  const today = "2026-06-10";
+  const carried = { charges: 250, payments: 0, carried: 355.21, in_full: false };
+  const bike = debt({
+    account: "B",
+    label: "Bike",
+    owed: 600,
+    rate: 0.06,
+    payment: 60,
+    next_due: "2026-06-12",
+  });
+  const car = debt({
+    account: "C",
+    label: "Car",
+    owed: 9000,
+    rate: 0.03,
+    payment: 400,
+    next_due: "2026-06-15",
+    payoff: { months: 24, month: "2028-06", interest: 280.5 },
+  });
+  const store = debt({
+    account: "S",
+    label: "Store",
+    kind: "revolving",
+    owed: 783.68,
+    rate: 0.24,
+    payment: 300,
+    next_due: "2026-06-20",
+    payoff: { months: 3, month: "2026-09", interest: 25.11 },
+    cycle: carried,
+  });
+  const everyday = debt({
+    account: "E",
+    label: "Everyday",
+    kind: "revolving",
+    owed: 420,
+    payment: 380,
+    next_due: "2026-06-25",
+    cycle: cleared,
+  });
+  const student = debt({
+    account: "T",
+    label: "Student",
+    owed: 5000,
+    rate: 0.07,
+    payment: 200,
+    next_due: "2026-07-05",
+  });
+  const debts = [car, student, store, everyday, bike];
+  const upcoming = [
+    { account: "B", label: "Bike", date: "2026-06-12", amount: 60 },
+    { account: "C", label: "Car", date: "2026-06-15", amount: 400 },
+    { account: "S", label: "Store", date: "2026-06-20", amount: 300 },
+    { account: "E", label: "Everyday", date: "2026-06-25", amount: 420 },
+    { account: "T", label: "Student", date: "2026-07-05", amount: 200 },
+  ];
+
+  test("is what goes out anyway, by the day it goes", () => {
+    expect(monthPlan(debts, upcoming, 0, "avalanche", 0.05, today)).toEqual({
+      left: 0,
+      rows: [
+        { account: "B", label: "Bike", date: "2026-06-12", usual: 60, extra: 0, after: 540 },
+        { account: "C", label: "Car", date: "2026-06-15", usual: 400, extra: 0, after: 8600 },
+        { account: "S", label: "Store", date: "2026-06-20", usual: 300, extra: 0, after: 483.68 },
+        { account: "E", label: "Everyday", date: "2026-06-25", usual: 420, extra: 0, after: 0 },
+        { account: "T", label: "Student", date: "2026-07-05", usual: 200, extra: 0, after: 4800 },
+      ],
+    });
+  });
+
+  test("sends the spare down the attack order, past the loans cheaper than investing", () => {
+    // Dearest first: the Store at 24%, then the Student at 7%. The Bike
+    // at 6% is next in line but the money runs out; the Car at 3%
+    // costs less than a portfolio makes, so it is never in line.
+    const a = monthPlan(debts, upcoming, 1000, "avalanche", 0.05, today);
+    expect(a.rows.map((r) => [r.account, r.extra, r.after])).toEqual([
+      ["B", 0, 540],
+      ["C", 0, 8600],
+      ["S", 483.68, 0],
+      ["E", 0, 0],
+      ["T", 516.32, 4283.68],
+    ]);
+    expect(a.left).toBe(0);
+    // Smallest first: the Bike, then the Store; the Car is skipped for
+    // the same reason, and the Everyday card is spending, not debt.
+    const s = monthPlan(debts, upcoming, 1000, "snowball", 0.05, today);
+    expect(s.rows.map((r) => [r.account, r.extra, r.after])).toEqual([
+      ["B", 540, 0],
+      ["C", 0, 8600],
+      ["S", 460, 23.68],
+      ["E", 0, 0],
+      ["T", 0, 4800],
+    ]);
+  });
+
+  test("a debt whose payment already went out gets its extra today", () => {
+    expect(monthPlan([store], [], 100, "avalanche", 0.05, today)).toEqual({
+      left: 0,
+      rows: [
+        { account: "S", label: "Store", date: today, usual: 0, extra: 100, after: 683.68 },
+      ],
+    });
+  });
+
+  test("more than everything owed leaves the rest unplaced", () => {
+    const p = monthPlan([store], upcoming.slice(2, 3), 5000, "avalanche", 0.05, today);
+    expect(p.rows[0]?.extra).toBe(483.68);
+    expect(p.rows[0]?.after).toBe(0);
+    expect(p.left).toBe(4516.32);
+  });
+
+  test("dueEvents is one calendar event per payment coming up", () => {
+    expect(dueEvents(upcoming, debts, "USD")).toEqual([
+      {
+        uid: "B@you-need-a-bean",
+        date: "2026-06-12",
+        summary: "Bike: $ 60 due",
+        description: "The usual payment on the loan; $ 540.00 left after it.",
+        day: 12,
+        count: 12,
+      },
+      {
+        uid: "C@you-need-a-bean",
+        date: "2026-06-15",
+        summary: "Car: $ 400 due",
+        description: "The usual payment on the loan; $ 8,600.00 left after it.",
+        day: 15,
+        count: 24,
+      },
+      {
+        uid: "S@you-need-a-bean",
+        date: "2026-06-20",
+        summary: "Store: $ 300 due",
+        description: "The minimum on the card; $ 483.68 left after it.",
+        day: 20,
+        count: 3,
+      },
+      {
+        uid: "E@you-need-a-bean",
+        date: "2026-06-25",
+        summary: "Everyday: statement due",
+        description: "Whatever is on the card by then; $ 420.00 this time.",
+        day: 25,
+        count: 12,
+      },
+      {
+        uid: "T@you-need-a-bean",
+        date: "2026-07-05",
+        summary: "Student: $ 200 due",
+        description: "The usual payment on the loan; $ 4,800.00 left after it.",
+        day: 5,
+        count: 12,
+      },
+    ]);
+  });
+});
+
+describe("the plan card's sentences", () => {
+  const room = { cash: 19500, due: 300, spend: 1500, buffer: 1500, now: 16200, monthly: 2029 };
+
+  test("roomText is what is spare, what it was after, and what it clears", () => {
+    expect(roomText(room, 355.21, "USD")).toBe(
+      "$ 16,200 is spare this month: the $ 19,500 in budget accounts, less " +
+        "$ 300 due in the next 31 days, a typical $ 1,500 month of spending and " +
+        "$ 1,500 of fixed costs kept back. That clears the $ 355.21 carried on the " +
+        "cards outright, with 11 months of fixed costs still in hand.",
+    );
+    expect(roomText({ ...room, now: 100 }, 355.21, "USD")).toBe(
+      "$ 100 is spare this month: the $ 19,500 in budget accounts, less " +
+        "$ 300 due in the next 31 days, a typical $ 1,500 month of spending and " +
+        "$ 1,500 of fixed costs kept back. That is 28% of the $ 355.21 carried on " +
+        "the cards.",
+    );
+    expect(roomText({ ...room, spend: 0, now: 17700 }, 0, "USD")).toBe(
+      "$ 17,700 is spare this month: the $ 19,500 in budget accounts, less " +
+        "$ 300 due in the next 31 days and $ 1,500 of fixed costs kept back.",
+    );
+  });
+
+  test("roomText says when nothing is spare", () => {
+    expect(
+      roomText({ cash: 1800, due: 520, spend: 0, buffer: 1500, now: 0, monthly: 0 }, 0, "USD"),
+    ).toBe(
+      "Nothing is spare this month: the $ 1,800 in budget accounts is spoken " +
+        "for by $ 520 due in the next 31 days and $ 1,500 of fixed costs kept back.",
+    );
+    expect(roomText({ cash: 0, due: 0, spend: 0, buffer: 0, now: 0, monthly: 0 }, 0, "USD")).toBe(
+      "Nothing is spare this month: there is no cash in budget accounts.",
+    );
+  });
+
+  test("leftText is where the money nobody is charging for goes", () => {
+    expect(leftText(4516.32, true, 1, 0.05, "USD")).toBe(
+      "$ 4,516 of it is left once those are cleared. The rest costs less than " +
+        "the 5% a portfolio is assumed to make, so on paper it does better invested.",
+    );
+    expect(leftText(4516.32, true, 0, 0.05, "USD")).toBe(
+      "$ 4,516 of it is left once everything is cleared.",
+    );
+    expect(leftText(16200, false, 2, 0.05, "USD")).toBe(
+      "None of it goes to the debts: nothing here costs more than the 5% a " +
+        "portfolio is assumed to make, so on paper the $ 16,200 does better invested.",
+    );
+  });
+
+  test("monthlyText is where the extra-each-month slider starts, and why", () => {
+    expect(monthlyText(room, "USD")).toBe(
+      "Most months about $ 2,029 is left over after everything, the debts " +
+        "included, so the slider starts there.",
+    );
+    expect(monthlyText({ ...room, monthly: 0 }, "USD")).toBeNull();
+  });
+
+  test("sliderStart snaps the usual surplus onto the slider", () => {
+    expect(sliderStart(2029, { max: 2500, step: 100 })).toBe(2000);
+    expect(sliderStart(0, { max: 500, step: 20 })).toBe(0);
+    expect(sliderStart(9000, { max: 2500, step: 100 })).toBe(2500);
+    expect(sliderStart(31, { max: 500, step: 20 })).toBe(40);
+  });
+});
+
+describe("treadmillText", () => {
+  const base = {
+    label: "Store Card",
+    kind: "revolving" as const,
+    owed: 783.68,
+    rate: 0.24,
+    payment: 300,
+    payoff: { months: 3, month: "2026-09", interest: 25.11 },
+  };
+  const walk = {
+    months: [],
+    pace: 3,
+    charged: 700,
+    paid: 900,
+    net: 66.67,
+    payoff: { months: 14, month: "2027-08", interest: 118.5 },
+  };
+
+  test("puts the payments against the charges and says where that really leads", () => {
+    expect(treadmillText(debt({ ...base, treadmill: walk }), "USD")).toBe(
+      "Over the last 3 months $ 900 went into the Store Card and $ 700 was " +
+        "charged back, so it is really shrinking by $ 67 a month. At that pace " +
+        "it is gone Aug 2027, not the Sep 2026 the $ 300 minimum alone suggests, " +
+        "and the interest on the way is $ 119, not $ 25.",
+    );
+  });
+
+  test("a card growing, or standing still, says so", () => {
+    expect(
+      treadmillText(
+        debt({ ...base, treadmill: { ...walk, charged: 300, paid: 60, net: -80, payoff: null } }),
+        "USD",
+      ),
+    ).toBe(
+      "Over the last 3 months $ 60 went into the Store Card and $ 300 was " +
+        "charged back, so it is growing by $ 80 a month: the payments are not " +
+        "keeping up with what goes on it.",
+    );
+    expect(
+      treadmillText(
+        debt({ ...base, treadmill: { ...walk, charged: 300, paid: 300, net: 0, payoff: null } }),
+        "USD",
+      ),
+    ).toBe(
+      "Over the last 3 months $ 300 went into the Store Card and $ 300 was " +
+        "charged back, so it is standing still: the payments only cover what " +
+        "goes on it.",
+    );
+  });
+
+  test("a card shrinking too slowly for its interest never clears", () => {
+    expect(
+      treadmillText(
+        debt({ ...base, treadmill: { ...walk, charged: 885, paid: 900, net: 5, payoff: null } }),
+        "USD",
+      ),
+    ).toBe(
+      "Over the last 3 months $ 900 went into the Store Card and $ 885 was " +
+        "charged back, so it is really shrinking by $ 5 a month. At that pace " +
+        "it never clears: the interest outruns it.",
+    );
+  });
+
+  test("a card nothing new went on is just its payoff", () => {
+    const quiet = {
+      ...walk,
+      pace: 1,
+      charged: 0,
+      paid: 300,
+      net: 300,
+      payoff: { months: 3, month: "2026-09", interest: 25.11 },
+    };
+    expect(treadmillText(debt({ ...base, treadmill: quiet }), "USD")).toBe(
+      "Last month $ 300 went into the Store Card and nothing was charged " +
+        "back, so it is shrinking by $ 300 a month. At that pace it is gone Sep 2026.",
+    );
+  });
+
+  test("has nothing to say about a card that is not on the treadmill", () => {
+    expect(treadmillText(debt(base), "USD")).toBeNull();
+  });
+});
+
+describe("makeupText", () => {
+  const groceries = {
+    account: "Expenses:Food:Groceries",
+    label: "Groceries",
+    owed: 528.68,
+    charged: 509.25,
+    interest: 28.61,
+    since: "2026-02-10",
+    count: 4,
+  };
+  const furnishing = {
+    account: "Expenses:Home:Furnishing",
+    label: "Furnishing",
+    owed: 255,
+    charged: 250,
+    interest: 5,
+    since: "2026-05-12",
+    count: 1,
+  };
+
+  test("says what the carried balance is made of and what that is costing", () => {
+    const d = debt({
+      kind: "revolving",
+      owed: 783.68,
+      rate: 0.24,
+      makeup: { rows: [groceries, furnishing], total: 783.68 },
+    });
+    expect(makeupText(d, "USD")).toBe(
+      "The $ 783.68 on it is 5 charges not yet paid off. You are paying 24% on " +
+        "$ 528.68 of groceries from Feb 2026, which has cost $ 28.61 so far, and " +
+        "on $ 255.00 of furnishing from May 2026. Altogether they have run up " +
+        "$ 33.61 in interest.",
+    );
+  });
+
+  test("one charge is one sentence", () => {
+    const d = debt({
+      kind: "revolving",
+      owed: 344.8,
+      rate: 0.24,
+      makeup: {
+        rows: [{ ...furnishing, owed: 344.8, charged: 340, interest: 4.8, since: "2025-11-05" }],
+        total: 344.8,
+      },
+    });
+    expect(makeupText(d, "USD")).toBe(
+      "The $ 344.80 on it is 1 charge not yet paid off. You are paying 24% on " +
+        "$ 344.80 of furnishing from Nov 2025, which has cost $ 4.80 so far.",
+    );
+  });
+
+  test("without a rate it is just the list, and a charge with no category is other things", () => {
+    const d = debt({
+      kind: "revolving",
+      owed: 100,
+      makeup: {
+        rows: [
+          { ...groceries, owed: 60, charged: 60, interest: 0, count: 1 },
+          { account: "", label: "Other", owed: 40, charged: 40, interest: 0, since: "2026-03-01", count: 1 },
+        ],
+        total: 100,
+      },
+    });
+    expect(makeupText(d, "USD")).toBe(
+      "The $ 100.00 on it is 2 charges not yet paid off: $ 60.00 of groceries " +
+        "from Feb 2026 and $ 40.00 of other things from Mar 2026.",
+    );
+    expect(makeupText(debt({ kind: "revolving", owed: 100 }), "USD")).toBeNull();
   });
 });

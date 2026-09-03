@@ -4143,3 +4143,234 @@ div.race {
     animation: none;
   }
 }
+
+/* This month's plan: the cash cut into what it is spoken for by and
+   what is spare, then a row per payment to send, in the debt's
+   colour, with what the spare adds and what is left after. */
+.room {
+  margin-top: 14px;
+}
+.room + .debt-lede {
+  margin-top: 12px;
+}
+.seg.due,
+.key .sw.due {
+  background: var(--over);
+}
+.seg.spend,
+.key .sw.spend {
+  background: var(--warn);
+}
+.seg.buffer,
+.key .sw.buffer {
+  background: var(--muted);
+}
+.seg.spare,
+.key .sw.spare {
+  background: var(--good);
+}
+.plan-card .key b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.plan-rows {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.plan-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.plan-bar .seg button {
+  padding: 3px 10px;
+  font-size: 11px;
+}
+.plan-row {
+  display: grid;
+  grid-template-columns: 52px 8px minmax(0, 1fr) auto 104px;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 0;
+  border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.plan-bar + .plan-row {
+  border-top: 0;
+}
+.plan-row .d {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.plan-row .dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hue);
+}
+.plan-row.dn .dot {
+  background: var(--muted);
+}
+.plan-row .who {
+  color: var(--ink);
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plan-row .amt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.plan-row .amt .plus {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--good-text);
+  white-space: nowrap;
+}
+.plan-row .after {
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.plan-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.plan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 550;
+  transition:
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+.plan-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.plan-foot .hint {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* A section inside a debt's card, ruled off from the one above. */
+.debt-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.debt-section > .debt-lede {
+  margin-top: 10px;
+}
+
+/* What is carried: the balance cut by what the charges were for, the
+   card's colour fading from the biggest part to the smallest. */
+.makeup-bar {
+  margin-top: 8px;
+}
+.makeup-bar .seg,
+.makeup-row .sw {
+  background: var(--hue);
+}
+.debt-card.dn .makeup-bar .seg,
+.debt-card.dn .makeup-row .sw {
+  background: var(--muted);
+}
+.makeup-row {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+  font-size: 11.5px;
+}
+.makeup-row .sw {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+.makeup-row .l,
+.makeup-row .r {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.makeup-row .r {
+  align-items: flex-end;
+  text-align: right;
+}
+.makeup-row .who {
+  color: var(--ink);
+  font-weight: 550;
+}
+.makeup-row .owed {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.makeup-row .hint {
+  font-size: 10px;
+  color: var(--muted);
+}
+.makeup-row .hint.int {
+  color: var(--over-text);
+}
+
+/* The treadmill: what went on the card against what came off it,
+   month by month, in the card's colour. */
+.treadmill {
+  margin-top: 8px;
+}
+.tm-charges {
+  fill: var(--hue);
+  opacity: 0.35;
+}
+.tm-interest {
+  fill: var(--over);
+  opacity: 0.85;
+}
+.tm-pay {
+  fill: var(--hue);
+}
+.tm.old {
+  opacity: 0.5;
+}
+.tm:hover .tm-charges {
+  opacity: 0.55;
+}
+.tm-cap {
+  font-size: 9.5px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.key .sw.tm-charges {
+  background: color-mix(in srgb, var(--hue) 40%, transparent);
+}
+.key .sw.tm-interest {
+  background: var(--over);
+}
+.key .sw.tm-pay {
+  background: var(--hue);
+}
