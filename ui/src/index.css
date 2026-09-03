@@ -799,8 +799,8 @@ a:focus-visible {
 }
 .thead {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 108px 108px 108px 168px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 108px 144px 108px 144px;
+  gap: 11px;
   padding: 11px 18px;
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--surface-2) 45%, var(--surface));
@@ -814,8 +814,8 @@ a:focus-visible {
 }
 .grp-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 108px 108px 108px 168px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 108px 144px 108px 144px;
+  gap: 11px;
   width: 100%;
   padding: 9px 18px;
   align-items: center;
@@ -856,8 +856,8 @@ a:focus-visible {
 }
 .cat-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 108px 108px 108px 168px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 108px 144px 108px 144px;
+  gap: 11px;
   width: 100%;
   padding: 10px 18px 11px;
   align-items: center;
@@ -940,6 +940,9 @@ a:focus-visible {
   text-align: right;
   font-size: 12.5px;
   color: var(--ink);
+  /* "$ 16,500.00" has a space in it, so a cell it does not quite fit
+     would break the amount in half rather than run on. */
+  white-space: nowrap;
 }
 /* What a category costs on the months it lands, shown only where
    that differs from the average — so the column is blank down the
