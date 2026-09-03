@@ -1598,14 +1598,23 @@ a:focus-visible {
   gap: 14px;
   align-items: start;
 }
+/* Two halves rather than a wide column and a narrow one, for a page
+   whose cards all draw something and so all want the same room. */
+.report-grid.even {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
 .report-col {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
 }
+.report-grid.even > .report-card:nth-child(2) {
+  animation-delay: 0.06s;
+}
 @media (max-width: 1080px) {
-  .report-grid {
+  .report-grid,
+  .report-grid.even {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -4191,7 +4200,7 @@ div.race {
 }
 .plan-row {
   display: grid;
-  grid-template-columns: 52px 8px minmax(0, 1fr) auto 104px;
+  grid-template-columns: 52px 8px minmax(96px, 1fr) auto auto;
   align-items: center;
   gap: 12px;
   padding: 7px 0;
@@ -4239,6 +4248,7 @@ div.race {
 }
 .plan-row .after {
   text-align: right;
+  white-space: nowrap;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }

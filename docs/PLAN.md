@@ -303,10 +303,15 @@ openTxns, closedGroups}` — same as the mockup's `state` object.
 
 Three pages share the shell: the budget, `Reports` (`/reports`) and
 `Liabilities` (`/liabilities`), routed in `ui/src/router.ts`. The
-Liabilities page is one masthead (owed, the month's and the year's
-interest, a year at these rates, the debt-free month, cash against the
-cards, interest earned, a bar cut per debt, the payments coming up),
-the notices, then a card per debt: a loan's balance by month with the
+Liabilities page opens with a masthead (owed, the month's and the
+year's interest, a year at these rates, the debt-free month, cash
+against the cards, interest earned, a bar cut per debt, the payments
+coming up) and the notices, both full width; under them the body is
+two even columns — first what to do, "This month" beside "Which
+first?", then the debts themselves, the loans beside the cards, each
+group headed with its total — and the debts you have beaten close the
+page full width. Below 1080px the columns become one. Each debt has a
+card: a loan's balance by month with the
 projection to zero and a slider that tries a bigger payment
 (`ui/src/debt.ts` amortises the way the server does, to the cent), the
 principal against the interest paid, and the recent payments; a card's

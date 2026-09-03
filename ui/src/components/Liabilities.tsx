@@ -560,13 +560,20 @@ function PlanCard({
               <span className="d">{dayLabel(r.date)}</span>
               <i className="dot" aria-hidden="true" />
               <span className="who">{r.label}</span>
-              <span className="amt">
+              <span
+                className="amt"
+                title={
+                  r.extra > EPS && r.usual > EPS
+                    ? `${fmt(r.usual, cur)} usual + ${fmt(r.extra, cur)} extra`
+                    : undefined
+                }
+              >
                 {fmt(r.usual + r.extra, cur)}
                 {r.extra > EPS && (
                   <span className="plus">
                     {r.usual > EPS
-                      ? `${fmt(r.usual, cur, 0)} usual + ${fmt(r.extra, cur, 0)} extra`
-                      : "all of it extra, any day"}
+                      ? `+ ${fmt(r.extra, cur, 0)} extra`
+                      : "extra, any day"}
                   </span>
                 )}
               </span>
@@ -1886,6 +1893,13 @@ export function Liabilities({
   const down = payingDown(data.debts);
   const from = data.interest.window?.[0] ?? null;
   const hue = hues(data.debts);
+  // The two planning cards: what to send now, and in what order to
+  // clear the lot. Either can be missing, and then the other takes
+  // the whole width rather than sitting in half of it.
+  const plan =
+    data.debts.length > 0 &&
+    (data.upcoming.length > 0 || data.extra.now > EPS);
+  const race = down.length > 1;
 
   return (
     <section id="reports" className="debts">
@@ -1898,18 +1912,19 @@ export function Liabilities({
           ))}
         </div>
       )}
-      {data.debts.length > 0 &&
-        (data.upcoming.length > 0 || data.extra.now > EPS) && (
-          <PlanCard data={data} hue={hue} today={today} cur={cur} />
-        )}
-      {down.length > 1 && (
-        <OrderCard
-          debts={down}
-          month={data.month}
-          hue={hue}
-          spare={data.extra}
-          cur={cur}
-        />
+      {(plan || race) && (
+        <div className={`report-grid even${plan && race ? "" : " one"}`}>
+          {plan && <PlanCard data={data} hue={hue} today={today} cur={cur} />}
+          {race && (
+            <OrderCard
+              debts={down}
+              month={data.month}
+              hue={hue}
+              spare={data.extra}
+              cur={cur}
+            />
+          )}
+        </div>
       )}
       {data.debts.length === 0 ? (
         <div className="report-card debt-none">
@@ -1920,7 +1935,7 @@ export function Liabilities({
           </p>
         </div>
       ) : (
-        <div className={`report-grid${one ? " one" : ""}`}>
+        <div className={`report-grid even${one ? " one" : ""}`}>
           {loans.length > 0 && (
             <div className="report-col">
               <div className="col-head">
