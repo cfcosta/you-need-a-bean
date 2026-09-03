@@ -141,6 +141,43 @@ priced at the month's end).
   peak, principal and interest paid, the first day anything was owed
   and the day of the last payment; most recently beaten first.
 - **Cover** = the budget accounts' cash against what the cards hold.
+- **Extra** = the spare worked out from the cash, so the reader is
+  told it rather than asked for it: `cash` is the cover's cash; `due`
+  is Σ upcoming; `spend` is a typical month of cash-paid spending, the
+  median over the `basis` months of the `Expenses:` postings in
+  transactions that touch a budget `Assets:` account and no
+  `Liabilities:` account, over the months that have any; `buffer` is
+  a month of the fixed nut (the recurring report's `monthly_fixed`),
+  kept back. `now` = cash − due − spend − buffer, floored at zero: the
+  lump that could go to the debts this month. `monthly` = the median
+  over the same months of income − expenses − the principal paid on
+  the debts, floored at zero: what is usually left over once
+  everything, the debts included, is paid, and where the "Which
+  first?" slider starts.
+- **Makeup** (a card carrying a balance): what the carried balance is
+  made of, read first in, first out. Every charge opens a lot, split
+  across the transaction's other postings that were debited (an
+  `Expenses:` account, usually) pro rata, each converted to the card's
+  currency at the day's price, and "Other" for whatever cannot be
+  attributed; a rise with no such posting is interest when the
+  transaction has an interest leg. Interest is spread over the open
+  lots pro rata by what each still has left, the last lot taking the
+  rounding. A payment or refund pays the oldest lot first, its
+  interest before its principal, and closes it when nothing is left.
+  Lots are kept per currency. The rows group the open lots by expense
+  account, biggest first, each with what it still owes, what was
+  charged, the interest it has accrued, the date of its oldest charge
+  and the number of charges in it. `null` for loans and for cards
+  that owe nothing or carry nothing.
+- **Treadmill** (the same cards): the months from `current − basis`
+  to the month before the current one, clamped to the first month the
+  account moved, each with `charges` (the rises less the interest),
+  `payments` and `interest`. The pace is read over the last three
+  complete months: `charged` and `paid` are their totals and `net` =
+  (paid − charged) / 3 is what the balance really shrinks by a month.
+  Its `payoff` is the amortisation of what is owed at that net, or
+  `null` when the card is standing still or growing: the honest date,
+  against the one the payment alone suggests.
 - **Windows**: the interest and payment figures for "the year" cover
   the twelve complete months before the current one, clamped to the
   ledger; a debt's `trail` (its balance after every transaction) covers
@@ -166,6 +203,43 @@ priced at the month's end).
   return; secured on what; carrying, cleared, or in credit; billed in
   which currency — instead of a line of text under the title. Beaten
   debts are tiles, not rows.
+- **This month** (`PlanCard`): the cash in budget accounts drawn as a
+  bar cut into what is due in the next 31 days, a typical month of
+  spending, the fixed costs kept back, and what is spare, with a
+  sentence that reads the sum (`roomText`) and, when the spare covers
+  the carried card balances, how many months of fixed costs would
+  still be in hand. Under it, a row per payment to send (`monthPlan`):
+  the day, the debt in its colour, the amount and what is left on the
+  debt after it. The rows start from `upcoming`; the spare is then
+  placed down the chosen order (`targets`: the debts being paid down,
+  skipping a loan whose rate is under the assumed return, since on
+  paper that money does better invested), each debt taking what
+  clears it before the next gets any, and a debt whose payment already
+  went this month gets a row dated today. A toggle picks the order
+  when more than one debt is in line; what is left over is said in a
+  sentence (`leftText`). "Add the due dates to your calendar" builds
+  an iCalendar file (`ui/src/ics.ts`, `dueEvents`): one all-day event
+  per upcoming payment, repeating monthly on the due day for the
+  payoff's months (twelve for a card cleared in full, whose amount
+  varies, so its summary says "statement due"), a stable UID per
+  account so a re-import updates rather than duplicates, lines folded
+  at 75 octets and text escaped as RFC 5545 asks. A due day past a
+  month's end skips that month, as the standard has it.
+- **Which first?** starts its slider at the usual monthly surplus
+  (`sliderStart`, snapped to the slider's step) and says so
+  (`monthlyText`), so the race opens on what the reader can actually
+  sustain rather than on zero.
+- **On a carried card**: "What is carried" is the makeup as a bar in
+  the card's colour, fading from the biggest part to the smallest, a
+  row per part (what it was for, how many charges since when, what is
+  owed and the interest it has run up) and a sentence naming the rate
+  being paid on what (`makeupText`). "On the treadmill" is a pair of
+  bars per month, what went on the card against what came off it,
+  interest stacked on the charges in red, the months the pace is read
+  over drawn in full and the earlier ones faded, then the sentence
+  with the real monthly change, the honest payoff month against the
+  one the payment alone suggests, and the interest on the way
+  (`treadmillText`).
 
 ## HTTP API
 
@@ -199,9 +273,12 @@ currency unless stated. `cur` defaults to the first operating currency,
   interest_paid, payments: [{ date, total, principal, interest }],
   history: [{ month, owed }], trail: [{ date, owed, delta }], payoff: {
   months, month, interest }, cycle: { charges, payments, carried,
-  in_full } }], beaten: [{ account, label, peak, principal_paid,
-  interest_paid, first, last }], unpriced }` — rules under
-  "Liabilities" above.
+  in_full }, treadmill: { months: [{ month, charges, payments,
+  interest }], pace, charged, paid, net, payoff } | null, makeup: {
+  rows: [{ account, label, owed, charged, interest, since, count }],
+  total } | null }], beaten: [{ account, label, peak, principal_paid,
+  interest_paid, first, last }], extra: { cash, due, spend, buffer,
+  now, monthly }, unpriced }` — rules under "Liabilities" above.
   Zero is always sent as `0.0`, never `-0.0`.
 - Anything else under `/api/` → 404 JSON; bad month/currency → 400.
 - `/` and static assets → embedded UI (SPA fallback to index.html).

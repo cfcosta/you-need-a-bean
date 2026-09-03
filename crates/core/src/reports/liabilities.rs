@@ -19,7 +19,7 @@
 //! negative balance, and this module reports it as a positive amount
 //! owed. A charge raises it, a payment lowers it.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use rust_decimal::Decimal;
 
@@ -57,6 +57,9 @@ const GROWING_MONTHS: usize = 3;
 const UPCOMING_DAYS: i64 = 31;
 /// The projection gives up here, as the independence one does.
 const MAX_MONTHS: u32 = 1200;
+/// Complete months a carried card's pace is read over: what its
+/// payments really take off once the new charges are counted.
+const PACE_MONTHS: usize = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DebtKind {
@@ -153,6 +156,66 @@ pub struct Cycle {
     pub in_full: Option<bool>,
 }
 
+/// A carried card's month: what went on it, what came off it, and
+/// what the bank added.
+#[derive(Debug, Clone)]
+pub struct TreadmillMonth {
+    pub month: MonthKey,
+    /// Put on the card, the interest left out.
+    pub charges: Decimal,
+    /// Paid off it.
+    pub payments: Decimal,
+    /// Charged by the lender.
+    pub interest: Decimal,
+}
+
+/// A carried card measured with the new charges counted, which the
+/// payoff leaves out: the payments against what keeps landing on it,
+/// and where that pace really ends.
+#[derive(Debug, Clone)]
+pub struct Treadmill {
+    /// The complete months of the trailing window, oldest first.
+    pub months: Vec<TreadmillMonth>,
+    /// How many of the newest of them the pace is read over.
+    pub pace: u32,
+    /// Put on the card over those months.
+    pub charged: Decimal,
+    /// Paid off it over those months.
+    pub paid: Decimal,
+    /// What a month really takes off: paid less charged, per month.
+    /// Negative when the card is growing.
+    pub net: Decimal,
+    /// Where that pace lands, when it lands anywhere.
+    pub payoff: Option<Payoff>,
+}
+
+/// One category's share of what a carried card holds.
+#[derive(Debug, Clone)]
+pub struct MakeupRow {
+    /// The account the charges went to; empty when nothing says.
+    pub account: String,
+    pub label: String,
+    /// Still on the card from this category, its interest included.
+    pub owed: Decimal,
+    /// The charges themselves, still unpaid.
+    pub charged: Decimal,
+    /// Interest the open charges have drawn so far, paid or not.
+    pub interest: Decimal,
+    /// The day of the oldest open charge.
+    pub since: Day,
+    /// Open charges.
+    pub count: usize,
+}
+
+/// What a carried balance is made of: the charges the payments have
+/// not reached yet, by where they went.
+#[derive(Debug, Clone)]
+pub struct Makeup {
+    /// Biggest first.
+    pub rows: Vec<MakeupRow>,
+    pub total: Decimal,
+}
+
 /// The asset a loan is secured on, as the open directive named it.
 #[derive(Debug, Clone)]
 pub struct Collateral {
@@ -234,6 +297,10 @@ pub struct Debt {
     pub payoff: Option<Payoff>,
     /// Cards only.
     pub cycle: Option<Cycle>,
+    /// Cards carrying a balance only: the payments against the charges.
+    pub treadmill: Option<Treadmill>,
+    /// Cards carrying a balance only: what the balance is made of.
+    pub makeup: Option<Makeup>,
 }
 
 /// Cash on hand against what the cards are holding.
@@ -246,6 +313,27 @@ pub struct Cover {
     pub covered: bool,
     /// What paying every card off today would leave.
     pub after: Decimal,
+}
+
+/// What there is to pay on top of the usual payments, worked out from
+/// the ledger rather than asked for.
+#[derive(Debug, Clone)]
+pub struct Extra {
+    /// Liquid cash at the month's end, the cover's figure.
+    pub cash: Decimal,
+    /// The payments coming up within a month.
+    pub due: Decimal,
+    /// A typical month of spending paid in cash rather than on a card.
+    pub spend: Decimal,
+    /// A month of the fixed nut, kept back.
+    pub buffer: Decimal,
+    /// Cash less the three: what could go on the debts this month.
+    /// Never below zero.
+    pub now: Decimal,
+    /// What a typical month leaves over after everything, the debt
+    /// payments included: the median over the window. Never below
+    /// zero.
+    pub monthly: Decimal,
 }
 
 #[derive(Debug, Clone)]
@@ -284,6 +372,8 @@ pub struct LiabilitiesView {
     /// agree.
     pub assumed_return: Decimal,
     pub cover: Cover,
+    /// What could be paid on top of the usual payments.
+    pub extra: Extra,
     /// Payments expected in the next month, soonest first.
     pub upcoming: Vec<Upcoming>,
     pub notices: Vec<Notice>,
@@ -338,6 +428,7 @@ impl Ledger {
         let mut beaten = Vec::new();
         let mut interest_month = Decimal::ZERO;
         let mut interest_year = Decimal::ZERO;
+        let mut principal_paid: BTreeMap<MonthKey, Decimal> = BTreeMap::new();
         for info in self.accounts() {
             if !info.account.starts_with("Liabilities:")
                 || info.kind == AccountKind::Hidden
@@ -345,6 +436,10 @@ impl Ledger {
                 continue;
             }
             let walk = self.walk_debt(&info.account, current, cur);
+            for (payment, _) in &walk.payments {
+                let month = MonthKey::new(payment.date.0, payment.date.1);
+                *principal_paid.entry(month).or_default() += payment.principal;
+            }
             for (date, amount) in &walk.interest {
                 let month = MonthKey::new(date.0, date.1);
                 if month == current {
@@ -405,6 +500,14 @@ impl Ledger {
         let revolving = sum_kind(DebtKind::Revolving);
         let upcoming = upcoming(&debts, today);
         let notices = notices(&debts, today, current);
+        let extra = self.extra_of(
+            &upcoming,
+            &principal_paid,
+            cash,
+            current,
+            basis,
+            cur,
+        );
 
         LiabilitiesView {
             month: current,
@@ -429,6 +532,7 @@ impl Ledger {
                 covered: cash >= revolving,
                 after: cash - revolving,
             },
+            extra,
             upcoming,
             notices,
             debts,
@@ -616,6 +720,14 @@ impl Ledger {
                 })
             })
             .flatten();
+        let treadmill = (owed > Decimal::ZERO && carried)
+            .then(|| {
+                treadmill_of(w, current, basis, owed, rate.unwrap_or_default())
+            })
+            .flatten();
+        let makeup = (owed > Decimal::ZERO && carried)
+            .then(|| self.makeup_of(&info.account, current, cur))
+            .flatten();
         let peak = cents(w.peak);
         let limit = info.debt.limit.and_then(|limit| {
             let own = match info.currencies.as_slice() {
@@ -676,6 +788,8 @@ impl Ledger {
             trail: trail(w, from),
             payoff,
             cycle,
+            treadmill,
+            makeup,
         })
     }
 
@@ -738,6 +852,274 @@ impl Ledger {
             cash += self.convertible(&balances, cur, at, unpriced);
         }
         cents(cash)
+    }
+
+    /// What a carried card holds, charge by charge. Payments clear the
+    /// oldest charges first, as a statement does; interest lands on
+    /// every open charge in proportion to what is left of it, and is
+    /// paid before the charge itself. A refund is a payment: it comes
+    /// off the oldest charge, not the one it refunds. Each currency on
+    /// the card keeps its own queue, converted only at the end.
+    fn makeup_of(
+        &self,
+        account: &str,
+        current: MonthKey,
+        cur: &str,
+    ) -> Option<Makeup> {
+        let mut queues: BTreeMap<String, VecDeque<Lot>> = BTreeMap::new();
+        for (month, _) in self.months_of(account) {
+            if month > current {
+                break;
+            }
+            for txn in self.txns(account, month) {
+                let mut own: Vec<(String, Decimal)> = Vec::new();
+                let mut others: Vec<(&str, Decimal, &str)> = Vec::new();
+                let mut interest = false;
+                for posting in &txn.postings {
+                    if posting.account == account {
+                        for (v, c) in &posting.amounts {
+                            add_sum(&mut own, c, *v);
+                        }
+                        continue;
+                    }
+                    interest |= is_interest_expense(&posting.account);
+                    for (v, c) in &posting.amounts {
+                        others.push((posting.account.as_str(), *v, c.as_str()));
+                    }
+                }
+                for (c, v) in &own {
+                    let queue = queues.entry(c.clone()).or_default();
+                    if *v < Decimal::ZERO {
+                        let rise = -*v;
+                        if interest && !queue.is_empty() {
+                            spread(queue, rise);
+                        } else {
+                            for (to, share) in
+                                self.charge_split(&others, rise, c, txn.date)
+                            {
+                                queue.push_back(Lot {
+                                    date: txn.date,
+                                    account: to,
+                                    principal: share,
+                                    interest: Decimal::ZERO,
+                                    accrued: Decimal::ZERO,
+                                });
+                            }
+                        }
+                    } else if *v > Decimal::ZERO {
+                        consume(queue, *v);
+                    }
+                }
+            }
+        }
+
+        let at = current.end_of_month();
+        let mut rows: BTreeMap<String, MakeupRow> = BTreeMap::new();
+        for (c, queue) in &queues {
+            for lot in queue {
+                let Some((principal, interest, accrued)) = (|| {
+                    Some((
+                        cents(self.convert(lot.principal, c, cur, at)?),
+                        cents(self.convert(lot.interest, c, cur, at)?),
+                        cents(self.convert(lot.accrued, c, cur, at)?),
+                    ))
+                })() else {
+                    continue;
+                };
+                let row =
+                    rows.entry(lot.account.clone()).or_insert_with(|| {
+                        MakeupRow {
+                            account: lot.account.clone(),
+                            label: self.category_label(&lot.account),
+                            owed: Decimal::ZERO,
+                            charged: Decimal::ZERO,
+                            interest: Decimal::ZERO,
+                            since: lot.date,
+                            count: 0,
+                        }
+                    });
+                row.owed += principal + interest;
+                row.charged += principal;
+                row.interest += accrued;
+                row.since = row.since.min(lot.date);
+                row.count += 1;
+            }
+        }
+        let mut rows: Vec<MakeupRow> = rows.into_values().collect();
+        rows.sort_by(|a, b| {
+            b.owed.cmp(&a.owed).then_with(|| a.account.cmp(&b.account))
+        });
+        let total = cents(rows.iter().map(|r| r.owed).sum());
+        (!rows.is_empty()).then_some(Makeup { rows, total })
+    }
+
+    /// Where a charge went: the transaction's other postings that were
+    /// debited, each taking its share of the rise. Nothing debited, or
+    /// nothing priceable, and the charge goes unexplained.
+    fn charge_split(
+        &self,
+        others: &[(&str, Decimal, &str)],
+        rise: Decimal,
+        currency: &str,
+        at: Day,
+    ) -> Vec<(String, Decimal)> {
+        let weights: Vec<(&str, Decimal)> = others
+            .iter()
+            .filter(|(_, v, _)| *v > Decimal::ZERO)
+            .filter_map(|(to, v, c)| {
+                Some((*to, self.convert(*v, c, currency, at)?))
+            })
+            .collect();
+        let total: Decimal = weights.iter().map(|(_, w)| *w).sum();
+        if total <= Decimal::ZERO {
+            return vec![(String::new(), rise)];
+        }
+        let mut shares = Vec::with_capacity(weights.len());
+        let mut given = Decimal::ZERO;
+        for (i, (to, weight)) in weights.iter().enumerate() {
+            let share = if i + 1 == weights.len() {
+                rise - given
+            } else {
+                cents(rise * *weight / total)
+            };
+            given += share;
+            shares.push((to.to_string(), share));
+        }
+        shares
+    }
+
+    /// The name a category is shown under.
+    fn category_label(&self, account: &str) -> String {
+        if account.is_empty() {
+            return "Other".to_string();
+        }
+        self.account(account).map_or_else(
+            || account.rsplit(':').next().unwrap_or(account).to_string(),
+            |a| a.label.clone(),
+        )
+    }
+
+    /// What could go on the debts beyond the usual payments, this
+    /// month and every month.
+    fn extra_of(
+        &self,
+        upcoming: &[Upcoming],
+        principal_paid: &BTreeMap<MonthKey, Decimal>,
+        cash: Decimal,
+        current: MonthKey,
+        basis: u32,
+        cur: &str,
+    ) -> Extra {
+        let due = cents(upcoming.iter().map(|u| u.amount).sum());
+        let window = self.window(current, basis);
+        let months: Vec<MonthKey> = window
+            .map(|(from, to)| {
+                std::iter::successors(Some(from), |m| Some(m.next()))
+                    .take_while(|m| *m <= to)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let cash_spend = self.cash_spend(&months, cur);
+        let mut spent: Vec<Decimal> = cash_spend
+            .values()
+            .copied()
+            .filter(|v| *v > Decimal::ZERO)
+            .collect();
+        let spend = if spent.is_empty() {
+            Decimal::ZERO
+        } else {
+            cents(median(&mut spent))
+        };
+        let buffer = self
+            .recurring_view(current, cur, Decimal::ZERO)
+            .monthly_fixed;
+        let now = cents(cash - due - spend - buffer).max(Decimal::ZERO);
+        let mut left: Vec<Decimal> = months
+            .iter()
+            .map(|m| {
+                self.net_flow(*m, cur)
+                    - principal_paid.get(m).copied().unwrap_or_default()
+            })
+            .collect();
+        let monthly = if left.is_empty() {
+            Decimal::ZERO
+        } else {
+            cents(median(&mut left)).max(Decimal::ZERO)
+        };
+        Extra {
+            cash,
+            due,
+            spend,
+            buffer,
+            now,
+            monthly,
+        }
+    }
+
+    /// Spending paid straight from cash in each of `months`: the
+    /// expenses in transactions that touch a budget account and no
+    /// liability. What goes on a card is paid when the card is.
+    fn cash_spend(
+        &self,
+        months: &[MonthKey],
+        cur: &str,
+    ) -> BTreeMap<MonthKey, Decimal> {
+        let mut spend: BTreeMap<MonthKey, Decimal> =
+            months.iter().map(|m| (*m, Decimal::ZERO)).collect();
+        let (Some(first), Some(last)) = (months.first(), months.last()) else {
+            return spend;
+        };
+        for txn in &self.txns {
+            let month = MonthKey::new(txn.date.0, txn.date.1);
+            if month < *first || month > *last {
+                continue;
+            }
+            let on_credit = txn
+                .postings
+                .iter()
+                .any(|p| p.account.starts_with("Liabilities:"));
+            let from_cash = txn.postings.iter().any(|p| {
+                p.account.starts_with("Assets:")
+                    && self
+                        .account(&p.account)
+                        .is_some_and(|a| a.kind == AccountKind::Budget)
+            });
+            if on_credit || !from_cash {
+                continue;
+            }
+            let at = month.end_of_month();
+            let expenses: Decimal = txn
+                .postings
+                .iter()
+                .filter(|p| p.account.starts_with("Expenses:"))
+                .flat_map(|p| p.amounts.iter())
+                .filter_map(|(v, c)| self.convert(*v, c, cur, at))
+                .sum();
+            *spend.entry(month).or_default() += expenses;
+        }
+        for v in spend.values_mut() {
+            *v = cents(*v);
+        }
+        spend
+    }
+
+    /// Income less expenses in one month, converted at its end. Both
+    /// sit on the same side of the ledger's sign: income is negative,
+    /// spending positive, so what is left is the negative of their sum.
+    fn net_flow(&self, month: MonthKey, cur: &str) -> Decimal {
+        let at = month.end_of_month();
+        let mut unpriced = BTreeSet::new();
+        let mut net = Decimal::ZERO;
+        for info in self.accounts() {
+            if !info.account.starts_with("Income:")
+                && !info.account.starts_with("Expenses:")
+            {
+                continue;
+            }
+            let sums = self.sums(&info.account, month);
+            net -= self.convertible(sums, cur, at, &mut unpriced);
+        }
+        cents(net)
     }
 
     /// Interest received this month and over the window, from the
@@ -878,6 +1260,131 @@ fn names_interest(account: &str) -> bool {
 
 fn is_interest_expense(account: &str) -> bool {
     account.starts_with("Expenses:") && names_interest(account)
+}
+
+/// One charge on a card, as much of it as is still unpaid.
+struct Lot {
+    date: Day,
+    /// Where the charge went.
+    account: String,
+    /// The charge itself, still unpaid.
+    principal: Decimal,
+    /// Interest on it, still unpaid.
+    interest: Decimal,
+    /// Interest on it so far, paid or not.
+    accrued: Decimal,
+}
+
+impl Lot {
+    fn left(&self) -> Decimal {
+        self.principal + self.interest
+    }
+}
+
+/// Land an interest charge on every open lot in proportion to what is
+/// left of it, the last lot taking the rounding.
+fn spread(queue: &mut VecDeque<Lot>, interest: Decimal) {
+    let total: Decimal = queue.iter().map(Lot::left).sum();
+    if total <= Decimal::ZERO {
+        return;
+    }
+    let last = queue.len() - 1;
+    let mut given = Decimal::ZERO;
+    for (i, lot) in queue.iter_mut().enumerate() {
+        let share = if i == last {
+            interest - given
+        } else {
+            cents(interest * lot.left() / total)
+        };
+        given += share;
+        lot.interest += share;
+        lot.accrued += share;
+    }
+}
+
+/// Pay the oldest lots first, each one's interest before its charge.
+fn consume(queue: &mut VecDeque<Lot>, mut amount: Decimal) {
+    while amount > Decimal::ZERO {
+        let Some(lot) = queue.front_mut() else {
+            return;
+        };
+        let interest = amount.min(lot.interest);
+        lot.interest -= interest;
+        amount -= interest;
+        let principal = amount.min(lot.principal);
+        lot.principal -= principal;
+        amount -= principal;
+        if lot.left() <= Decimal::ZERO {
+            queue.pop_front();
+        }
+    }
+}
+
+/// The complete months of the trailing window on a carried card, and
+/// the pace its newest few set.
+fn treadmill_of(
+    w: &Walk,
+    current: MonthKey,
+    basis: u32,
+    owed: Decimal,
+    rate: Decimal,
+) -> Option<Treadmill> {
+    let month_of = |d: Day| MonthKey::new(d.0, d.1);
+    let first = month_of(w.steps.first()?.date);
+    let from = current.minus(basis.max(1)).max(first);
+    let to = current.prev();
+    let sum_in = |xs: &[(Day, Decimal)], month: MonthKey| -> Decimal {
+        xs.iter()
+            .filter(|(d, _)| month_of(*d) == month)
+            .map(|(_, v)| *v)
+            .sum()
+    };
+    let months: Vec<TreadmillMonth> =
+        std::iter::successors(Some(from), |m| Some(m.next()))
+            .take_while(|m| *m <= to)
+            .map(|month| {
+                let interest = sum_in(&w.interest, month);
+                let charges =
+                    (sum_in(&w.charges, month) - interest).max(Decimal::ZERO);
+                let payments = w
+                    .payments
+                    .iter()
+                    .filter(|(p, _)| month_of(p.date) == month)
+                    .map(|(p, _)| p.total)
+                    .sum();
+                TreadmillMonth {
+                    month,
+                    charges: cents(charges),
+                    payments: cents(payments),
+                    interest: cents(interest),
+                }
+            })
+            .collect();
+    if months.is_empty() {
+        return None;
+    }
+    let recent: Vec<&TreadmillMonth> =
+        months.iter().rev().take(PACE_MONTHS).collect();
+    let pace = recent.len();
+    let charged: Decimal = recent.iter().map(|m| m.charges).sum();
+    let paid: Decimal = recent.iter().map(|m| m.payments).sum();
+    let net = cents((paid - charged) / Decimal::from(pace as u32));
+    let payoff = (net > Decimal::ZERO)
+        .then(|| amortize(owed, rate, net))
+        .flatten()
+        .map(|plan| Payoff {
+            months: plan.months,
+            month: (0..plan.months).fold(current, |m, _| m.next()),
+            interest: plan.interest,
+        });
+    Some(Treadmill {
+        months,
+        pace: pace as u32,
+        charged: cents(charged),
+        paid: cents(paid),
+        net,
+        payoff,
+    })
 }
 
 fn amount_in(balances: &[(String, Decimal)], currency: &str) -> Decimal {

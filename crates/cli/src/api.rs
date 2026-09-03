@@ -19,7 +19,8 @@ use axum::{Json, Router};
 use bean_core::model::{AccountKind, Day, Ledger, MonthKey, Txn};
 use bean_core::query::{AccountRow, CategoryRow, Group};
 use bean_core::reports::{
-    Debt, DebtKind, FireScenario, Mover, Notice, NoticeKind, Payee, Position,
+    Debt, DebtKind, FireScenario, Mover, Notice, NoticeKind, Payee, Payoff,
+    Position,
 };
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
@@ -705,12 +706,30 @@ async fn liabilities(
             "covered": view.cover.covered,
             "after": num(view.cover.after),
         },
+        "extra": {
+            "cash": num(view.extra.cash),
+            "due": num(view.extra.due),
+            "spend": num(view.extra.spend),
+            "buffer": num(view.extra.buffer),
+            "now": num(view.extra.now),
+            "monthly": num(view.extra.monthly),
+        },
         "upcoming": upcoming,
         "notices": notices,
         "debts": debts,
         "beaten": beaten,
         "unpriced": view.unpriced,
     })))
+}
+
+fn payoff_json(payoff: Option<&Payoff>) -> Value {
+    payoff.map_or(Value::Null, |p| {
+        json!({
+            "months": p.months,
+            "month": p.month.to_string(),
+            "interest": num(p.interest),
+        })
+    })
 }
 
 fn debt_json(d: &Debt) -> Value {
@@ -742,12 +761,46 @@ fn debt_json(d: &Debt) -> Value {
             })
         })
         .collect();
-    let payoff = d.payoff.as_ref().map_or(Value::Null, |p| {
+    let payoff = payoff_json(d.payoff.as_ref());
+    let treadmill = d.treadmill.as_ref().map_or(Value::Null, |t| {
+        let months: Vec<Value> = t
+            .months
+            .iter()
+            .map(|m| {
+                json!({
+                    "month": m.month.to_string(),
+                    "charges": num(m.charges),
+                    "payments": num(m.payments),
+                    "interest": num(m.interest),
+                })
+            })
+            .collect();
         json!({
-            "months": p.months,
-            "month": p.month.to_string(),
-            "interest": num(p.interest),
+            "months": months,
+            "pace": t.pace,
+            "charged": num(t.charged),
+            "paid": num(t.paid),
+            "net": num(t.net),
+            "payoff": payoff_json(t.payoff.as_ref()),
         })
+    });
+    let makeup = d.makeup.as_ref().map_or(Value::Null, |m| {
+        let rows: Vec<Value> = m
+            .rows
+            .iter()
+            .map(|r| {
+                json!({
+                    "account": r.account,
+                    "label": r.label,
+                    "owed": num(r.owed),
+                    "charged": num(r.charged),
+                    "interest": num(r.interest),
+                    "since": format_day(r.since),
+                    "count": r.count,
+                })
+            })
+            .collect();
+        json!({ "rows": rows, "total": num(m.total) })
     });
     let cycle = d.cycle.as_ref().map_or(Value::Null, |c| {
         json!({
@@ -801,6 +854,8 @@ fn debt_json(d: &Debt) -> Value {
         "trail": trail,
         "payoff": payoff,
         "cycle": cycle,
+        "treadmill": treadmill,
+        "makeup": makeup,
     })
 }
 

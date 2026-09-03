@@ -1,0 +1,156 @@
+option "title" "Liabilities, carried"
+option "operating_currency" "USD"
+
+; A store card carried for months while the shopping keeps landing on
+; it: what the balance is made of and since when, what each part has
+; cost, whether the payments are outrunning the charges, and how much
+; cash is really spare to throw at it. The card charges 2% a month on
+; the first; the shopping lands on the tenth; 300 goes off on the
+; twentieth. Salary on the first, rent on the second, both in cash.
+
+2026-01-01 open Assets:Checking               USD
+2026-01-01 open Liabilities:Card:Store        USD
+  name: "Store Card"
+2026-01-01 open Expenses:Financial:Interest   USD
+2026-01-01 open Expenses:Food:Groceries       USD
+  name: "Groceries"
+2026-01-01 open Expenses:Home:Furnishing      USD
+  name: "Furnishing"
+2026-01-01 open Expenses:Home:Rent            USD
+2026-01-01 open Income:Salary                 USD
+2026-01-01 open Equity:Opening                USD
+
+2026-01-01 * "opening"
+  Assets:Checking                          6000.00 USD
+  Equity:Opening
+
+; ---- January: a sofa and the shopping ----
+
+2026-01-01 * "Acme" "salary"
+  Income:Salary                           -4000.00 USD
+  Assets:Checking
+
+2026-01-02 * "Landlord" "rent"
+  Expenses:Home:Rent                       1500.00 USD
+  Assets:Checking
+
+2026-01-10 * "sofa"
+  Expenses:Home:Furnishing                 1200.00 USD
+  Liabilities:Card:Store
+
+2026-01-15 * "groceries"
+  Expenses:Food:Groceries                   150.00 USD
+  Liabilities:Card:Store
+
+2026-01-20 * "card payment"
+  Liabilities:Card:Store                    300.00 USD
+  Assets:Checking
+
+; ---- February ----
+
+2026-02-01 * "Acme" "salary"
+  Income:Salary                           -4000.00 USD
+  Assets:Checking
+
+2026-02-01 * "interest"
+  Expenses:Financial:Interest                21.00 USD
+  Liabilities:Card:Store
+
+2026-02-02 * "Landlord" "rent"
+  Expenses:Home:Rent                       1500.00 USD
+  Assets:Checking
+
+2026-02-10 * "groceries"
+  Expenses:Food:Groceries                   150.00 USD
+  Liabilities:Card:Store
+
+2026-02-20 * "card payment"
+  Liabilities:Card:Store                    300.00 USD
+  Assets:Checking
+
+; ---- March ----
+
+2026-03-01 * "Acme" "salary"
+  Income:Salary                           -4000.00 USD
+  Assets:Checking
+
+2026-03-01 * "interest"
+  Expenses:Financial:Interest                18.42 USD
+  Liabilities:Card:Store
+
+2026-03-02 * "Landlord" "rent"
+  Expenses:Home:Rent                       1500.00 USD
+  Assets:Checking
+
+2026-03-10 * "groceries"
+  Expenses:Food:Groceries                   150.00 USD
+  Liabilities:Card:Store
+
+2026-03-20 * "card payment"
+  Liabilities:Card:Store                    300.00 USD
+  Assets:Checking
+
+; ---- April ----
+
+2026-04-01 * "Acme" "salary"
+  Income:Salary                           -4000.00 USD
+  Assets:Checking
+
+2026-04-01 * "interest"
+  Expenses:Financial:Interest                15.79 USD
+  Liabilities:Card:Store
+
+2026-04-02 * "Landlord" "rent"
+  Expenses:Home:Rent                       1500.00 USD
+  Assets:Checking
+
+2026-04-10 * "groceries"
+  Expenses:Food:Groceries                   150.00 USD
+  Liabilities:Card:Store
+
+2026-04-20 * "card payment"
+  Liabilities:Card:Store                    300.00 USD
+  Assets:Checking
+
+; ---- May: the shopping, and shelves for the sofa ----
+
+2026-05-01 * "Acme" "salary"
+  Income:Salary                           -4000.00 USD
+  Assets:Checking
+
+2026-05-01 * "interest"
+  Expenses:Financial:Interest                13.10 USD
+  Liabilities:Card:Store
+
+2026-05-02 * "Landlord" "rent"
+  Expenses:Home:Rent                       1500.00 USD
+  Assets:Checking
+
+2026-05-10 * "groceries"
+  Expenses:Food:Groceries                   150.00 USD
+  Liabilities:Card:Store
+
+2026-05-12 * "shelves"
+  Expenses:Home:Furnishing                  250.00 USD
+  Liabilities:Card:Store
+
+2026-05-20 * "card payment"
+  Liabilities:Card:Store                    300.00 USD
+  Assets:Checking
+
+; ---- June, so far ----
+
+2026-06-01 * "Acme" "salary"
+  Income:Salary                           -4000.00 USD
+  Assets:Checking
+
+2026-06-01 * "interest"
+  Expenses:Financial:Interest                15.37 USD
+  Liabilities:Card:Store
+
+2026-06-02 * "Landlord" "rent"
+  Expenses:Home:Rent                       1500.00 USD
+  Assets:Checking
+
+2026-06-10 balance Liabilities:Card:Store   -783.68 USD
+2026-06-10 balance Assets:Checking         18500.00 USD

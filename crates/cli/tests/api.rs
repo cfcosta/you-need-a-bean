@@ -814,6 +814,72 @@ async fn liabilities_endpoint_shapes_the_debts() {
 }
 
 #[tokio::test]
+async fn liabilities_endpoint_says_what_is_carried_and_what_is_spare() {
+    let app = app_at("reports/liabilities-carried", (2026, 6, 10));
+    let (status, body) = get_at(app, "/api/liabilities?basis=6").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        body["extra"],
+        json!({
+            "cash": 19500.0,
+            "due": 300.0,
+            "spend": 1500.0,
+            "buffer": 1500.0,
+            "now": 16200.0,
+            "monthly": 2029.0,
+        })
+    );
+    let store = &body["debts"][0];
+    assert_eq!(store["account"], json!("Liabilities:Card:Store"));
+    let treadmill = &store["treadmill"];
+    assert_eq!(treadmill["months"].as_array().unwrap().len(), 5);
+    assert_eq!(
+        treadmill["months"][0],
+        json!({ "month": "2026-01", "charges": 1350.0, "payments": 300.0, "interest": 0.0 })
+    );
+    assert_eq!(treadmill["pace"], json!(3));
+    assert_eq!(treadmill["charged"], json!(700.0));
+    assert_eq!(treadmill["paid"], json!(900.0));
+    assert_eq!(treadmill["net"], json!(66.67));
+    assert_eq!(treadmill["payoff"]["months"], json!(14));
+    assert_eq!(treadmill["payoff"]["month"], json!("2027-08"));
+    let makeup = &store["makeup"];
+    assert_eq!(makeup["total"], json!(783.68));
+    assert_eq!(
+        makeup["rows"][0],
+        json!({
+            "account": "Expenses:Food:Groceries",
+            "label": "Groceries",
+            "owed": 528.68,
+            "charged": 509.25,
+            "interest": 28.61,
+            "since": "2026-02-10",
+            "count": 4,
+        })
+    );
+    assert_eq!(makeup["rows"][1]["label"], json!("Furnishing"));
+
+    // A loan has neither; a card that grows has a treadmill with no
+    // end to it.
+    let app = app_at("reports/liabilities", (2026, 2, 20));
+    let (_, body) = get_at(app, "/api/liabilities?basis=6").await;
+    let debts = body["debts"].as_array().unwrap();
+    let car = debts
+        .iter()
+        .find(|d| d["account"] == json!("Liabilities:Loan:Car"))
+        .unwrap();
+    assert_eq!(car["treadmill"], json!(null));
+    assert_eq!(car["makeup"], json!(null));
+    let store = debts
+        .iter()
+        .find(|d| d["account"] == json!("Liabilities:Card:Store"))
+        .unwrap();
+    assert_eq!(store["treadmill"]["net"], json!(-80.0));
+    assert_eq!(store["treadmill"]["payoff"], json!(null));
+    assert_eq!(body["extra"]["monthly"], json!(0.0));
+}
+
+#[tokio::test]
 async fn liabilities_endpoint_carries_what_the_ledger_states() {
     let app = app_at("reports/liabilities-meta", (2026, 9, 2));
     let (status, body) = get_at(app, "/api/liabilities?basis=6").await;

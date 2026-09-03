@@ -28,8 +28,9 @@ pub use income::{IncomeSource, IncomeView};
 pub use investments::{AssetClass, InvestmentsView, Position};
 pub use liabilities::{
     Amortization, Beaten, Collateral, Cover, Cycle, Debt, DebtKind, DebtPoint,
-    Foreign, LiabilitiesView, Notice, NoticeKind, Payment, Payoff, TrailPoint,
-    Upcoming, amortize, debt_kind,
+    Extra, Foreign, LiabilitiesView, Makeup, MakeupRow, Notice, NoticeKind,
+    Payment, Payoff, TrailPoint, Treadmill, TreadmillMonth, Upcoming, amortize,
+    debt_kind,
 };
 pub use movers::{Mover, MoversView};
 pub use payees::{Payee, PayeesView};

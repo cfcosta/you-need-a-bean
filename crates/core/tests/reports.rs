@@ -1561,3 +1561,206 @@ fn a_card_paid_in_full_is_expected_to_pay_what_is_on_it() {
 fn the_view_says_what_return_it_measures_debt_against() {
     assert_eq!(annotated().assumed_return, dec("0.05"));
 }
+
+/// The carried fixture, on the tenth of June.
+fn carried() -> LiabilitiesView {
+    fixture("liabilities-carried").liabilities_view((2026, 6, 10), 6, "USD")
+}
+
+#[test]
+fn a_carried_card_says_what_its_balance_is_made_of() {
+    let view = carried();
+    let store = debt(&view, "Liabilities:Card:Store");
+    assert_eq!(store.owed, dec("783.68"));
+    assert_eq!(store.cycle.as_ref().unwrap().carried, Some(dec("355.21")));
+    let makeup = store
+        .makeup
+        .as_ref()
+        .expect("a carried card is made of something");
+    assert_eq!(makeup.total, dec("783.68"));
+    // Payments clear the oldest charges first, so the sofa is long gone
+    // and what is left is the shopping since February, then May's
+    // shelves. Interest lands on every open charge in proportion, and
+    // a charge's interest is paid before the charge itself.
+    let rows: Vec<(&str, &str, Decimal, Decimal, Decimal, Day, usize)> = makeup
+        .rows
+        .iter()
+        .map(|r| {
+            (
+                r.account.as_str(),
+                r.label.as_str(),
+                r.owed,
+                r.charged,
+                r.interest,
+                r.since,
+                r.count,
+            )
+        })
+        .collect();
+    assert_eq!(
+        rows,
+        vec![
+            (
+                "Expenses:Food:Groceries",
+                "Groceries",
+                dec("528.68"),
+                dec("509.25"),
+                dec("28.61"),
+                (2026, 2, 10),
+                4
+            ),
+            (
+                "Expenses:Home:Furnishing",
+                "Furnishing",
+                dec("255.00"),
+                dec("250.00"),
+                dec("5.00"),
+                (2026, 5, 12),
+                1
+            ),
+        ]
+    );
+
+    // A loan, and a card paid in full, have no such story.
+    let view = liabilities((2026, 2, 20), 6);
+    assert!(debt(&view, "Liabilities:Loan:Car").makeup.is_none());
+    assert!(debt(&view, "Liabilities:Card:Everyday").makeup.is_none());
+    // The store card there carries 140 of food from November.
+    let store = debt(&view, "Liabilities:Card:Store");
+    let makeup = store.makeup.as_ref().unwrap();
+    assert_eq!(makeup.total, dec("344.80"));
+    assert_eq!(makeup.rows.len(), 1);
+    assert_eq!(makeup.rows[0].charged, dec("340.00"));
+    assert_eq!(makeup.rows[0].interest, dec("4.80"));
+    assert_eq!(makeup.rows[0].since, (2025, 11, 5));
+}
+
+#[test]
+fn a_carried_card_is_measured_on_the_treadmill() {
+    let view = carried();
+    let store = debt(&view, "Liabilities:Card:Store");
+    assert_eq!(store.rate, Some(dec("0.2400")));
+    assert_eq!(store.payment, Some(dec("300.00")));
+    // At 300 a month with nothing new on it, three months.
+    assert_eq!(store.payoff.as_ref().map(|p| p.months), Some(3));
+
+    let treadmill = store.treadmill.as_ref().expect("a carried card runs");
+    let months: Vec<(String, Decimal, Decimal, Decimal)> = treadmill
+        .months
+        .iter()
+        .map(|t| (t.month.to_string(), t.charges, t.payments, t.interest))
+        .collect();
+    // Every complete month in the window; interest is the bank's, not
+    // shopping.
+    assert_eq!(
+        months,
+        vec![
+            (
+                "2026-01".to_string(),
+                dec("1350.00"),
+                dec("300.00"),
+                Decimal::ZERO
+            ),
+            (
+                "2026-02".to_string(),
+                dec("150.00"),
+                dec("300.00"),
+                dec("21.00")
+            ),
+            (
+                "2026-03".to_string(),
+                dec("150.00"),
+                dec("300.00"),
+                dec("18.42")
+            ),
+            (
+                "2026-04".to_string(),
+                dec("150.00"),
+                dec("300.00"),
+                dec("15.79")
+            ),
+            (
+                "2026-05".to_string(),
+                dec("400.00"),
+                dec("300.00"),
+                dec("13.10")
+            ),
+        ]
+    );
+    // The pace is the last three complete months: 900 paid, 700
+    // charged back, so the card really shrinks by a third of the
+    // difference each month.
+    assert_eq!(treadmill.pace, 3);
+    assert_eq!(treadmill.paid, dec("900.00"));
+    assert_eq!(treadmill.charged, dec("700.00"));
+    assert_eq!(treadmill.net, dec("66.67"));
+    let honest = treadmill.payoff.as_ref().expect("66.67 beats the interest");
+    assert_eq!(honest.months, 14);
+    assert_eq!(honest.month, m("2027-08"));
+    assert_eq!(
+        honest.interest,
+        amortize(dec("783.68"), dec("0.24"), dec("66.67"))
+            .unwrap()
+            .interest
+    );
+
+    // A shorter basis looks at fewer months.
+    let view = fixture("liabilities-carried").liabilities_view(
+        (2026, 6, 10),
+        3,
+        "USD",
+    );
+    let treadmill = debt(&view, "Liabilities:Card:Store")
+        .treadmill
+        .as_ref()
+        .unwrap();
+    assert_eq!(treadmill.months.len(), 3);
+    assert_eq!(treadmill.months[0].month, m("2026-03"));
+    assert_eq!(treadmill.net, dec("66.67"));
+
+    // Nothing to measure on a loan or a card that is cleared.
+    let view = liabilities((2026, 2, 20), 6);
+    assert!(debt(&view, "Liabilities:Loan:Car").treadmill.is_none());
+    assert!(debt(&view, "Liabilities:Card:Everyday").treadmill.is_none());
+    // The store card there is charged 100 and pays 20: it grows, and
+    // no payoff comes of that pace.
+    let treadmill = debt(&view, "Liabilities:Card:Store")
+        .treadmill
+        .as_ref()
+        .unwrap();
+    assert_eq!(treadmill.pace, 3);
+    assert_eq!(treadmill.charged, dec("300.00"));
+    assert_eq!(treadmill.paid, dec("60.00"));
+    assert_eq!(treadmill.net, dec("-80.00"));
+    assert!(treadmill.payoff.is_none());
+}
+
+#[test]
+fn the_view_works_out_what_is_safe_to_pay_extra() {
+    let view = carried();
+    let extra = &view.extra;
+    // Cash at the month's end, less the payments due in the next 31
+    // days, a typical month of what is paid in cash rather than on a
+    // card, and a month of the fixed nut kept back.
+    assert_eq!(extra.cash, dec("19500.00"));
+    assert_eq!(extra.cash, view.cover.cash);
+    assert_eq!(extra.due, dec("300.00"));
+    assert_eq!(extra.spend, dec("1500.00"));
+    assert_eq!(extra.buffer, dec("1500.00"));
+    assert_eq!(extra.now, dec("16200.00"));
+    // What a typical month leaves over once everything, the card
+    // payment included, has been paid: the median over the window.
+    assert_eq!(extra.monthly, dec("2029.00"));
+
+    // Nothing is paid in cash in the plain fixture, the months run at
+    // a loss, and what is left is never less than nothing.
+    let view = liabilities((2026, 2, 20), 6);
+    let extra = &view.extra;
+    assert_eq!(extra.cash, dec("2243.00"));
+    assert_eq!(extra.due, dec("520.00"));
+    assert_eq!(extra.spend, Decimal::ZERO);
+    assert_eq!(extra.now, extra.cash - extra.due - extra.buffer);
+    assert_eq!(extra.monthly, Decimal::ZERO);
+    let broke = fixture("income").liabilities_view((2026, 4, 15), 6, "USD");
+    assert!(broke.extra.now >= Decimal::ZERO);
+}
