@@ -9,6 +9,8 @@
  * CDP_PORT picks the browser (default 9333); BASE picks the server
  * (default http://localhost:2380).
  */
+import { collide } from "./collide";
+
 const [path, ...widthArgs] = process.argv.slice(2);
 const WIDTHS = widthArgs.length ? widthArgs.map(Number) : [390, 768];
 const BASE = process.env.BASE ?? "http://localhost:2380";
@@ -38,6 +40,9 @@ await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-sch
 // Runs in the page: leaf text boxes are the unit, because a wrapper
 // that contains an overflowing child is not itself the bug.
 const AUDIT = `(() => {
+  // Lifted in verbatim from collide.ts, where it is unit-tested;
+  // the audit runs in the page and cannot import.
+  ${collide.toString()}
   const vw = document.documentElement.clientWidth;
   const leaves = [];
   for (const el of document.querySelectorAll('body *')) {
@@ -53,7 +58,8 @@ const AUDIT = `(() => {
     if (!ownText) continue;
     const r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) continue;
-    leaves.push({ el, r, txt: ownText.slice(0, 30) });
+    // One box per line: text that wraps is not one rectangle.
+    leaves.push({ el, r, rects: [...el.getClientRects()], txt: ownText.slice(0, 30) });
   }
   const name = (el) => el.tagName.toLowerCase() +
     (typeof el.className === 'string' && el.className.trim()
@@ -74,14 +80,13 @@ const AUDIT = `(() => {
     for (let j = i + 1; j < leaves.length; j++) {
       const a = leaves[i], b = leaves[j];
       if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
-      const ax = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
-      const ay = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
-      if (ax > 2 && ay > 2) {
+      const ax = collide(a.rects, b.rects);
+      if (ax > 0) {
         const pa = getComputedStyle(a.el).position, pb = getComputedStyle(b.el).position;
         // Deliberate stacking (a label over a bar) is positioned; flow
         // text that collides is not.
         if (pa !== 'static' || pb !== 'static') continue;
-        overlap.push({ a: a.txt, b: b.txt, aSel: name(a.el), bSel: name(b.el), by: Math.round(ax) });
+        overlap.push({ a: a.txt, b: b.txt, aSel: name(a.el), bSel: name(b.el), by: ax });
       }
     }
   }
