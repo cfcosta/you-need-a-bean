@@ -18,11 +18,21 @@ export interface Summary {
   reload_error: string | null;
 }
 
+/** What a category costs on the months the spending actually lands,
+ * as opposed to spread across every month of the window. */
+export interface WhenSpent {
+  amount: number;
+  months: number;
+}
+
 export interface CategoryRow {
   account: string;
   label: string;
   spent: number;
   avg: number | null;
+  /** What the same window costs on the months the spending lands, and
+   * how many of them did. Null when it never landed inside one. */
+  when_spent: WhenSpent | null;
   ratio: number | null;
   status: Status | null;
   split: Record<string, number>;
@@ -50,6 +60,8 @@ export interface MonthView {
   income: number;
   spent: number;
   typical: number | null;
+  /** How many months `typical` was averaged over; 0 without a window. */
+  window_months: number;
   groups: Group[];
   accounts: { budget: AccountRow[]; tracking: AccountRow[] };
 }
@@ -91,9 +103,12 @@ export interface CategoryView {
   label: string;
   spent: number;
   avg: number | null;
+  when_spent: WhenSpent | null;
   ratio: number | null;
   status: Status | null;
   window: [string, string] | null;
+  /** How many months the window covers; 0 when there is none. */
+  window_months: number;
   history: { month: string; spent: number }[];
   split: Record<string, number>;
   txns: Txn[];

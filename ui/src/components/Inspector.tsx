@@ -1,4 +1,5 @@
 import type { CategoryView, Doc, Txn } from "../api";
+import { lands } from "../budget";
 import { fmt, fmtCode, monthName, monthShort, windowLabel } from "../format";
 import { postingFlow } from "../postings";
 import { displayStatus } from "./BudgetTable";
@@ -393,6 +394,7 @@ function InspectorBody({
 }) {
   const group = view.account.split(":")[1] ?? "";
   const st = displayStatus(view);
+  const landed = lands(view.when_spent, view.window_months);
   const left = view.avg != null ? view.avg - view.spent : null;
   const meterPct =
     view.avg != null && view.avg > 0
@@ -429,6 +431,20 @@ function InspectorBody({
           {view.avg != null ? fmt(view.avg, cur) : "—"}
           <span className="target-sub"> / month</span>
         </div>
+        {landed != null && (
+          <div
+            className="target-lands"
+            title={`${fmt(landed.amount, cur)} on each of the ${landed.months} months it landed in, out of the last ${landed.of}`}
+          >
+            <span className="k">when it lands</span>
+            <span className="v num">
+              {fmt(landed.amount, cur)}
+              <span className="of">
+                {landed.months}/{landed.of}
+              </span>
+            </span>
+          </div>
+        )}
         {view.window == null && (
           <div className="target-sub">no earlier months to average yet</div>
         )}

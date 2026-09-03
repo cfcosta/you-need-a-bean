@@ -66,6 +66,14 @@ watcher can come later).
   first activity month. Missing months inside the window count as 0.
   Empty window → no target (UI shows "—", no percentage), and so is an
   average of zero: there is nothing to measure the month against.
+- **When it lands** = the mean of the window months whose spend was
+  above 0, with how many of them there were. It answers what a category
+  costs when the money actually goes out, where the average spreads the
+  same money over the quiet months too; a refunded month is not a month
+  it landed in, though the average still lets the refund pull it down.
+  The table shows it only where the two differ — a category that lands
+  every month would just print its average twice — so the column is
+  blank down the regular rows and filled down the lumpy ones.
 - **Status**: ratio r = spent/avg; `over` if r > 1, `warn` if r > 0.85,
   else `good` (mockup thresholds).
 - **Conversion** to the display currency at date D (end of selected month):

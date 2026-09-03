@@ -220,6 +220,7 @@ async fn month_view(
         "income": num(view.income),
         "spent": num(view.spent),
         "typical": opt_num(view.typical),
+        "window_months": view.window_months,
         "groups": view.groups.iter().map(group_json).collect::<Vec<_>>(),
         "accounts": { "budget": budget, "tracking": tracking },
     })))
@@ -255,11 +256,13 @@ async fn category_view(
         "label": view.label,
         "spent": num(view.spent),
         "avg": opt_num(view.avg),
+        "when_spent": when_spent_json(view.when_spent),
         "ratio": ratio_json(view.ratio),
         "status": view.status.map_or(Value::Null, |s| json!(s.as_str())),
         "window": view.window.map_or(Value::Null, |(from, to)| {
             json!([from.to_string(), to.to_string()])
         }),
+        "window_months": view.window_months,
         "history": history,
         "split": amounts_json(&view.split),
         "txns": txns,
@@ -935,10 +938,20 @@ fn category_json(row: &CategoryRow) -> Value {
         "label": row.label,
         "spent": num(row.spent),
         "avg": opt_num(row.avg),
+        "when_spent": when_spent_json(row.when_spent),
         "ratio": ratio_json(row.ratio),
         "status": row.status.map_or(Value::Null, |s| json!(s.as_str())),
         "split": amounts_json(&row.split),
     })
+}
+
+/// What a month costs on the months the spending lands, and how many
+/// of the window's months those were. Null when it never landed.
+fn when_spent_json(when: Option<(Decimal, u32)>) -> Value {
+    when.map_or(
+        Value::Null,
+        |(amount, months)| json!({ "amount": num(amount), "months": months }),
+    )
 }
 
 /// How an account shows up in the sidebar, as the UI spells it.

@@ -90,6 +90,47 @@ fn typical_is_the_mean_of_every_window_month() {
 }
 
 #[test]
+fn what_a_month_costs_when_the_spending_actually_lands() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/outliers/main.beancount");
+    let outliers = Ledger::build(load(&path).unwrap());
+    let led = ledger();
+    let when = |l: &Ledger, account: &str, month: &str, basis: u32| {
+        l.when_spent(account, m(month), basis, "USD")
+            .map(|(d, n)| (d.round_dp(2), n))
+    };
+
+    // The server billed twice across a three-month window: 1,200 on
+    // the months it landed, 800 once the quiet one is averaged in.
+    assert_eq!(
+        when(&outliers, "Expenses:Old:Server", "2026-01", 12),
+        Some((dec("1200"), 2))
+    );
+    // Nothing was quiet in the vet's window, so landing and averaging
+    // are the same number and the page has no second figure to show.
+    assert_eq!(
+        when(&outliers, "Expenses:Spiky:Vet", "2026-03", 12),
+        Some((dec("300"), 5))
+    );
+    // A refund is not a month the spending landed in — only the one
+    // purchase counts — though it still drags the average down.
+    assert_eq!(
+        when(&outliers, "Expenses:Spiky:Gadgets", "2026-03", 3),
+        Some((dec("300"), 1))
+    );
+    // One rent inside four months of window.
+    assert_eq!(
+        when(&led, "Expenses:Home:Rent", "2026-04", 12),
+        Some((dec("500"), 1))
+    );
+    // It never landed, so there is no such month to price — where the
+    // average still answers zero.
+    assert_eq!(when(&led, "Expenses:Home:Rent", "2026-02", 3), None);
+    // No window at all, so neither figure exists.
+    assert_eq!(when(&led, "Expenses:Food:Groceries", "2025-12", 6), None);
+}
+
+#[test]
 fn table_sorts_on_trailing_year_spend_whatever_the_basis() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures/outliers/main.beancount");

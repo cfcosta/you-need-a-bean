@@ -91,9 +91,33 @@ async fn month_endpoint_shapes_groups_and_accounts() {
     assert_eq!(games["status"], json!("warn"));
     let rent = &body["groups"][2]["categories"][0];
     // No rent inside the window: it averages zero, and zero is no
-    // target to measure the month against.
+    // target to measure the month against. Nothing landed either, so
+    // there is no such month to price.
     assert_eq!(rent["avg"], json!(0.0));
     assert_eq!(rent["status"], Value::Null);
+    assert_eq!(rent["when_spent"], Value::Null);
+
+    // One month of window, and groceries landed in it, so the two
+    // figures are the same number.
+    assert_eq!(body["window_months"], json!(1));
+    assert_eq!(
+        groceries["when_spent"],
+        json!({"amount": 30.0, "months": 1})
+    );
+
+    // Widen it and they part: one 500 rent spread across four months
+    // averages 125, and still costs 500 on the month it lands.
+    let (_, wide) = get("/api/month/2026-04?basis=12").await;
+    assert_eq!(wide["window_months"], json!(4));
+    let rent = wide["groups"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|g| g["categories"].as_array().unwrap())
+        .find(|c| c["account"] == json!("Expenses:Home:Rent"))
+        .unwrap();
+    assert_eq!(rent["avg"], json!(125.0));
+    assert_eq!(rent["when_spent"], json!({"amount": 500.0, "months": 1}));
 
     let cash = &body["accounts"]["budget"][0];
     assert_eq!(cash["account"], json!("Assets:Cash"));

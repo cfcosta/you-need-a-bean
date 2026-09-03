@@ -1,4 +1,5 @@
 import type { CategoryRow, MonthView, Status } from "../api";
+import { lands } from "../budget";
 import { fmt, fmtCode, monthName, pctLabel, windowLabel } from "../format";
 
 /** The bullet bar spans 0..128% of the average; the notch sits at 100%. */
@@ -65,6 +66,7 @@ function Row({
   selected,
   cur,
   basis,
+  windowMonths,
   pacePos,
   day,
   daysIn,
@@ -76,11 +78,13 @@ function Row({
   selected: boolean;
   cur: string;
   basis: number;
+  windowMonths: number;
   pacePos: number | null;
   day: number;
   daysIn: number;
   onSelect: (account: string) => void;
 }) {
+  const l = lands(c.when_spent, windowMonths);
   const mixed = Object.keys(c.split).filter((k) => k !== cur);
   const fxTip = Object.entries(c.split)
     .map(([k, v]) => fmtCode(v, k))
@@ -97,6 +101,19 @@ function Row({
       </span>
       <span className="cell num dim">
         {c.avg != null ? fmt(c.avg, cur) : "—"}
+      </span>
+      <span className="cell num dim">
+        {l != null && (
+          <span
+            className="lands"
+            title={`${fmt(l.amount, cur)} on each of the ${l.months} months it landed in, out of the last ${l.of}`}
+          >
+            {fmt(l.amount, cur)}
+            <span className="of">
+              {l.months}/{l.of}
+            </span>
+          </span>
+        )}
       </span>
       <span className="cell num">
         {fmt(c.spent, cur)}
@@ -153,6 +170,14 @@ export function BudgetTable({
             Typical / mo
           </span>
         </div>
+        <div>
+          <span
+            className="hint"
+            title={`What it costs on the months it actually lands, with how many of the ${basis} it landed in. Blank when it lands every month and the two are the same number.`}
+          >
+            When it lands
+          </span>
+        </div>
         <div>Spent</div>
         <div>
           <span
@@ -184,6 +209,7 @@ export function BudgetTable({
                 selected={selected === solo.account}
                 cur={cur}
                 basis={basis}
+                windowMonths={view.window_months}
                 pacePos={pacePos}
                 day={view.day}
                 daysIn={view.days_in_month}
@@ -216,6 +242,7 @@ export function BudgetTable({
                 <span className="g-amt dim">
                   {g.avg != null ? fmt(g.avg, cur) : "—"}
                 </span>
+                <span className="g-amt" />
                 <span className="g-amt">{fmt(g.spent, cur)}</span>
                 <span className="g-amt">
                   {g.avg != null && g.avg > 0
@@ -233,6 +260,7 @@ export function BudgetTable({
                     selected={selected === c.account}
                     cur={cur}
                     basis={basis}
+                    windowMonths={view.window_months}
                     pacePos={pacePos}
                     day={view.day}
                     daysIn={view.days_in_month}

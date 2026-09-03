@@ -39,6 +39,10 @@ pub struct CategoryRow {
     /// The typical month: the mean spend across every month of the
     /// window; `None` when there is no window.
     pub avg: Option<Decimal>,
+    /// What the same window costs on the months the spending actually
+    /// lands, and how many of them did. Equal to `avg` when it lands
+    /// every month; `None` when there is no window or it never landed.
+    pub when_spent: Option<(Decimal, u32)>,
     /// spent / avg; `None` when there is no positive typical.
     pub ratio: Option<Decimal>,
     pub status: Option<Status>,
@@ -72,6 +76,9 @@ pub struct MonthView {
     /// What a normal whole month costs: the mean of the window
     /// months' total spend.
     pub typical: Option<Decimal>,
+    /// How many months that mean was taken over; 0 without a window.
+    /// The denominator every row's `when_spent` count is out of.
+    pub window_months: u32,
     pub groups: Vec<Group>,
     pub budget_accounts: Vec<AccountRow>,
     pub tracking_accounts: Vec<AccountRow>,
@@ -89,10 +96,14 @@ pub struct CategoryView<'a> {
     pub label: String,
     pub spent: Decimal,
     pub avg: Option<Decimal>,
+    /// See [`CategoryRow::when_spent`].
+    pub when_spent: Option<(Decimal, u32)>,
     pub ratio: Option<Decimal>,
     pub status: Option<Status>,
     /// The averaging window, when one exists.
     pub window: Option<(MonthKey, MonthKey)>,
+    /// How many months the window covers; 0 when there is none.
+    pub window_months: u32,
     /// The six months ending at the selected one.
     pub history: Vec<HistoryPoint>,
     pub split: Vec<(String, Decimal)>,
@@ -214,6 +225,49 @@ impl Ledger {
         }
         // `window` only hands back a range with a month in it.
         Some(total / Decimal::from(months))
+    }
+
+    /// What a month costs when the spending actually lands: the mean
+    /// of the window months that saw any, and how many did. A bill
+    /// paid twice a year reads its real size here, where `typical`
+    /// reads a sixth of it — the two answer different questions and
+    /// the page shows both. A refunded month is not a month it landed
+    /// in, though `typical` still lets the refund pull it down.
+    /// `None` when there is no window, or nothing landed inside one.
+    pub fn when_spent(
+        &self,
+        account: &str,
+        month: MonthKey,
+        basis: u32,
+        cur: &str,
+    ) -> Option<(Decimal, u32)> {
+        let (from, to) = self.window(month, basis)?;
+        let mut total = Decimal::ZERO;
+        let mut landed = 0u32;
+        let mut m = from;
+        while m <= to {
+            let spent = self.spent_converted(account, m, cur);
+            if spent > Decimal::ZERO {
+                total += spent;
+                landed += 1;
+            }
+            m = m.next();
+        }
+        (landed > 0).then(|| (total / Decimal::from(landed), landed))
+    }
+
+    /// How many months the window covers; 0 when there is none.
+    pub fn window_months(&self, month: MonthKey, basis: u32) -> u32 {
+        let Some((from, to)) = self.window(month, basis) else {
+            return 0;
+        };
+        let mut months = 0;
+        let mut m = from;
+        while m <= to {
+            months += 1;
+            m = m.next();
+        }
+        months
     }
 
     /// Total converted spend over an inclusive month range, each month
@@ -376,6 +430,7 @@ impl Ledger {
             income: cents(income),
             spent: groups.iter().map(|g| g.spent).sum(),
             typical,
+            window_months: self.window_months(month, basis),
             groups,
             budget_accounts,
             tracking_accounts,
@@ -409,9 +464,13 @@ impl Ledger {
             label: info.label.clone(),
             spent,
             avg,
+            when_spent: self
+                .when_spent(account, month, basis, cur)
+                .map(|(d, n)| (cents(d), n)),
             ratio,
             status,
             window: self.window(month, basis),
+            window_months: self.window_months(month, basis),
             history,
             split: self.split(account, month, cur),
             txns: self.txns(account, month),
@@ -527,6 +586,9 @@ impl Ledger {
             label: info.label.clone(),
             spent,
             avg,
+            when_spent: self
+                .when_spent(&info.account, month, basis, cur)
+                .map(|(d, n)| (cents(d), n)),
             ratio,
             status,
             split: self.split(&info.account, month, cur),
