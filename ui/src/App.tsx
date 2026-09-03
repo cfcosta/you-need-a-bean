@@ -445,10 +445,19 @@ export function App() {
           </linearGradient>
         </defs>
       </svg>
+      {/* Both drawers dim the page behind them, and a tap on the dim
+          shuts whichever is open. Below 1200 the inspector is a sheet
+          over the page rather than a column beside it, so without this
+          the only way out of it is one small ✕. Above 1200 the scrim is
+          display:none whatever this says, and the inspector is a column
+          that is not open or shut. */}
       <div
         id="scrim"
-        className={sidebarOpen ? "show" : ""}
-        onClick={() => setSidebarOpen(false)}
+        className={sidebarOpen || inspectorOpen ? "show" : ""}
+        onClick={() => {
+          setSidebarOpen(false);
+          setInspectorOpen(false);
+        }}
       />
       <div id="toast" role="status" aria-live="polite" className={toast != null ? "show" : ""}>
         {toast}

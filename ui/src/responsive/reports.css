@@ -1,0 +1,360 @@
+/* Mobile and tablet rules for the reports. Imported at the top of
+   index.css, so these land in the cascade *before* the base rules and
+   must out-specify them to win: every selector here is prefixed with an
+   id (#app, #topbar, …) that the element already sits under. */
+
+/* The liabilities page is a <section id="reports"> too, told apart by
+   the .debts it carries, and it borrows the independence card whole.
+   Everything below therefore says :not(.debts) or :not(.debt) out
+   loud, so the two pages cannot end up arguing over one declaration. */
+
+/* Several thresholds, because several different things go wrong at
+   different points. A row of figures stops fitting when the card falls
+   under about 380px of usable width, which is a 560px screen; the
+   independence card's own captions hold on to about 430px; a fold is
+   too small for a thumb at any size a hand holds; and a chart's
+   lettering is a matter of how far the drawing has been shrunk, which
+   keeps changing all the way down. */
+
+@media (max-width: 560px) {
+  /* Two stat columns of 140px with a 30px gutter between them ask for
+     310px, and a phone card has under 300 to give — which is the
+     eighteen pixels the pair used to hang over the edge by. Sharing
+     what there is and closing the gutter keeps all five figures
+     two-up, which is the arrangement that made them comparable. */
+  #app #reports:not(.debts) .fire:not(.debt) .fire-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 14px;
+  }
+
+  /* The three horizons are boxes of at least 150px, so side by side
+     they became a column of four-line blocks. Set as a rate against a
+     duration, with the date and the coasting figure beneath, each
+     costs two lines and the three still read down the card as one
+     series getting shorter. */
+  #app #reports:not(.debts) .fire:not(.debt) .fire-scenarios {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  #app #reports:not(.debts) .fire:not(.debt) .scenario {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 10px;
+    row-gap: 1px;
+    min-width: 0;
+    padding: 9px 12px;
+  }
+  #app #reports:not(.debts) .fire:not(.debt) .scenario .t {
+    text-align: right;
+  }
+  #app #reports:not(.debts) .fire:not(.debt) .scenario .eta {
+    grid-column: 2;
+    text-align: right;
+  }
+  #app #reports:not(.debts) .fire:not(.debt) .scenario .coast {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  /* The payee leaderboard is five columns of one line each, and at
+     this width the first of them fell to seventy pixels — room for
+     "Ridgeline" and not for "Properties". The name and the money it
+     came to take the top line between them, and the count, the bar and
+     the share sit underneath in the order they already had. */
+  #app #reports:not(.debts) .py-row {
+    grid-template-columns: auto minmax(40px, 1fr) auto;
+    grid-template-areas:
+      "name  name  amt"
+      "meta  track pct";
+    column-gap: 8px;
+    row-gap: 3px;
+  }
+  #app #reports:not(.debts) .py-row .py-name {
+    grid-area: name;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  #app #reports:not(.debts) .py-row .py-meta {
+    grid-area: meta;
+  }
+  #app #reports:not(.debts) .py-row .ic-track {
+    grid-area: track;
+  }
+  #app #reports:not(.debts) .py-row .py-amt {
+    grid-area: amt;
+  }
+  #app #reports:not(.debts) .py-row .py-pct {
+    grid-area: pct;
+  }
+
+  /* The income side has one column fewer and so still fits on a line;
+     it only needs its name column to stop being ninety-six fixed
+     pixels and become a share of whatever there is. */
+  #app #reports:not(.debts) .ic-row {
+    grid-template-columns: minmax(0, 1.3fr) minmax(36px, 1fr) auto auto;
+  }
+
+  /* A position is a ticker, the name behind it, its class, its value,
+     its share and its return: six things on one line, which left the
+     spelt-out name a dozen pixels to appear in. The value joins the
+     ticker on the first line because it is what the row is for; class,
+     share and return make a second line under it, and the name wraps
+     rather than vanishing into an ellipsis. */
+  #app #reports:not(.debts) .inv-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "name name amt"
+      "cls  pct  ret";
+    column-gap: 8px;
+    row-gap: 1px;
+    align-items: baseline;
+  }
+  #app #reports:not(.debts) .inv-row .inv-name {
+    grid-area: name;
+    flex-wrap: wrap;
+    column-gap: 6px;
+    row-gap: 0;
+  }
+  #app #reports:not(.debts) .inv-row .inv-name i {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+  }
+  #app #reports:not(.debts) .inv-row .inv-cls {
+    grid-area: cls;
+    justify-self: start;
+  }
+  #app #reports:not(.debts) .inv-row .inv-amt {
+    grid-area: amt;
+  }
+  #app #reports:not(.debts) .inv-row .inv-pct {
+    grid-area: pct;
+  }
+  #app #reports:not(.debts) .inv-row .inv-ret {
+    grid-area: ret;
+  }
+
+  /* A footnote is a dot, what the doubt is, what it rests on and how
+     much: the third of those is a sentence, and it was being cut off
+     after three words. It drops below the label, indented past the
+     dot, so the whole doubt can be read and the amount stays beside
+     the name it belongs to. */
+  #app #reports:not(.debts) .tr-row {
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "dot label  amt"
+      ".   detail detail";
+    column-gap: 9px;
+    row-gap: 2px;
+  }
+  #app #reports:not(.debts) .tr-row .tr-dot {
+    grid-area: dot;
+  }
+  #app #reports:not(.debts) .tr-row .tr-label {
+    grid-area: label;
+  }
+  #app #reports:not(.debts) .tr-row .tr-detail {
+    grid-area: detail;
+    white-space: normal;
+    overflow: visible;
+    line-height: 1.4;
+  }
+  #app #reports:not(.debts) .tr-row .tr-amt {
+    grid-area: amt;
+  }
+
+  /* The year's projection is a figure with a sentence trailing it. Set
+     narrow the sentence runs to three lines and the figure is stranded
+     at the head of the first, so the figure takes a line of its own
+     and the sentence explains it from underneath. */
+  #app #reports:not(.debts) .sn-pace .num {
+    display: block;
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+}
+
+/* The smallest phone still in hands is a little over three hundred
+   pixels, and there a column of the pair is a hundred and four wide:
+   room for four figures, not for "$ 2,678.80 / mo", which hung a
+   fifth of its length past the column. The last of the five stats is
+   alone on the bottom row anyway, so giving it the whole width costs
+   the grid nothing and gives the longest figure on the card twice the
+   room. Guarded on an odd count, because with an even one it has a
+   neighbour and the width is not going spare. */
+@media (max-width: 340px) {
+  #app #reports:not(.debts) .fire:not(.debt) .fire-stats > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 430px) {
+  /* The bar's three captions are its two ends and where you have got
+     to, and below four hundred pixels they no longer fit across. The
+     ends stay at the ends, which is what makes them captions, and the
+     progress drops to the middle of the line beneath. */
+  #app #reports:not(.debts) .fire:not(.debt) .fire-legend {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+    gap: 2px 12px;
+  }
+  #app #reports:not(.debts) .fire:not(.debt) .fire-legend > :nth-child(2) {
+    grid-area: 2 / 1 / 3 / 3;
+    justify-self: center;
+  }
+  #app #reports:not(.debts) .fire:not(.debt) .fire-legend > :nth-child(3) {
+    grid-area: 1 / 2;
+    justify-self: end;
+  }
+}
+
+/* What you saved, what the market did and what the pot returned are
+   three figures across, and the last of them carries a three-word
+   label: until each column can spare about a hundred and twenty-six
+   pixels — a five-hundred-pixel screen — that label turns over onto a
+   second line and drops its figure below the other two, leaving the
+   row of three reading as a step. The two halves of the movement stay
+   side by side, because that is the sum being shown, and the return
+   runs along underneath the pair it was earned on. */
+@media (max-width: 499px) {
+  #app #reports:not(.debts) .gr-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 14px;
+  }
+  #app #reports:not(.debts) .gr-stats > :nth-child(3) {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 9px;
+    border-top: 1px solid var(--line);
+  }
+  #app #reports:not(.debts) .gr-stats > :nth-child(3) .v {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Both folds are a line of small print, which is a fine target for a
+     cursor and a poor one for a thumb — and a tablet is held in the
+     hands too, so this reaches further up than the layout rules do.
+     They keep their type and take the height instead; the year's fold
+     takes it as air around its strip, so the row still lines up with
+     the ones above it. */
+  #app #reports:not(.debts) .pj-more {
+    min-height: 32px;
+    padding: 7px 0 6px;
+  }
+  #app #reports:not(.debts) .yr-row.other {
+    min-height: 32px;
+  }
+  #app #reports:not(.debts) .yr-fold {
+    min-height: 32px;
+    padding: 7px 0 6px;
+  }
+}
+
+/* The charts are drawn in their own coordinates and then squeezed into
+   whatever the card can spare, so a label written at 9.5 units comes
+   out at four physical pixels on a phone. Writing it larger is the only
+   cure, and the amount is exactly the amount the drawing has been
+   shrunk — which is a curve, not a staircase. Set in fixed steps the
+   lettering lurched: a label could lose a quarter of its height for the
+   sake of one more pixel of screen. Each band below therefore ramps the
+   size along a straight line that meets its neighbours at the seam, and
+   the last one meets the size the chart was drawn with, so the label
+   holds at about ten pixels on glass from the smallest phone all the
+   way up to the width where the drawing is life size and needs no help.
+
+   A card hands the chart the viewport less ninety pixels, which is what
+   lets the ramp be written against the viewport at all. The wide charts
+   are squeezed half again as hard as the narrow ones and so want their
+   own figures; the viewBox is the only thing in the markup that tells
+   the two families apart. */
+@media (max-width: 460px) {
+  #app #reports:not(.debts) .chart-svg[viewBox^="0 0 720"] {
+    --chart-axis: calc(57.66px - 8.457vw);
+    --chart-cap: calc(75.87px - 11.128vw);
+  }
+}
+@media (min-width: 461px) and (max-width: 660px) {
+  #app #reports:not(.debts) .chart-svg[viewBox^="0 0 720"] {
+    --chart-axis: calc(34.8px - 3.415vw);
+    --chart-cap: calc(45.79px - 4.493vw);
+  }
+}
+@media (min-width: 661px) and (max-width: 850px) {
+  #app #reports:not(.debts) .chart-svg[viewBox^="0 0 720"] {
+    --chart-axis: calc(23.38px - 1.647vw);
+    --chart-cap: calc(30.76px - 2.167vw);
+  }
+}
+@media (max-width: 440px) {
+  #app #reports:not(.debts) .chart-svg[viewBox^="0 0 460"] {
+    --chart-axis: calc(37.94px - 5.717vw);
+    --chart-cap: calc(49.92px - 7.522vw);
+  }
+}
+@media (min-width: 441px) and (max-width: 575px) {
+  #app #reports:not(.debts) .chart-svg[viewBox^="0 0 460"] {
+    --chart-axis: calc(24.85px - 2.696vw);
+    --chart-cap: calc(32.7px - 3.547vw);
+  }
+}
+/* The narrow charts reach life size at 575 and then keep growing, so
+   from there on the ramp runs the other way and holds them down. Left
+   at the size they were drawn with they overtook the wide charts beside
+   them — one page, two sizes of lettering, the narrow one half again
+   the taller by the time a tablet is held landscape. */
+@media (min-width: 576px) and (max-width: 900px) {
+  #app #reports:not(.debts) .chart-svg[viewBox^="0 0 460"] {
+    --chart-axis: calc(15.9px - 1.175vw);
+    --chart-cap: calc(20.92px - 1.546vw);
+  }
+}
+
+/* Past those widths the drawing is near enough life size that the sizes
+   it was drawn with are the right ones, so the ramp simply stops and
+   the figures below fall back to them. Nothing here reaches the desktop
+   layout, where the cards go two abreast and the arithmetic no longer
+   holds. */
+@media (max-width: 900px) {
+  #app #reports:not(.debts) .chart-svg .axis {
+    font-size: var(--chart-axis, 9.5px);
+  }
+  #app #reports:not(.debts) .chart-svg .cap {
+    font-size: var(--chart-cap, 12.5px);
+  }
+
+  /* A tick figure is set inside the plot, against its own gridline, and
+     the bars are painted over it afterwards: at desktop size that costs
+     the last glyph a graze, and at the size the figure has to be
+     written here it buries it — "50%" was reading as "50". The chart
+     keeps eight units of margin at its left edge and the figure now
+     needs more, so it hangs the difference into the card's own padding,
+     which is twenty empty pixels. The hang shrinks to nothing as the
+     ramp does. Only the tick figures move: the month labels carry a
+     text-anchor and stay where they were drawn. */
+  #app #reports:not(.debts) .chart-svg {
+    overflow: visible;
+  }
+  #app #reports:not(.debts) .chart-svg[viewBox^="0 0 720"] {
+    --chart-yshift: calc(var(--chart-axis, 0px) * -1);
+  }
+  #app #reports:not(.debts) .chart-svg[viewBox^="0 0 460"] {
+    --chart-yshift: calc(var(--chart-axis, 0px) * -1.3);
+  }
+  #app #reports:not(.debts) .chart-svg .axis:not([text-anchor]) {
+    transform: translateX(var(--chart-yshift, 0px));
+  }
+}

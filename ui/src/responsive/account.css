@@ -1,0 +1,173 @@
+/* Mobile and tablet rules for the account. Imported at the top of
+   index.css, so these land in the cascade *before* the base rules and
+   must out-specify them to win: every selector here is prefixed with an
+   id (#app, #topbar, …) that the element already sits under. */
+
+/* A register is a table only while six columns have somewhere to sit.
+   On a phone they do not: the payee is squeezed to nothing and prints
+   straight over the figures. Below 700px a line stops being a row and
+   becomes what a statement looks like on paper — the date in a gutter
+   down the left, who it was with above what it was for, and the two
+   numbers ranged down the right edge: what moved, and what was left. */
+@media (max-width: 700px) {
+  /* Heads for columns that no longer exist would only be a lie. The
+     row says which figure is which by where it sits, the same way on
+     every line. */
+  #account .reg-head {
+    display: none;
+  }
+  #account .reg {
+    margin-top: 6px;
+    border-top: 1px solid var(--line);
+  }
+
+  #account .reg-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "date who moved"
+      "date cat left";
+    column-gap: 10px;
+    row-gap: 3px;
+    padding: 9px 2px;
+  }
+  /* Placed by position rather than by class: the opening line leaves
+     the two amount cells bare, and they have to land somewhere too. */
+  #account .reg-row > :nth-child(1) {
+    grid-area: date;
+  }
+  #account .reg-row > :nth-child(2) {
+    grid-area: who;
+  }
+  #account .reg-row > :nth-child(3) {
+    grid-area: cat;
+  }
+  #account .reg-row > :nth-child(4),
+  #account .reg-row > :nth-child(5) {
+    grid-area: moved;
+  }
+  #account .reg-row > :nth-child(6) {
+    grid-area: left;
+  }
+
+  /* The counterpart was the first thing dropped when the row was still
+     a table, because squeezing it helped the figures. Stacked, the
+     second line has room for it again, and where the money went is
+     half of what a register is asked. */
+  #account .reg-row .cat {
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  /* Nothing here may hide behind an ellipsis: a clipped word is still
+     text wider than its box, and it is the payee people search for. */
+  #account .reg-row .payee,
+  #account .reg-row .narr {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
+  /* What moved reads first and keeps its direction in the colour it
+     already had; what was left sits under it, a size down but still
+     plainly a figure — it is the column people scan. */
+  #account .reg-row .in,
+  #account .reg-row .out {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  #account .reg-row .bal {
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  /* One slot now holds both figures, and with the two heads gone the
+     only thing left saying which way the money went was the green.
+     Hue alone is a thin answer — in daylight the green and the ink sit
+     at nearly the same weight — so what arrived carries a mark of its
+     own, pointing the way the desktop's second column used to. */
+  #account .reg-row .in:not(:empty)::before {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-right: 5px;
+    border-right: 3.5px solid transparent;
+    border-bottom: 5px solid currentColor;
+    border-left: 3.5px solid transparent;
+    vertical-align: 1px;
+  }
+
+  /* The opening line has no payee, no counterpart and nothing moving;
+     given the two-line grid it would be three empty corners round one
+     number. It gets a line of its own instead. */
+  #account .reg-row.opening {
+    grid-template-areas: "date who left";
+  }
+  #account .reg-row.opening > :nth-child(3),
+  #account .reg-row.opening > :nth-child(4),
+  #account .reg-row.opening > :nth-child(5) {
+    display: none;
+  }
+
+  /* An opened row's detail used to be indented under the payee so the
+     gutter read as a gutter the whole way down. That cost forty pixels
+     the account paths inside it could not spare, and they paid by
+     swallowing their own middles. The rule the row draws beneath
+     itself already says what the detail hangs from. */
+  #account .reg-detail {
+    padding-left: 12px;
+    padding-right: 2px;
+  }
+  /* A posting is an account and a figure, and the account is the half
+     that will not fit: to the browser it is one unbroken word, so a
+     narrow box quietly eats its middle and leaves the ellipsis to
+     stand for it. Both it and the filename of an attached document
+     keep the rest in a title, which a phone has no way to ask for.
+     Let them run on to a second line instead — a wrapped name is read
+     in full, a truncated one is not read at all. */
+  #account .reg-detail .pf-acct {
+    display: block;
+  }
+  #account .reg-detail .pf-path,
+  #account .reg-detail .doc-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* On a hand-sized screen the card's own margins were sized for a page
+   that had a sidebar either side of it. Every pixel spent on its
+   border here is one the payee does not get. */
+@media (max-width: 500px) {
+  #account .report-card {
+    padding: 15px 13px 14px;
+  }
+}
+
+/* The chart keeps its 720-unit drawing whatever the card's width, so
+   every label in it lands on the glass at the stated size times the
+   width over 720 — barely four pixels on a phone, and smaller than the
+   key sitting right beneath it. Undoing that means dividing by a
+   width, which CSS will not do, and a flat value per band did the
+   division badly: month names grew with the window inside each band
+   and then jumped backwards two and a half pixels at every boundary.
+   Each band below states the size as a line falling as the picture
+   grows, which is a straight enough stand-in for the curve that what
+   is painted stays between 11 and 12px from 320px up to the sidebar,
+   and the seams cost a tenth of a pixel. The 500px seam is where the
+   card's own padding changes, above. */
+@media (max-width: 500px) {
+  #account .chart-svg .axis {
+    font-size: calc(57px - 7.66vw);
+  }
+}
+@media (min-width: 501px) and (max-width: 700px) {
+  #account .chart-svg .axis {
+    font-size: calc(35.1px - 3.16vw);
+  }
+}
+@media (min-width: 701px) and (max-width: 900px) {
+  #account .chart-svg .axis {
+    font-size: calc(24.16px - 1.6vw);
+  }
+}

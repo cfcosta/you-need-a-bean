@@ -1,4 +1,15 @@
 @import "tailwindcss";
+/* The narrow-viewport rules, one file per page plus the shell around
+   them. They are imported here, at the top, because @import must come
+   first — which puts them ahead of the base rules in the cascade, so
+   each one carries an id in its selector to out-specify what it
+   overrides. Keeping them apart from the 4,500 lines below means a
+   page's mobile story reads as one piece. */
+@import "./responsive/shell.css";
+@import "./responsive/budget.css";
+@import "./responsive/reports.css";
+@import "./responsive/liabilities.css";
+@import "./responsive/account.css";
 
 /* ------------------------------------------------------------------------
    you need a bean — the visual system.
