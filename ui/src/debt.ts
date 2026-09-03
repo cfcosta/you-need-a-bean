@@ -409,6 +409,24 @@ export function costShares(debts: Debt[]): Share[] {
   }));
 }
 
+/** A group of debts laid out across two columns, so a page with only
+ * loans or only cards fills the width the same way one with both
+ * does. The first two open a column each, so the biggest stand at the
+ * top; the rest go to whichever column is shorter by `weigh`, since
+ * cards differ wildly in height and dealing them out every other one
+ * leaves one column hanging. One debt keeps a column to itself. */
+export function columns<T>(items: T[], weigh: (item: T) => number): T[][] {
+  if (items.length <= 1) return items.length === 0 ? [] : [items];
+  const out: T[][] = [[], []];
+  const tall = [0, 0];
+  items.forEach((item, i) => {
+    const c = i < 2 ? i : tall[0]! <= tall[1]! ? 0 : 1;
+    out[c]!.push(item);
+    tall[c] = tall[c]! + weigh(item);
+  });
+  return out;
+}
+
 /** The colour class each owing debt keeps across the page, in the
  * order given, cycling after five. */
 export function hues(debts: Debt[]): Map<string, string> {

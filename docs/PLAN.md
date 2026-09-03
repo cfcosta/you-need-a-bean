@@ -328,7 +328,12 @@ coming up) and the notices, both full width; under them the body is
 two even columns — first what to do, "This month" beside "Which
 first?", then the debts themselves, the loans beside the cards, each
 group headed with its total — and the debts you have beaten close the
-page full width. Below 1080px the columns become one. Each debt has a
+page full width. A ledger with only loans, or only cards, has no
+second group to pair with, so the one group spreads across both
+columns under a head that spans them: the two biggest open a column
+each and the rest go to whichever column is shorter, measured by
+`tall` in `Liabilities.tsx`, an estimate of a card's height read off
+the rendered page. Below 1080px the columns become one. Each debt has a
 card: a loan's balance by month with the
 projection to zero and a slider that tries a bigger payment
 (`ui/src/debt.ts` amortises the way the server does, to the cent), the

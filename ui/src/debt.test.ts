@@ -5,6 +5,7 @@ import {
   addDays,
   amortize,
   beatenText,
+  columns,
   costShares,
   coverLine,
   dayLabel,
@@ -733,5 +734,35 @@ describe("verdict", () => {
       tone: "free",
     });
     expect(verdict(null, 0.05)).toBeNull();
+  });
+});
+
+describe("columns", () => {
+  const same = () => 1;
+
+  test("stands the biggest two at the top of each column", () => {
+    expect(columns(["a", "b", "c"], same)).toEqual([
+      ["a", "c"],
+      ["b"],
+    ]);
+    expect(columns(["a", "b", "c", "d"], same)).toEqual([
+      ["a", "c"],
+      ["b", "d"],
+    ]);
+  });
+
+  test("sends each card to whichever column is shorter", () => {
+    // One tall card is worth the other three, so they stack beside it
+    // instead of dealing out every other one and leaving a gap.
+    const tall: Record<string, number> = { a: 9, b: 3, c: 3, d: 3 };
+    expect(columns(["a", "b", "c", "d"], (k) => tall[k]!)).toEqual([
+      ["a"],
+      ["b", "c", "d"],
+    ]);
+  });
+
+  test("one debt has nothing to spread, and none has nothing to lay out", () => {
+    expect(columns(["a"], same)).toEqual([["a"]]);
+    expect(columns([], same)).toEqual([]);
   });
 });

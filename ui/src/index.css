@@ -3677,6 +3677,10 @@ button.reg-row:hover {
   padding: 0 2px;
   margin-bottom: -4px;
 }
+/* One group spread across both columns: its head stands over them. */
+.col-head.span {
+  grid-column: 1 / -1;
+}
 .col-head .num {
   font-size: 11px;
   color: var(--muted);

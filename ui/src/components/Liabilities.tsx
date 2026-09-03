@@ -21,6 +21,7 @@ import {
   amortize,
   attack,
   beatenText,
+  columns,
   costShares,
   coverLine,
   dayLabel,
@@ -107,6 +108,38 @@ function Prose({ text, className }: { text: string; className?: string }) {
 
 /** A conclusion the page draws, as a call in a couple of words with
  * the reason beside it. */
+/** Roughly how tall a debt's card comes out, in pixels, so a group
+ * split across two columns ends both at about the same place. The
+ * numbers are measured off the rendered page and each part is only
+ * counted when the card actually draws it. They are an estimate: only
+ * the ratios between them matter, and being out by a little moves at
+ * most one card to the other column. */
+function tall(d: Debt): number {
+  const owing = d.owed > EPS;
+  const carried = (d.cycle?.carried ?? 0) > EPS && owing;
+  const rows = d.makeup?.rows.length ?? 0;
+  const pays = Math.min(d.payments.length, 6);
+  const head = 295 + (d.foreign.length > 0 ? 29 : 0);
+  if (d.kind === "revolving") {
+    return (
+      head +
+      (d.limit != null && d.utilisation != null ? 38 : 0) +
+      (rows > 0 ? 55 + 39 * rows : 0) +
+      (d.treadmill != null ? 275 : 0) +
+      (carried && d.payment != null ? 71 : 0)
+    );
+  }
+  return (
+    head +
+    35 +
+    (d.principal_paid + d.interest_paid > EPS ? 55 : 0) +
+    (d.collateral != null && owing ? 38 : 0) +
+    (d.rate != null && owing ? 42 : 0) +
+    (d.payment != null && owing ? 71 : 0) +
+    (pays > 0 ? 26 + 25 * pays : 0)
+  );
+}
+
 function Verdict({ call, why, tone }: { call: string; why: string; tone: string }) {
   return (
     <div className={`verdict ${tone}`}>
@@ -1983,7 +2016,33 @@ export function Liabilities({
 }) {
   const loans = data.debts.filter((d) => d.kind === "installment");
   const cards = data.debts.filter((d) => d.kind === "revolving");
-  const one = loans.length === 0 || cards.length === 0;
+  // Loans go beside cards. With only one kind in the ledger there is
+  // no second group to pair with, so that group is spread across the
+  // two columns itself rather than stacked down the middle.
+  const only = loans.length === 0 ? cards : cards.length === 0 ? loans : null;
+  const spread = only != null ? columns(only, tall) : null;
+  const card = (d: Debt) =>
+    d.kind === "installment" ? (
+      <LoanCard
+        key={d.account}
+        debt={d}
+        hue={hueOf(hue, d.account)}
+        month={data.month}
+        assumed={data.assumed_return}
+        cur={cur}
+      />
+    ) : (
+      <RevolvingCard
+        key={d.account}
+        debt={d}
+        hue={hueOf(hue, d.account)}
+        month={data.month}
+        today={today}
+        from={from}
+        assumed={data.assumed_return}
+        cur={cur}
+      />
+    );
   const down = payingDown(data.debts);
   const from = data.interest.window?.[0] ?? null;
   const hue = hues(data.debts);
@@ -2028,50 +2087,41 @@ export function Liabilities({
             {basis} months.
           </p>
         </div>
+      ) : spread != null && only != null ? (
+        <div className={`report-grid even${spread.length < 2 ? " one" : ""}`}>
+          <div className="col-head span">
+            <span className="lbl">{loans.length === 0 ? "Cards" : "Loans"}</span>
+            <span className="num">
+              {fmtCompact(loans.length === 0 ? data.revolving : data.installment, cur)}{" "}
+              · {only.length}
+            </span>
+          </div>
+          {spread.map((col) => (
+            <div className="report-col" key={col[0]?.account}>
+              {col.map(card)}
+            </div>
+          ))}
+        </div>
       ) : (
-        <div className={`report-grid even${one ? " one" : ""}`}>
-          {loans.length > 0 && (
-            <div className="report-col">
-              <div className="col-head">
-                <span className="lbl">Loans</span>
-                <span className="num">
-                  {fmtCompact(data.installment, cur)} · {loans.length}
-                </span>
-              </div>
-              {loans.map((d) => (
-                <LoanCard
-                  key={d.account}
-                  debt={d}
-                  hue={hueOf(hue, d.account)}
-                  month={data.month}
-                  assumed={data.assumed_return}
-                  cur={cur}
-                />
-              ))}
+        <div className="report-grid even">
+          <div className="report-col">
+            <div className="col-head">
+              <span className="lbl">Loans</span>
+              <span className="num">
+                {fmtCompact(data.installment, cur)} · {loans.length}
+              </span>
             </div>
-          )}
-          {cards.length > 0 && (
-            <div className="report-col">
-              <div className="col-head">
-                <span className="lbl">Cards</span>
-                <span className="num">
-                  {fmtCompact(data.revolving, cur)} · {cards.length}
-                </span>
-              </div>
-              {cards.map((d) => (
-                <RevolvingCard
-                  key={d.account}
-                  debt={d}
-                  hue={hueOf(hue, d.account)}
-                  month={data.month}
-                  today={today}
-                  from={from}
-                  assumed={data.assumed_return}
-                  cur={cur}
-                />
-              ))}
+            {loans.map(card)}
+          </div>
+          <div className="report-col">
+            <div className="col-head">
+              <span className="lbl">Cards</span>
+              <span className="num">
+                {fmtCompact(data.revolving, cur)} · {cards.length}
+              </span>
             </div>
-          )}
+            {cards.map(card)}
+          </div>
         </div>
       )}
       {data.beaten.length > 0 && <BeatenCard beaten={data.beaten} cur={cur} />}
