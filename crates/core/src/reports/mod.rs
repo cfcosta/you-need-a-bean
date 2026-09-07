@@ -134,6 +134,9 @@ impl Ledger {
         basis: u32,
         cur: &str,
     ) -> ReportsView {
+        if let std::borrow::Cow::Owned(ledger) = self.as_of(today) {
+            return ledger.reports_view(today, basis, cur);
+        }
         let months = self.months_range(today);
         let current = self.default_month(today);
         let roots = self.roots();

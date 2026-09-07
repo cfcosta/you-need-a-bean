@@ -194,7 +194,8 @@ async fn month_view(
     let month = parse_month(&month)?;
     let snapshot = state.snapshot();
     let (basis, cur) = params(&snapshot, &query)?;
-    let view = snapshot.ledger.month_view(month, basis, &cur);
+    let dated = snapshot.ledger.as_of(state.today());
+    let view = dated.month_view(month, basis, &cur);
 
     let today = state.today();
     let today_month = MonthKey::new(today.0, today.1);
@@ -235,9 +236,8 @@ async fn category_view(
     let month = parse_month(&month)?;
     let snapshot = state.snapshot();
     let (basis, cur) = params(&snapshot, &query)?;
-    let Some(view) =
-        snapshot.ledger.category_view(&account, month, basis, &cur)
-    else {
+    let dated = snapshot.ledger.as_of(state.today());
+    let Some(view) = dated.category_view(&account, month, basis, &cur) else {
         return Err(err(StatusCode::NOT_FOUND, "unknown category"));
     };
 

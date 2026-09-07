@@ -52,3 +52,18 @@ fn unbalanced_and_ambiguous_transactions_are_reported() {
         l.warnings
     );
 }
+
+#[test]
+fn future_pay_is_not_cash_available_today() {
+    let l = Ledger::build(
+        load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/validation/future.beancount"),
+        )
+        .unwrap(),
+    );
+    let reports = l.reports_view((2026, 9, 7), 6, "USD");
+    assert_eq!(reports.runway.liquid.to_string(), "100");
+    let debts = l.liabilities_view((2026, 9, 7), 6, "USD");
+    assert_eq!(debts.extra.now.to_string(), "100");
+}

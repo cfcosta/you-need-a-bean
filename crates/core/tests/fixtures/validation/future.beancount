@@ -1,0 +1,10 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Cash USD
+2026-01-01 open Income:Salary USD
+2026-01-01 open Equity:Opening USD
+2026-01-01 * "opening"
+  Assets:Cash 100 USD
+  Equity:Opening -100 USD
+2026-09-30 * "future salary"
+  Assets:Cash 10000 USD
+  Income:Salary -10000 USD

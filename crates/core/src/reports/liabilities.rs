@@ -418,6 +418,9 @@ impl Ledger {
         basis: u32,
         cur: &str,
     ) -> LiabilitiesView {
+        if let std::borrow::Cow::Owned(ledger) = self.as_of(today) {
+            return ledger.liabilities_view(today, basis, cur);
+        }
         let current = self.default_month(today);
         let window = self.window(current, 12);
         let in_window = |month: MonthKey| {

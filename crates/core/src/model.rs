@@ -227,7 +227,7 @@ pub struct Txn {
 type CurrencySums = Vec<(String, Decimal)>;
 
 /// The fully indexed ledger. Built once at startup, then read-only.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Ledger {
     pub title: Option<String>,
     pub operating_currencies: Vec<String>,
@@ -262,6 +262,61 @@ impl Ledger {
             .warnings
             .extend(ledger.audit.issues.iter().map(|i| i.message.clone()));
         ledger
+    }
+
+    /// A dated reading: future postings and future quotes never become cash today.
+    /// The usual case borrows the existing indexes without copying the ledger.
+    pub fn as_of(&self, day: Day) -> std::borrow::Cow<'_, Self> {
+        if !self.txns.iter().any(|t| t.date > day)
+            && !self
+                .prices
+                .values()
+                .any(|p| p.last().is_some_and(|(d, _)| *d > day))
+        {
+            return std::borrow::Cow::Borrowed(self);
+        }
+        let mut l = self.clone();
+        l.txns.retain(|t| t.date <= day);
+        for points in l.prices.values_mut() {
+            points.retain(|(d, _)| *d <= day);
+        }
+        l.monthly.clear();
+        l.txn_index.clear();
+        l.first_txn_month = None;
+        l.last_txn_month = None;
+        for (i, t) in l.txns.iter().enumerate() {
+            let month = MonthKey::new(t.date.0, t.date.1);
+            l.first_txn_month =
+                Some(l.first_txn_month.map_or(month, |m| m.min(month)));
+            l.last_txn_month =
+                Some(l.last_txn_month.map_or(month, |m| m.max(month)));
+            for p in &t.postings {
+                let sums = l
+                    .monthly
+                    .entry(p.account.clone())
+                    .or_default()
+                    .entry(month)
+                    .or_default();
+                for (v, c) in &p.amounts {
+                    add_sum(sums, c, *v);
+                }
+                let ids = l
+                    .txn_index
+                    .entry(p.account.clone())
+                    .or_default()
+                    .entry(month)
+                    .or_default();
+                if ids.last() != Some(&i) {
+                    ids.push(i);
+                }
+            }
+        }
+        for months in l.txn_index.values_mut() {
+            for ids in months.values_mut() {
+                ids.sort_by_key(|i| l.txns[*i].date);
+            }
+        }
+        std::borrow::Cow::Owned(l)
     }
 
     /// One document by the id [`Ledger::documents_on`] hands out.
