@@ -213,6 +213,7 @@ pub struct Commodity {
 
 #[derive(Debug, Clone)]
 pub struct Txn {
+    pub source: Option<crate::loader::SourceLocation>,
     pub date: Day,
     pub flag: char,
     pub payee: Option<String>,
@@ -232,6 +233,7 @@ pub struct Ledger {
     pub operating_currencies: Vec<String>,
     pub files: Vec<PathBuf>,
     pub warnings: Vec<String>,
+    pub audit: crate::validation::Audit,
     /// How many directives the source files contained, for diagnostics.
     pub directives: usize,
     pub first_txn_month: Option<MonthKey>,
@@ -254,7 +256,12 @@ pub struct Ledger {
 
 impl Ledger {
     pub fn build(loaded: LoadedLedger) -> Self {
-        Builder::default().build(loaded)
+        let mut ledger = Builder::default().build(&loaded);
+        ledger.audit = crate::validation::validate(&loaded, &ledger);
+        ledger
+            .warnings
+            .extend(ledger.audit.issues.iter().map(|i| i.message.clone()));
+        ledger
     }
 
     /// One document by the id [`Ledger::documents_on`] hands out.
@@ -472,7 +479,7 @@ struct Builder {
 }
 
 impl Builder {
-    fn build(mut self, loaded: LoadedLedger) -> Ledger {
+    fn build(mut self, loaded: &LoadedLedger) -> Ledger {
         let title = loaded.title().map(str::to_string);
         let operating: Vec<String> = loaded
             .operating_currencies()
@@ -480,7 +487,7 @@ impl Builder {
             .map(str::to_string)
             .collect();
 
-        for directive in &loaded.directives {
+        for (index, directive) in loaded.directives.iter().enumerate() {
             let date = (
                 directive.date.year,
                 directive.date.month,
@@ -488,7 +495,9 @@ impl Builder {
             );
             match &directive.content {
                 DirectiveContent::Transaction(txn) => {
-                    self.add_txn(date, txn, &directive.metadata)
+                    self.add_txn(date, txn, &directive.metadata);
+                    self.txns.last_mut().unwrap().source =
+                        loaded.origins.get(index).cloned();
                 }
                 DirectiveContent::Price(price) => {
                     let key = (
@@ -575,8 +584,9 @@ impl Builder {
         Ledger {
             title,
             operating_currencies: operating,
-            files: loaded.files,
-            warnings: loaded.warnings,
+            files: loaded.files.clone(),
+            warnings: loaded.warnings.clone(),
+            audit: Default::default(),
             directives: loaded.directives.len(),
             first_txn_month: self.first_month,
             last_txn_month: self.last_month,
@@ -586,7 +596,7 @@ impl Builder {
             txn_index: self.txn_index,
             prices: self.prices,
             commodities: self.commodities,
-            documents: loaded.documents,
+            documents: loaded.documents.clone(),
             document_index,
         }
     }
@@ -680,6 +690,7 @@ impl Builder {
         meta.sort();
 
         self.txns.push(Txn {
+            source: None,
             date,
             flag: txn.flag.unwrap_or('*'),
             payee: txn.payee.clone(),
@@ -785,7 +796,7 @@ fn lot_cost(
     Some((value, basis.currency.to_string()))
 }
 
-fn weight(
+pub(crate) fn weight(
     amount: &beancount_parser::Amount<Decimal>,
     posting: &beancount_parser::Posting<Decimal>,
 ) -> (Decimal, String) {

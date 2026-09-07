@@ -34,6 +34,12 @@ pub struct Document {
     pub path: PathBuf,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SourceLocation {
+    pub path: PathBuf,
+    pub line: u32,
+}
+
 /// Everything read from disk, before any budget modelling.
 #[derive(Debug)]
 pub struct LoadedLedger {
@@ -43,6 +49,8 @@ pub struct LoadedLedger {
     pub options: Vec<(String, String)>,
     /// All directives from all files.
     pub directives: Vec<Directive<Decimal>>,
+    pub origins: Vec<SourceLocation>,
+    pub plugins: Vec<(String, PathBuf)>,
     /// Every `document` directive, with its path resolved.
     pub documents: Vec<Document>,
     /// Non-fatal problems (e.g. globs that matched nothing).
@@ -271,6 +279,8 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
         files: Vec::new(),
         options: Vec::new(),
         directives: Vec::new(),
+        origins: Vec::new(),
+        plugins: Vec::new(),
         documents: Vec::new(),
         warnings: Vec::new(),
     };
@@ -318,6 +328,10 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
                             path: resolve_document(dir, &doc.path),
                         });
                     }
+                    ledger.origins.push(SourceLocation {
+                        path: path.clone(),
+                        line: directive.line_number,
+                    });
                     ledger.directives.push(directive)
                 }
                 Entry::Option(option) => {
@@ -332,6 +346,9 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
                         &mut queue,
                         &mut ledger.warnings,
                     )?;
+                }
+                Entry::Plugin(plugin) => {
+                    ledger.plugins.push((plugin.name, path.clone()))
                 }
                 _ => {}
             }

@@ -4516,3 +4516,10 @@ div.race {
 .key .sw.tm-pay {
   background: var(--hue);
 }
+
+.accounting-alert { margin: 16px 24px; padding: 14px 18px; border: 1px solid var(--over); border-radius: 14px; background: color-mix(in srgb, var(--over) 8%, var(--bg)); font-size: 13px; }
+.accounting-alert summary { cursor: pointer; }
+.accounting-alert summary b { color: var(--over); }
+.accounting-alert p { margin: 12px 0; }
+.accounting-issue { padding: 10px 0; border-top: 1px solid var(--line); display: grid; gap: 5px; }
+.accounting-issue code { font-size: 11px; overflow-wrap: anywhere; opacity: .75; }

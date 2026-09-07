@@ -970,3 +970,17 @@ async fn liabilities_endpoint_carries_what_the_ledger_states() {
     assert_eq!(body["upcoming"][2]["label"], json!("Everyday Card"));
     assert_eq!(body["upcoming"][2]["amount"], json!(400.0));
 }
+
+#[tokio::test]
+async fn summary_exposes_accounting_issues_with_source_locations() {
+    let (_, body) =
+        get_at(app_at("validation/main", (2026, 9, 7)), "/api/summary").await;
+    let issues = body["audit"]["issues"]
+        .as_array()
+        .expect("accounting audit");
+    assert!(
+        issues
+            .iter()
+            .any(|i| i["code"] == "balance" && i["source"]["line"] == 9)
+    );
+}

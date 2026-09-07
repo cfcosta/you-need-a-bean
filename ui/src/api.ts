@@ -2,7 +2,14 @@
 
 export type Status = "good" | "warn" | "over";
 
+export interface AuditIssue {
+  code: string;
+  message: string;
+  account: string | null;
+  source: { path: string; line: number } | null;
+}
 export interface Summary {
+  audit: { issues: AuditIssue[]; balances: { account: string; date: number[]; currency: string; passed: boolean }[] };
   title: string | null;
   root: string | null;
   files: number;

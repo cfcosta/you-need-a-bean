@@ -6,3 +6,5 @@ pub mod model;
 pub mod query;
 pub mod reports;
 pub mod watch;
+
+pub mod validation;

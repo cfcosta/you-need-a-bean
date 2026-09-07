@@ -170,6 +170,7 @@ async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {
         .map(|n| n.to_string_lossy().into_owned());
     Json(json!({
         "title": ledger.title,
+        "audit": ledger.audit,
         "root": root,
         "files": ledger.files.len(),
         "directives": ledger.directives,

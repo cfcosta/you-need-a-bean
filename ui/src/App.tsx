@@ -350,6 +350,18 @@ export function App() {
             onCur={setCur}
             onBurger={() => setSidebarOpen(true)}
           />
+          {summary.audit.issues.length > 0 && (
+            <details className="accounting-alert">
+              <summary><b>{summary.audit.issues.length} accounting issues</b><span> These totals need review</span></summary>
+              <p>Some balances may be incomplete. Resolve these issues in the ledger before using the projections.</p>
+              {summary.audit.issues.map((issue, i) => (
+                <div className="accounting-issue" key={i}>
+                  <span>{issue.message}</span>
+                  {issue.source && <code>{issue.source.path}:{issue.source.line}</code>}
+                </div>
+              ))}
+            </details>
+          )}
           {summary.reload_error != null && (
             <div id="stale" role="status">
               <svg

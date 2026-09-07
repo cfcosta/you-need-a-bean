@@ -1,0 +1,17 @@
+option "operating_currency" "USD"
+plugin "example.booking"
+2026-01-01 open Assets:Cash USD
+2026-01-01 open Equity:Opening USD
+2026-01-01 open Expenses:Food USD
+2026-01-02 * "opening"
+  Assets:Cash 100 USD
+  Equity:Opening -100 USD
+2026-01-03 balance Assets:Cash 999 USD
+2026-01-04 * "unbalanced"
+  Assets:Cash 100 USD
+  Equity:Opening -90 USD
+2026-01-05 pad Assets:Cash Equity:Opening
+2026-01-06 * "ambiguous"
+  Expenses:Food 10 USD
+  Assets:Cash
+  Equity:Opening
