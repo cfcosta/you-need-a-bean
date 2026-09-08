@@ -46,6 +46,8 @@ const RELOAD_POLL_MS = 1500;
 export function App() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
+  const [disconnected, setDisconnected] = useState(false);
+  const pollFailures = useRef(0);
   const [page, setPage] = useState<Page>("home");
   const [search, setSearch] = useState<string | null>(null);
   const [month, setMonth] = useState<string | null>(null);
@@ -138,6 +140,9 @@ export function App() {
     const timer = setInterval(() => {
       getSummary()
         .then((s) => {
+          if (!alive) return;
+          pollFailures.current = 0;
+          setDisconnected(false);
           const was = seen.current;
           if (
             !alive ||
@@ -153,9 +158,7 @@ export function App() {
           seen.current = { revision: s.revision, error: s.reload_error, today: s.today };
           setSummary(s);
         })
-        // A poll that misses is not worth interrupting anyone over; the
-        // next one is a moment away.
-        .catch(() => {});
+        .catch(() => { if (alive && ++pollFailures.current >= 3) setDisconnected(true); });
     }, RELOAD_POLL_MS);
     return () => {
       alive = false;
@@ -207,6 +210,7 @@ export function App() {
   useEffect(() => {
     if (month == null || cur == null) return;
     let alive = true;
+    setView(null);
     getMonth(month, basis, cur)
       .then((v) => alive && setView(v))
       .catch((e: Error) => alive && showToast(e.message));
@@ -218,6 +222,7 @@ export function App() {
   useEffect(() => {
     if (page !== "reports" || cur == null) return;
     let alive = true;
+    setReports(null);
     getReports(basis, cur)
       .then((r) => alive && setReports(r))
       .catch((e: Error) => alive && showToast(e.message));
@@ -229,6 +234,7 @@ export function App() {
   useEffect(() => {
     if (page !== "liabilities" || cur == null) return;
     let alive = true;
+    setDebts(null);
     getLiabilities(basis, cur)
       .then((r) => alive && setDebts(r))
       .catch((e: Error) => alive && showToast(e.message));
@@ -246,6 +252,7 @@ export function App() {
   useEffect(() => {
     if (cat == null || month == null || cur == null) return;
     let alive = true;
+    setCatView(null);
     getCategory(cat, month, basis, cur)
       .then((v) => alive && setCatView(v))
       .catch((e: Error) => {
@@ -261,6 +268,7 @@ export function App() {
   useEffect(() => {
     if (acct == null || month == null || cur == null) return;
     let alive = true;
+    setAcctView(null);
     getAccount(acct, month, basis, cur)
       .then((v) => alive && setAcctView(v))
       .catch((e: Error) => {
@@ -361,6 +369,7 @@ export function App() {
             onBurger={() => setSidebarOpen(true)}
             onSearch={() => setSearch("")}
           />
+          {disconnected && <div className="accounting-alert" role="status"><b>Connection lost</b> · These are the last numbers received. Reconnecting…</div>}
           {summary.audit.issues.length > 0 && (
             <details className="accounting-alert">
               <summary><b>{summary.audit.issues.length} accounting issues</b><span> These totals need review</span></summary>
@@ -391,7 +400,7 @@ export function App() {
               <span className="stale-why mono">{summary.reload_error}</span>
             </div>
           )}
-          {page === "home" && <Home cur={cur} revision={revision} unavailable={summary.reload_error != null} onAccount={openAccount} onSearch={setSearch} />}
+          {page === "home" && <Home cur={cur} revision={revision} unavailable={summary.reload_error != null || disconnected} onAccount={openAccount} onSearch={setSearch} />}
           {page === "budget" && view != null && (
             <>
               <StatStrip view={view} cur={cur} window={window} />
@@ -409,14 +418,14 @@ export function App() {
           )}
           {page === "reports" &&
             (reports != null ? (
-              <Reports data={{...reports, planning_ready: reports.planning_ready && summary.reload_error == null && summary.audit.issues.length === 0}} cur={cur} />
+              <Reports data={{...reports, planning_ready: reports.planning_ready && !disconnected && summary.reload_error == null && summary.audit.issues.length === 0}} cur={cur} />
             ) : (
               <ReportsSkeleton />
             ))}
           {page === "liabilities" &&
             (debts != null ? (
               <Liabilities
-                data={{...debts, planning_ready: debts.planning_ready && summary.reload_error == null && summary.audit.issues.length === 0}}
+                data={{...debts, planning_ready: debts.planning_ready && !disconnected && summary.reload_error == null && summary.audit.issues.length === 0}}
                 cur={cur}
                 today={summary.today}
                 basis={basis}
