@@ -75,3 +75,10 @@ a complete portfolio result. Negative inventory is unsupported. Old quotes are
 flagged, and accounting issues or failed reloads withhold gain/return estimates.
 Ledger quotes can lag execution prices, so this is only as current as the prices
 recorded in the ledger.
+
+The Investments page offers 1M, 3M, 6M, YTD, 1Y, and All windows. YTD opens
+on the prior December 31. Other windows use calendar months, clamped to the
+last valid day. The chart compares portfolio value with opening value plus net
+flows; their difference is price gain. Hover or use the history slider and arrow
+keys to inspect a recorded sample. A separate period table retains sold holdings;
+the existing allocation and holdings sections remain the current snapshot.

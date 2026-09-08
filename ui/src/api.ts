@@ -866,3 +866,18 @@ export interface HomeView {
 export const getHome = (cur:string) => get<HomeView>(`/api/home?cur=${encodeURIComponent(cur)}`);
 export interface SearchTxn extends Txn { source:{path:string;line:number}|null; scheduled:boolean; account:string }
 export const searchLedger = (q:string,cur:string,offset=0) => get<{total:number;items:SearchTxn[];offset:number}>(`/api/search?q=${encodeURIComponent(q)}&cur=${encodeURIComponent(cur)}&offset=${offset}`);
+
+export interface PerformancePoint {
+  date:string; value:number|null; net_flows:number|null; gain:number|null;
+}
+export interface PerformanceHolding {
+  currency:string; label:string; opening:number|null; closing:number|null;
+  net_flows:number|null; gain:number|null; ret:number|null;
+}
+export interface InvestmentPerformance {
+  start:string; end:string; currency:string; opening:number|null; closing:number|null;
+  net_flows:number|null; gain:number|null; ret:number|null; trusted:boolean;
+  points:PerformancePoint[]; holdings:PerformanceHolding[]; issues:string[]; warnings:string[];
+}
+export const getInvestmentPerformance = (cur:string,start:string|null) =>
+  get<InvestmentPerformance>(`/api/investments/performance?cur=${encodeURIComponent(cur)}${start?`&start=${start}`:""}`);

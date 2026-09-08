@@ -5,6 +5,7 @@ import { fmt, ratio } from "../format";
 import { accountUrl, dayLabel } from "../home";
 import { holdingPrice, quoteAge, selectHoldings } from "../investments";
 import type { HoldingSort } from "../investments";
+import { InvestmentPerformance } from "./InvestmentPerformance";
 import { ReportsSkeleton } from "./Skeleton";
 
 const units = (n:number) => n.toLocaleString("en-US", {maximumSignificantDigits:8});
@@ -49,7 +50,7 @@ function Holding({p,cur,today,trusted,onAccount,onSearch}:{p:Position;cur:string
   </details>;
 }
 
-function Portfolio({data,cur,today,unavailable,onAccount,onSearch}:{data:Investments;cur:string;today:string;unavailable:boolean;onAccount:(a:string)=>void;onSearch:(q:string)=>void}) {
+function Portfolio({data,cur,today,revision,unavailable,onAccount,onSearch}:{data:Investments;cur:string;today:string;revision:string;unavailable:boolean;onAccount:(a:string)=>void;onSearch:(q:string)=>void}) {
   const [query,setQuery]=useState("");
   const [assetClass,setClass]=useState("all");
   const [sort,setSort]=useState<HoldingSort>("value");
@@ -68,6 +69,7 @@ function Portfolio({data,cur,today,unavailable,onAccount,onSearch}:{data:Investm
       </article>
       <Allocation data={data} selected={assetClass} onSelect={setClass}/>
     </div>
+    <InvestmentPerformance cur={cur} today={today} revision={revision} unavailable={unavailable}/>
     {(data.unpriced.length>0||stale.length>0||data.unbased_count>0)&&<div className="i-evidence" aria-label="Portfolio data coverage">
       {data.unpriced.length>0&&<div><b>{data.unpriced.length} unpriced holding{data.unpriced.length===1?"":"s"}</b><p>Excluded from value and allocation. Add prices to include them.</p><div>{data.unpriced.map(c=><button key={c} onClick={()=>onSearch(c)}>{c} ↗</button>)}</div></div>}
       {stale.length>0&&<div><b>{stale.length} older quote{stale.length===1?"":"s"}</b><p>At least 45 days old. Values use the dates shown below.</p><button onClick={()=>{setQuery("");setClass("all");setSort("quote")}}>Review oldest prices ↓</button></div>}
@@ -88,9 +90,9 @@ export function InvestmentsPage({cur,today,revision,unavailable,onAccount,onSear
   const [loaded,setLoaded]=useState<{key:string;data:ReportsView}|null>(null);
   const [error,setError]=useState<string|null>(null);
   const [retry,setRetry]=useState(0);
-  const key=`${cur}:${revision}:${retry}`;
+  const key=`${cur}:${today}:${revision}:${retry}`;
   useEffect(()=>{let active=true;setError(null);getReports(6,cur).then(data=>{if(active)setLoaded({key,data})}).catch(e=>{if(active)setError(String(e.message))});return()=>{active=false}},[key]);
   if(error)return <div className="i-empty" role="alert"><strong>Couldn’t load investments</strong><p>{error}</p><button onClick={()=>setRetry(n=>n+1)}>Try again</button></div>;
   if(loaded?.key!==key)return <ReportsSkeleton/>;
-  return <Portfolio key={cur} data={loaded.data.investments} cur={cur} today={today} unavailable={unavailable} onAccount={onAccount} onSearch={onSearch}/>;
+  return <Portfolio key={cur} data={loaded.data.investments} cur={cur} today={today} revision={revision} unavailable={unavailable} onAccount={onAccount} onSearch={onSearch}/>;
 }
