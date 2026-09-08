@@ -1,6 +1,36 @@
 use bean_core::{loader::load, model::Ledger};
 use std::path::PathBuf;
 
+#[test]
+fn maximum_precision_loads_and_normal_rounding_still_passes() {
+    let l = Ledger::build(
+        load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/validation/precision.beancount"),
+        )
+        .unwrap(),
+    );
+    assert!(l.audit.issues.is_empty(), "{:?}", l.audit.issues);
+    assert_eq!(l.audit.balances.len(), 2);
+    assert!(l.audit.balances.iter().all(|b| b.passed));
+}
+
+#[test]
+fn maximum_precision_still_detects_the_smallest_representable_mismatch() {
+    let l = Ledger::build(
+        load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/validation/precision-mismatch.beancount"),
+        )
+        .unwrap(),
+    );
+    let codes: Vec<_> =
+        l.audit.issues.iter().map(|i| i.code.as_str()).collect();
+    assert_eq!(codes, ["unbalanced", "balance"]);
+    assert_eq!(l.audit.balances.len(), 1);
+    assert!(!l.audit.balances[0].passed);
+}
+
 fn ledger() -> Ledger {
     Ledger::build(
         load(

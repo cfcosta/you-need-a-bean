@@ -1,0 +1,15 @@
+2026-01-01 open Assets:Exact USD
+2026-01-01 open Assets:Rounded USD
+2026-01-01 open Equity:Opening USD
+
+2026-01-02 * "Maximum precision from arithmetic"
+  Assets:Exact 1 / 3 USD
+  Equity:Opening -0.3333333333333333333333333333 USD
+
+2026-01-03 balance Assets:Exact 0.3333333333333333333333333333 USD
+
+2026-01-04 * "Ordinary rounding stays within tolerance"
+  Assets:Rounded 1.00 USD
+  Equity:Opening -1.004 USD
+
+2026-01-05 balance Assets:Rounded 1.00 USD

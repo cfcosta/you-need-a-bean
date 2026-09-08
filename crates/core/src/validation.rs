@@ -187,7 +187,10 @@ pub(crate) fn validate(loaded: &LoadedLedger, ledger: &Ledger) -> Audit {
 }
 
 fn precision(value: Decimal) -> Decimal {
-    if value.scale() == 0 {
+    // Half a unit at MAX_SCALE is smaller than any representable residual.
+    // Require exact agreement there instead of constructing scale 29 or
+    // rounding the tolerance up and accepting a real one-unit mismatch.
+    if value.scale() == 0 || value.scale() == Decimal::MAX_SCALE {
         Decimal::ZERO
     } else {
         Decimal::new(5, value.scale() + 1)
