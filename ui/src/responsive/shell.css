@@ -49,6 +49,9 @@
    being clicked any more, so nothing in it should be smaller than a
    fingertip can find. */
 @media (max-width: 900px) {
+  #app #topbar {
+    --topbar-control-size: 42px;
+  }
   /* The burger carries an icon and no text, so the row was free to
      squeeze it to sixteen pixels — half a control. It has to be told
      to hold its ground; so does each pager arrow beside it. */
