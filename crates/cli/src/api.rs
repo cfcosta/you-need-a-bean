@@ -135,6 +135,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/category/{account}/{month}", get(category_view))
         .route("/api/account/{account}/{month}", get(account_view))
         .route("/api/reports", get(reports))
+        .route("/api/investments/performance", get(investment_performance))
         .route("/api/liabilities", get(liabilities))
         .route("/api/document/{id}", get(document))
         .fallback(fallback)
@@ -424,6 +425,51 @@ async fn account_view(
         "history": history,
         "unpriced": view.unpriced,
         "txns": txns,
+    })))
+}
+
+async fn investment_performance(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Result<Json<Value>, ApiError> {
+    let snapshot = state.snapshot();
+    let end = view_day(&state, &query)?;
+    let (_, cur) = params(&snapshot, &query)?;
+    let start = match query.get("start") {
+        Some(s) => bean_core::home::parse_date(s).ok_or_else(|| {
+            err(StatusCode::BAD_REQUEST, "invalid start date")
+        })?,
+        None => snapshot
+            .ledger
+            .first_txn_month
+            .map(|m| m.prev().end_of_month())
+            .unwrap_or(end)
+            .min(end),
+    };
+    if start > end {
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "start must not be after as_of",
+        ));
+    }
+    let p = snapshot.ledger.investment_performance(start, end, &cur);
+    let trusted = state.reload_error().is_none()
+        && snapshot.ledger.audit.issues.is_empty();
+    let points: Vec<_> = p.points.iter().map(|r| json!({
+        "date":format_day(r.date), "value":opt_num(r.value),
+        "net_flows":opt_num(r.net_flows), "gain":opt_num(r.gain.filter(|_| trusted)),
+    })).collect();
+    let holdings: Vec<_> = p.holdings.iter().map(|r| json!({
+        "currency":r.currency,"label":r.label,"opening":opt_num(r.opening),
+        "closing":opt_num(r.closing),"net_flows":opt_num(r.net_flows),
+        "gain":opt_num(r.gain.filter(|_| trusted)),"ret":ratio_json(r.ret.filter(|_| trusted)),
+    })).collect();
+    Ok(Json(json!({
+        "start":format_day(p.start),"end":format_day(p.end),"currency":cur,
+        "opening":opt_num(p.opening),"closing":opt_num(p.closing),
+        "net_flows":opt_num(p.net_flows),"gain":opt_num(p.gain.filter(|_| trusted)),
+        "ret":ratio_json(p.ret.filter(|_| trusted)),"trusted":trusted,
+        "points":points,"holdings":holdings,"issues":p.issues,"warnings":p.warnings,
     })))
 }
 

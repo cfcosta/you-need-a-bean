@@ -42,3 +42,36 @@ Declare descriptive metadata and prices in the ledger, for example:
 
 The existing Reports page keeps its compact portfolio summary and links here
 for the detailed view.
+
+## Performance over a period
+
+`GET /api/investments/performance?start=2025-12-31&as_of=2026-09-08`
+returns opening and closing values, net flows, price gain, a return estimate,
+a sampled value history, and results for each holding, including positions sold
+within the period. Omit `start` for all ledger history. Dates are end-of-day:
+transactions on the opening date are included in opening value, and subsequent
+transactions through `as_of` are period flows. Future entries and prices are
+excluded. Samples include the endpoints, month ends, and investment activity days.
+
+The portfolio boundary is the same non-operating commodities in asset accounts
+as the holdings page. Net-zero units transferred between asset accounts are
+internal. Purchases, sales, and other net unit movements cross the boundary.
+Flow value uses a posting's execution price (`@` or `@@`) when available, then
+acquisition cost for additions, otherwise the latest ledger quote on the flow
+date. A disposal's old lot cost is never treated as its sale proceeds.
+
+Price gain is closing value minus opening value minus net flows. The percentage
+is a **Modified Dietz estimate**, using opening value plus flows weighted by the
+fraction of the period remaining after their dates. Flows are assumed to occur
+at the end of the day. It is a period percentage, not annualized, and is omitted
+when weighted capital is zero or negative. See the [GIPS calculation methodology](https://www.gipsstandards.org/wp-content/uploads/2021/03/calculation_methodology_gs_2011.pdf)
+for the flow weighting formula. This implementation does not claim GIPS compliance.
+
+This measures **price performance**, including exchange-rate effects in the
+report currency. It excludes cash dividends, interest, fees, and taxes; new units
+received as rewards are additions valued at their arrival price, not price gains.
+It is not total return. Missing flow conversions or historical valuations prevent
+a complete portfolio result. Negative inventory is unsupported. Old quotes are
+flagged, and accounting issues or failed reloads withhold gain/return estimates.
+Ledger quotes can lag execution prices, so this is only as current as the prices
+recorded in the ledger.

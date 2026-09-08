@@ -1,0 +1,27 @@
+option "operating_currency" "USD"
+2025-01-01 open Assets:Cash USD
+2025-01-01 open Assets:Broker FUND
+2025-01-01 open Assets:Other FUND
+2025-01-01 open Equity:Opening
+2025-01-01 open Income:Gains
+2025-01-01 price FUND 100 USD
+2025-12-31 * "Opening investment"
+  Assets:Broker 10 FUND {100 USD}
+  Equity:Opening
+2026-01-11 * "Additional investment at unchanged price"
+  Assets:Broker 10 FUND {100 USD}
+  Assets:Cash
+2026-01-16 * "Move between brokers"
+  Assets:Broker -5 FUND {100 USD}
+  Assets:Other 5 FUND {100 USD}
+2026-01-21 price FUND 120 USD
+2026-01-21 * "Partial sale at execution price"
+  Assets:Broker -5 FUND {100 USD} @ 125 USD
+  Assets:Cash 625 USD
+  Income:Gains -125 USD
+2026-02-10 * "Sell remaining investment"
+  Assets:Broker -10 FUND {100 USD} @@ 1300 USD
+  Assets:Other -5 FUND {100 USD} @ 130 USD
+  Assets:Cash 1950 USD
+  Income:Gains -450 USD
+2026-03-01 price FUND 999 USD

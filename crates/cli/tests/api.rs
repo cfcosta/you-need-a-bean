@@ -1173,3 +1173,28 @@ async fn search_finds_a_holding_named_only_in_posting_amounts() {
     assert_eq!(b["total"], json!(2));
     assert!(b["items"][0]["source"]["path"].is_string());
 }
+
+#[tokio::test]
+async fn investment_performance_endpoint_returns_period_and_holding_results() {
+    let (status, body) = get_at(
+        app_at("reports/performance", (2026, 2, 28)),
+        "/api/investments/performance?start=2025-12-31&as_of=2026-01-31",
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["start"], "2025-12-31");
+    assert_eq!(body["end"], "2026-01-31");
+    assert_eq!(body["gain"], 425.0);
+    assert_eq!(body["net_flows"], 375.0);
+    assert_eq!(body["holdings"][0]["currency"], "FUND");
+    assert_eq!(body["holdings"][0]["gain"], 425.0);
+    assert!(body["ret"].as_f64().unwrap() > 0.29);
+    for query in ["start=2026-02-30", "start=2026-03-01", "start=nonsense"] {
+        let (status, _) = get_at(
+            app_at("reports/performance", (2026, 2, 28)),
+            &format!("/api/investments/performance?{query}"),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+}

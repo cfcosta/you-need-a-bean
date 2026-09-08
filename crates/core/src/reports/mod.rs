@@ -13,6 +13,7 @@ mod investments;
 mod liabilities;
 mod movers;
 mod payees;
+mod performance;
 mod projects;
 mod recurring;
 mod season;
@@ -34,6 +35,9 @@ pub use liabilities::{
 };
 pub use movers::{Mover, MoversView};
 pub use payees::{Payee, PayeesView};
+pub use performance::{
+    InvestmentPerformance, PerformanceHolding, PerformancePoint,
+};
 pub use projects::{Project, ProjectsView, Topic};
 pub use recurring::{Cadence, PriceChange, Recurring, RecurringView};
 pub use season::{SeasonPoint, SeasonView};

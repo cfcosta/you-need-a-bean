@@ -216,6 +216,8 @@ pub struct TxnPosting {
     /// one. `{}` names no cost — it defers to whatever lot is open —
     /// and reads the same here as no annotation at all.
     pub cost: Option<PostingCost>,
+    /// Execution price annotation resolved to a signed total (independent of lot cost).
+    pub price: Option<PostingCost>,
 }
 
 /// What a `commodity` directive declared about a ticker.
@@ -721,6 +723,23 @@ impl Builder {
                             amount.value,
                             amount.currency.to_string(),
                         )],
+                        price: posting.price.as_ref().map(|price| {
+                            let (total, currency) = match price {
+                                PostingPrice::Unit(p) => (
+                                    amount.value * p.value,
+                                    p.currency.to_string(),
+                                ),
+                                PostingPrice::Total(p) => (
+                                    if amount.value.is_sign_negative() {
+                                        -p.value
+                                    } else {
+                                        p.value
+                                    },
+                                    p.currency.to_string(),
+                                ),
+                            };
+                            PostingCost { total, currency }
+                        }),
                         cost: lot_cost(amount, posting).map(
                             |(total, currency)| PostingCost { total, currency },
                         ),
@@ -732,6 +751,7 @@ impl Builder {
                         account,
                         amounts: Vec::new(),
                         cost: None,
+                        price: None,
                     });
                 }
             }
