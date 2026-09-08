@@ -18,7 +18,7 @@ const at = (url: string) => {
 describe("parseRoute", () => {
   test("reads the page and month off the path", () => {
     expect(parseRoute(at("/"))).toEqual({
-      page: "budget",
+      page: "home",
       month: null,
       basis: null,
       cur: null,
@@ -73,7 +73,7 @@ describe("parseRoute", () => {
 describe("resolveRoute", () => {
   test("fills in the ledger's defaults", () => {
     expect(resolveRoute(parseRoute(at("/")), DEFAULTS)).toEqual({
-      page: "budget",
+      page: "home",
       month: "2026-05",
       basis: 6,
       cur: "USD",
@@ -132,7 +132,7 @@ describe("routeUrl", () => {
   });
 
   test("leaves the defaults out", () => {
-    expect(routeUrl(state(), DEFAULTS)).toBe("/");
+    expect(routeUrl(state(), DEFAULTS)).toBe("/budget");
     expect(routeUrl(state({ page: "reports" }), DEFAULTS)).toBe("/reports");
     expect(routeUrl(state({ page: "liabilities" }), DEFAULTS)).toBe(
       "/liabilities",
@@ -144,10 +144,10 @@ describe("routeUrl", () => {
       "/budget/2026-01",
     );
     expect(routeUrl(state({ basis: 12, cur: "EUR" }), DEFAULTS)).toBe(
-      "/?basis=12&cur=EUR",
+      "/budget?basis=12&cur=EUR",
     );
     expect(routeUrl(state({ cat: "Expenses:Fun" }), DEFAULTS)).toBe(
-      "/?cat=Expenses%3AFun",
+      "/budget?cat=Expenses%3AFun",
     );
     expect(routeUrl(state({ page: "liabilities", basis: 3 }), DEFAULTS)).toBe(
       "/liabilities?basis=3",
@@ -170,7 +170,7 @@ describe("routeUrl", () => {
   });
 
   test("has nowhere to send an account page with no account", () => {
-    expect(routeUrl(state({ page: "account" }), DEFAULTS)).toBe("/");
+    expect(routeUrl(state({ page: "account" }), DEFAULTS)).toBe("/budget");
   });
 
   test("drops the category on the page that has no inspector", () => {

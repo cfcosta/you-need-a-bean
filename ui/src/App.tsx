@@ -16,6 +16,8 @@ import {
   getReports,
   getSummary,
 } from "./api";
+import { Home } from "./components/Home";
+import { Search } from "./components/Search";
 import { Account } from "./components/Account";
 import { BudgetTable } from "./components/BudgetTable";
 import { Inspector } from "./components/Inspector";
@@ -44,7 +46,8 @@ const RELOAD_POLL_MS = 1500;
 export function App() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
-  const [page, setPage] = useState<Page>("budget");
+  const [page, setPage] = useState<Page>("home");
+  const [search, setSearch] = useState<string | null>(null);
   const [month, setMonth] = useState<string | null>(null);
   const [basis, setBasis] = useState(DEFAULT_BASIS);
   const [cur, setCur] = useState<string | null>(null);
@@ -79,6 +82,11 @@ export function App() {
   // What the last poll saw of the server's reading of the ledger, so a
   // reload is noticed exactly once.
   const seen = useRef<{ revision: number; error: string | null } | null>(null);
+
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSearch(""); } };
+    addEventListener("keydown", key); return () => removeEventListener("keydown", key);
+  }, []);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -298,10 +306,12 @@ export function App() {
   };
 
   const navigate = (p: Page) => {
+    if (p === "home" || p === "reports" || p === "liabilities") setMonth(summary.default_month);
     setPage(p);
     setSidebarOpen(false);
   };
   const openAccount = (account: string) => {
+    if (page === "home") setMonth(summary.default_month);
     setPage("account");
     setAcct(account);
     setOpenTxns(new Set());
@@ -321,7 +331,7 @@ export function App() {
 
   return (
     <>
-      <div id="app" className={page === "budget" ? "" : "no-insp"}>
+      <div id="app" className={page === "budget" ? "" : `no-insp${page === "home" ? " home-app" : ""}`}>
         <Sidebar
           summary={summary}
           view={view}
@@ -349,6 +359,7 @@ export function App() {
             onBasis={setBasis}
             onCur={setCur}
             onBurger={() => setSidebarOpen(true)}
+            onSearch={() => setSearch("")}
           />
           {summary.audit.issues.length > 0 && (
             <details className="accounting-alert">
@@ -380,6 +391,7 @@ export function App() {
               <span className="stale-why mono">{summary.reload_error}</span>
             </div>
           )}
+          {page === "home" && <Home cur={cur} revision={revision} unavailable={summary.reload_error != null} onAccount={openAccount} onSearch={setSearch} />}
           {page === "budget" && view != null && (
             <>
               <StatStrip view={view} cur={cur} window={window} />
@@ -471,6 +483,7 @@ export function App() {
           setInspectorOpen(false);
         }}
       />
+      {search != null && <Search key={search} initial={search} cur={cur} onClose={() => setSearch(null)} />}
       <div id="toast" role="status" aria-live="polite" className={toast != null ? "show" : ""}>
         {toast}
       </div>

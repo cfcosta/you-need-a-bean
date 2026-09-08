@@ -837,3 +837,27 @@ export const getReports = (basis: number, cur: string) =>
 
 export const getLiabilities = (basis: number, cur: string) =>
   get<LiabilitiesView>(`/api/liabilities?basis=${basis}&cur=${cur}`);
+
+export type Scope = "personal" | "business" | "all";
+export interface HomeAccount {
+  account:string; label:string; scope:string; liquidity:string; declared:boolean;
+  value:number|null; cash:boolean; reserve:number|null; updated:string|null; checked:string|null;
+  assertion_passed:boolean|null; age:number|null; fresh:boolean; last_transaction:string|null;
+  native:{currency:string;amount:number}[];
+}
+export interface Attention { kind:string; label:string; detail:string; account:string|null; source?:{path:string;line:number}|null }
+export interface HomeView {
+  today:string; scope:Scope; currency:string; assets:number; owed:number; net_worth:number;
+  cash:number; reserved:number; available:number|null; accounts:HomeAccount[];
+  coverage:{current:number;total:number}; attention:Attention[]; unpriced:string[];
+  goals:{account:string;label:string;funded:number|null;target:number;date:string|null;reserved:number|null}[];
+  forecast:Record<string,{balance:number|null;low:number|null;points:{date:string;balance:number}[]}>;
+  forecast_priced:boolean;
+  events:{date:string;amount:number;label:string;account:string;kind:string}[];
+  upcoming_in:number; upcoming_out:number; monthly_spend:number; monthly_saved:number;
+  recurring:{account:string;label:string;cadence:string;amount:number;monthly:number;active:boolean;last:string;change:{from:number;to:number;annual:number}|null}[];
+  history:{month:string;net:number}[];
+}
+export const getHome = (scope:Scope,cur:string) => get<HomeView>(`/api/home?scope=${scope}&cur=${encodeURIComponent(cur)}`);
+export interface SearchTxn extends Txn { source:{path:string;line:number}|null; scheduled:boolean; account:string }
+export const searchLedger = (q:string,cur:string,offset=0) => get<{total:number;items:SearchTxn[];offset:number}>(`/api/search?q=${encodeURIComponent(q)}&cur=${encodeURIComponent(cur)}&offset=${offset}`);

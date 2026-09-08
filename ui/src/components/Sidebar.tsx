@@ -227,6 +227,10 @@ export function Sidebar({
       </div>
 
       <div className="side-nav">
+        <a className={`nav-item${page === "home" ? " active" : ""}`} href={href("home")} aria-current={page === "home" ? "page" : undefined} onClick={e => { if (!plain(e)) return; e.preventDefault(); onNavigate("home"); }}>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><path d="M2 7 8 2l6 5v7H9.5V9h-3v5H2Z"/></svg>
+          Overview
+        </a>
         <a
           className={`nav-item${page === "budget" ? " active" : ""}`}
           href={href("budget")}

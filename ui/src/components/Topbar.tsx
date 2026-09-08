@@ -17,6 +17,7 @@ export function Topbar({
   onBasis,
   onCur,
   onBurger,
+  onSearch,
 }: {
   summary: Summary;
   view: MonthView | null;
@@ -29,6 +30,7 @@ export function Topbar({
   onBasis: (b: number) => void;
   onCur: (c: string) => void;
   onBurger: () => void;
+  onSearch: () => void;
 }) {
   const months = summary.months;
   const i = months.indexOf(month);
@@ -36,7 +38,7 @@ export function Topbar({
   const next = i >= 0 && i < months.length - 1 ? months[i + 1] : null;
 
   const title =
-    page === "reports" ? "Reports" : page === "liabilities" ? "Liabilities" : null;
+    page === "home" ? "Overview" : page === "reports" ? "Reports" : page === "liabilities" ? "Liabilities" : null;
 
   return (
     <div id="topbar">
@@ -116,6 +118,7 @@ export function Topbar({
       <div className="topbar-right">
         {/* The same window, read two ways: the months a target is
             taken from, and the months an account's chart covers. */}
+        {page !== "home" && <>
         <span className="seg-label">
           {page === "account" || page === "liabilities" ? "History" : "Target"}
         </span>
@@ -139,6 +142,8 @@ export function Topbar({
             </button>
           ))}
         </div>
+        </>}
+        <button className="top-search" onClick={onSearch} aria-label="Search ledger">⌕ Search</button>
         {summary.operating_currencies.length > 1 && (
           <>
             <span className="seg-label">Currency</span>
