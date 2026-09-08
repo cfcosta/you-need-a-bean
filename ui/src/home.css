@@ -1,5 +1,5 @@
 /* A quiet financial home: generous figures, crisp evidence, room to breathe. */
-#financial-home { --h-soft: color-mix(in srgb,var(--ink) 62%,var(--bg)); padding: 36px 36px 20px; max-width: 1680px; margin:auto; color:var(--ink); }
+#financial-home { --h-soft: color-mix(in srgb,var(--ink) 62%,var(--bg)); padding: 36px 36px 20px; width:100%; margin:0; color:var(--ink); }
 #financial-home button, .ledger-search button { cursor:pointer; }
 #financial-home button:focus-visible, #financial-home a:focus-visible, #financial-home summary:focus-visible, .ledger-search button:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
 .h-eyebrow { font: 600 10px var(--font-ui); letter-spacing:.16em; color:var(--h-soft,var(--ink-2)); }
