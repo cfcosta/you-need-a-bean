@@ -298,19 +298,9 @@ export interface Verdict {
   tone: "go" | "hold" | "free";
 }
 
-export function verdict(rate: number | null, assumed: number): Verdict | null {
+export function verdict(rate: number | null, _assumed: number): Verdict | null {
   if (rate == null) return null;
-  if (rate <= 1e-9) {
-    return {
-      call: "No hurry",
-      why: "at 0% the same money earns more in savings",
-      tone: "free",
-    };
-  }
-  const paper = `the ${ratio(assumed)} a portfolio is assumed to make`;
-  return rate >= assumed
-    ? { call: "Clear it first", why: `${ratio(rate)} guaranteed beats ${paper}`, tone: "go" }
-    : { call: "Invest instead", why: `${ratio(rate)} is under ${paper}`, tone: "hold" };
+  return { call: `${ratio(rate)} loan rate`, why: "Payoff scenarios hold this rate constant; taxes, fees and investment risk are not modeled", tone: rate === 0 ? "free" : "hold" };
 }
 
 /** The things in a sentence a reader scans for: amounts, shares,
@@ -503,14 +493,9 @@ export interface MonthPlan {
   left: number;
 }
 
-/** The debts the spare goes to, in `order`: the ones being paid
- * down, less the loans cheaper than the return a portfolio is assumed
- * to make, where the same money does better invested. A card is
- * always in line: nothing invested beats a card's rate. */
-export function targets(debts: Debt[], order: Order, assumed: number): PlanDebt[] {
-  return attack(payingDown(debts), order).filter(
-    (d) => d.kind === "revolving" || d.rate >= assumed - 1e-9,
-  );
+/** Keep every eligible debt in the reader's chosen repayment order. */
+export function targets(debts: Debt[], order: Order, _assumed: number): PlanDebt[] {
+  return attack(payingDown(debts), order);
 }
 
 /** This month's payments: every one coming up at its usual amount,

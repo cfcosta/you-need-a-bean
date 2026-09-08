@@ -601,13 +601,9 @@ function PlanCard({
     today,
   );
   const inLine = targets(data.debts, order, assumed);
-  const skipped = payingDown(data.debts).length - inLine.length;
   const sent = rows.reduce((s, r) => s + r.extra, 0);
   const total = rows.reduce((s, r) => s + r.usual + r.extra, 0);
-  const note =
-    left > EPS && skipped > 0
-      ? `${skipped === 1 ? "A loan" : `${skipped} loans`} under the ${ratio(assumed)} a portfolio is assumed to make ${skipped === 1 ? "is" : "are"} skipped: this does better invested.`
-      : undefined;
+  const note = undefined;
   const download = () => {
     const text = calendar(dueEvents(data.upcoming, data.debts, cur), today);
     const url = URL.createObjectURL(

@@ -196,15 +196,70 @@ impl Ledger {
             ));
         }
 
+        let personal = self.scoped(self.scope.as_deref().unwrap_or("personal"));
+        let personal_roots = personal.roots();
+        let personal_flows: Vec<_> = months
+            .iter()
+            .map(|month| {
+                let at = month.end_of_month();
+                let income = personal_roots
+                    .income
+                    .get(month)
+                    .map_or(Decimal::ZERO, |f| {
+                        -self.convertible(f, cur, at, &mut unpriced)
+                    });
+                let expenses = personal_roots
+                    .expenses
+                    .get(month)
+                    .map_or(Decimal::ZERO, |f| {
+                        self.convertible(f, cur, at, &mut unpriced)
+                    });
+                CashflowPoint {
+                    month: *month,
+                    income,
+                    expenses,
+                    net: income - expenses,
+                }
+            })
+            .collect();
+        let reserve_cur = self
+            .operating_currencies
+            .first()
+            .map(String::as_str)
+            .unwrap_or(cur);
+        let mut capital = Decimal::ZERO;
+        for a in personal.accounts() {
+            let asset = a.account.starts_with("Assets:")
+                && !["illiquid", "receivable", "restricted"]
+                    .contains(&a.purpose.liquidity.as_str());
+            if !asset && !a.account.starts_with("Liabilities:") {
+                continue;
+            }
+            capital += personal.convertible(
+                &personal.balance_at(&a.account, current),
+                cur,
+                today,
+                &mut unpriced,
+            );
+            if asset {
+                capital -= personal.convertible(
+                    &[(reserve_cur.to_string(), a.purpose.reserve)],
+                    cur,
+                    today,
+                    &mut unpriced,
+                );
+            }
+        }
         let mut fire = fire::fire_view(
             self.window(current, basis),
-            net_at(&net_worth, current),
-            &cashflow,
+            cents(capital),
+            &personal_flows,
         );
         // What the charges that come back cost every month, which is
         // both the lean FIRE target and the runway you have if you cut
         // everything discretionary.
-        let recurring = self.recurring_view(current, cur, fire.monthly_spend);
+        let recurring =
+            personal.recurring_view(current, cur, fire.monthly_spend);
         let monthly_fixed = recurring.monthly_fixed;
         fire.with_fixed(monthly_fixed);
         let runway = fire::runway_view(
@@ -308,14 +363,6 @@ impl Ledger {
             })
             .sum()
     }
-}
-
-fn net_at(series: &[NetWorthPoint], month: MonthKey) -> Decimal {
-    series
-        .iter()
-        .find(|p| p.month == month)
-        .map(|p| p.net)
-        .unwrap_or_default()
 }
 
 fn apply(

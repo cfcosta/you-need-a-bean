@@ -250,6 +250,7 @@ type CurrencySums = Vec<(String, Decimal)>;
 /// The fully indexed ledger. Built once at startup, then read-only.
 #[derive(Debug, Clone)]
 pub struct Ledger {
+    pub scope: Option<String>,
     pub title: Option<String>,
     pub operating_currencies: Vec<String>,
     pub files: Vec<PathBuf>,
@@ -291,6 +292,7 @@ impl Ledger {
             return std::borrow::Cow::Borrowed(self);
         }
         let mut l = self.clone();
+        l.scope = Some(scope.to_string());
         l.accounts.retain(|_, a| a.purpose.scope == scope);
         l.monthly.retain(|a, _| l.accounts.contains_key(a));
         l.txn_index.retain(|a, _| l.accounts.contains_key(a));
@@ -694,6 +696,7 @@ impl Builder {
         }
 
         Ledger {
+            scope: None,
             title,
             operating_currencies: operating,
             files: loaded.files.clone(),

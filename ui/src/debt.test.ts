@@ -26,6 +26,7 @@ import {
   stripMarks,
   treadmillFacts,
   verdict,
+  targets,
 } from "./debt";
 
 /** A debt with nothing on it, for a test to fill in the parts it is about. */
@@ -533,10 +534,10 @@ describe("monthPlan", () => {
     });
   });
 
-  test("sends the spare down the attack order, past the loans cheaper than investing", () => {
+  test("sends the spare down the chosen repayment order", () => {
     // Dearest first: the Store at 24%, then the Student at 7%. The Bike
     // at 6% is next in line but the money runs out; the Car at 3%
-    // costs less than a portfolio makes, so it is never in line.
+    // is last in this rate order.
     const a = monthPlan(debts, upcoming, 1000, "avalanche", 0.05, today);
     expect(a.rows.map((r) => [r.account, r.extra, r.after])).toEqual([
       ["B", 0, 540],
@@ -546,8 +547,8 @@ describe("monthPlan", () => {
       ["T", 516.32, 4283.68],
     ]);
     expect(a.left).toBe(0);
-    // Smallest first: the Bike, then the Store; the Car is skipped for
-    // the same reason, and the Everyday card is spending, not debt.
+    // Smallest first: the Bike, then the Store. The Everyday card
+    // is cleared in full rather than being paid down.
     const s = monthPlan(debts, upcoming, 1000, "snowball", 0.05, today);
     expect(s.rows.map((r) => [r.account, r.extra, r.after])).toEqual([
       ["B", 540, 0],
@@ -717,22 +718,9 @@ describe("treadmillFacts", () => {
 });
 
 describe("verdict", () => {
-  test("puts a loan's rate against the return a portfolio is assumed to make, in a few words", () => {
-    expect(verdict(0.0528, 0.05)).toEqual({
-      call: "Clear it first",
-      why: "5.3% guaranteed beats the 5% a portfolio is assumed to make",
-      tone: "go",
-    });
-    expect(verdict(0.03, 0.05)).toEqual({
-      call: "Invest instead",
-      why: "3% is under the 5% a portfolio is assumed to make",
-      tone: "hold",
-    });
-    expect(verdict(0, 0.05)).toEqual({
-      call: "No hurry",
-      why: "at 0% the same money earns more in savings",
-      tone: "free",
-    });
+  test("describes the loan without recommending an investment from a real return assumption", () => {
+    expect(verdict(0.03, 0.05)?.call).toBe("3% loan rate");
+    expect(verdict(0.03, 0.05)).toEqual(verdict(0.03, 0.07));
     expect(verdict(null, 0.05)).toBeNull();
   });
 });
@@ -765,4 +753,9 @@ describe("columns", () => {
     expect(columns(["a"], same)).toEqual([["a"]]);
     expect(columns([], same)).toEqual([]);
   });
+});
+
+test("a low-rate loan stays in the chosen repayment order", () => {
+  const d = {account:"L",label:"Loan",kind:"installment",owed:1000,rate:.03,payment:100} as Debt;
+  expect(targets([d],"avalanche",.05).map(d=>d.account)).toEqual(["L"]);
 });

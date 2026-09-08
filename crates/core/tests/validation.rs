@@ -82,3 +82,21 @@ fn household_cash_excludes_property_receivables_business_and_reserves() {
     let debts = l.liabilities_view((2026, 9, 7), 6, "USD");
     assert_eq!(debts.extra.now.to_string(), "75");
 }
+
+#[test]
+fn retirement_projection_does_not_compound_a_house_or_business_cash() {
+    let l = Ledger::build(
+        load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/validation/purpose.beancount"),
+        )
+        .unwrap(),
+    );
+    assert_eq!(
+        l.reports_view((2026, 9, 7), 6, "USD")
+            .fire
+            .net_worth
+            .to_string(),
+        "75"
+    );
+}
