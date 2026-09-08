@@ -130,6 +130,7 @@ pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/summary", get(summary))
         .route("/api/home", get(home))
+        .route("/api/search", get(search))
         .route("/api/month/{month}", get(month_view))
         .route("/api/category/{account}/{month}", get(category_view))
         .route("/api/account/{account}/{month}", get(account_view))
@@ -185,6 +186,77 @@ async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {
         "revision": snapshot.revision,
         "reload_error": state.reload_error(),
     }))
+}
+
+async fn search(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Result<Json<Value>, ApiError> {
+    let snapshot = state.snapshot();
+    let l = &snapshot.ledger;
+    let (_, cur) = params(&snapshot, &query)?;
+    let q = query.get("q").map(String::as_str).unwrap_or("");
+    if q.len() > 500 {
+        return Err(err(StatusCode::BAD_REQUEST, "search is too long"));
+    }
+    let terms: Vec<String> =
+        q.split_whitespace().map(str::to_lowercase).collect();
+    let offset = query
+        .get("offset")
+        .map(|s| s.parse::<usize>())
+        .transpose()
+        .map_err(|_| err(StatusCode::BAD_REQUEST, "invalid offset"))?
+        .unwrap_or(0);
+    let mut matches: Vec<_> = l
+        .txns
+        .iter()
+        .filter(|t| {
+            let mut text = format!(
+                "{} {} {} {} {} {}",
+                format_day(t.date),
+                t.flag,
+                t.payee.as_deref().unwrap_or(""),
+                t.narration.as_deref().unwrap_or(""),
+                t.tags.join(" "),
+                t.links.join(" ")
+            );
+            for p in &t.postings {
+                text.push_str(&format!(" {}", p.account));
+            }
+            for (k, v) in &t.meta {
+                text.push_str(&format!(" {k} {v}"));
+            }
+            let text = text.to_lowercase();
+            terms
+                .iter()
+                .all(|term| text.contains(term.trim_start_matches(['#', '^'])))
+        })
+        .collect();
+    matches.sort_by_key(|t| std::cmp::Reverse(t.date));
+    let total = matches.len();
+    let items: Vec<_> = matches
+        .into_iter()
+        .skip(offset)
+        .take(50)
+        .map(|t| {
+            let a = t
+                .postings
+                .iter()
+                .find(|p| {
+                    p.account.starts_with("Assets:")
+                        || p.account.starts_with("Liabilities:")
+                })
+                .or_else(|| t.postings.first())
+                .map(|p| p.account.as_str())
+                .unwrap_or("");
+            let mut v = txn_json(l, t, a, &cur, t.date.min(state.today()));
+            v["source"] = json!(t.source);
+            v["account"] = json!(a);
+            v["scheduled"] = json!(t.date > state.today());
+            v
+        })
+        .collect();
+    Ok(Json(json!({"total":total,"items":items,"offset":offset})))
 }
 
 async fn home(
@@ -1137,6 +1209,7 @@ fn txn_json(
             }),
         "postings": postings,
         "documents": documents_json(ledger, txn),
+        "source": txn.source,
     })
 }
 

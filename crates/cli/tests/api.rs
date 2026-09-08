@@ -1036,3 +1036,20 @@ async fn home_withholds_available_money_when_accounting_is_incomplete() {
             .any(|i| i["kind"] == "accounting")
     );
 }
+
+#[tokio::test]
+async fn search_finds_scheduled_and_historical_entries_with_provenance() {
+    let (_, b) =
+        get_at(app_at("home/main", (2026, 9, 7)), "/api/search?q=Employer")
+            .await;
+    assert_eq!(b["total"], json!(1));
+    assert_eq!(b["items"][0]["date"], json!("2026-09-30"));
+    assert_eq!(b["items"][0]["scheduled"], json!(true));
+    assert!(b["items"][0]["source"]["line"].as_u64().unwrap() > 0);
+    let (_, empty) = get_at(
+        app_at("home/main", (2026, 9, 7)),
+        "/api/search?q=not-present",
+    )
+    .await;
+    assert_eq!(empty["total"], json!(0));
+}
