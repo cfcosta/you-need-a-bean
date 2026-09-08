@@ -35,7 +35,7 @@ import { StatStrip } from "./components/StatStrip";
 import { Topbar } from "./components/Topbar";
 import { monthWindow } from "./months";
 import type { Page } from "./router";
-import { DEFAULT_BASIS, parseRoute, resolveRoute, routeUrl } from "./router";
+import { DEFAULT_BASIS, defaultCurrency, parseRoute, resolveRoute, routeUrl } from "./router";
 import type { ThemePref } from "./theme";
 import { applyTheme, browserStorage, loadPref, savePref } from "./theme";
 
@@ -52,7 +52,7 @@ export function App() {
   const [search, setSearch] = useState<string | null>(null);
   const [month, setMonth] = useState<string | null>(null);
   const [basis, setBasis] = useState(DEFAULT_BASIS);
-  const [cur, setCur] = useState<string | null>(null);
+  const cur = summary == null ? null : defaultCurrency(summary);
   const [cat, setCat] = useState<string | null>(null);
   const [acct, setAcct] = useState<string | null>(null);
   // The auto-picked category is an implementation detail; only one the
@@ -110,7 +110,6 @@ export function App() {
         setPage(r.page);
         setMonth(r.month);
         setBasis(r.basis);
-        setCur(r.cur);
         setCat(r.cat);
         setAcct(r.acct);
         if (s.title != null) document.title = `${s.title} — you need a bean`;
@@ -167,7 +166,7 @@ export function App() {
   }, [loaded]);
 
   // Keep the address bar honest. Moving between pages or months is
-  // navigation and earns a history entry; changing basis, currency or
+  // navigation and earns a history entry; changing basis or
   // category rewrites where you already are.
   useEffect(() => {
     if (summary == null || month == null || cur == null) return;
@@ -198,7 +197,6 @@ export function App() {
       setPage(r.page);
       setMonth(r.month);
       setBasis(r.basis);
-      setCur(r.cur);
       setCat(r.cat);
       setAcct(r.acct);
       setOpenTxns(new Set());
@@ -360,12 +358,10 @@ export function App() {
             view={view}
             month={month}
             basis={basis}
-            cur={cur}
             window={window}
             page={page}
             onMonth={selectMonth}
             onBasis={setBasis}
-            onCur={setCur}
             onBurger={() => setSidebarOpen(true)}
             onSearch={() => setSearch("")}
           />

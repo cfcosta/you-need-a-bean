@@ -82,7 +82,7 @@ describe("resolveRoute", () => {
     });
   });
 
-  test("keeps what the URL asked for when the ledger has it", () => {
+  test("keeps navigation options but ignores legacy currency overrides", () => {
     const r = resolveRoute(
       parseRoute(at("/budget/2026-01?basis=3&cur=EUR&cat=Expenses%3AFun")),
       DEFAULTS,
@@ -91,10 +91,18 @@ describe("resolveRoute", () => {
       page: "budget",
       month: "2026-01",
       basis: 3,
-      cur: "EUR",
+      cur: "USD",
       cat: "Expenses:Fun",
       acct: null,
     });
+  });
+
+  test("uses the first operating currency in ledger order, with a USD fallback", () => {
+    for (const [currencies, expected] of [[['BRL', 'USD'], 'BRL'], [[], 'USD']] as const) {
+      expect(resolveRoute(parseRoute(at('/reports?cur=USD')), {
+        ...DEFAULTS, operating_currencies: [...currencies],
+      }).cur).toBe(expected);
+    }
   });
 
   test("keeps the account the path named", () => {
@@ -144,7 +152,7 @@ describe("routeUrl", () => {
       "/budget/2026-01",
     );
     expect(routeUrl(state({ basis: 12, cur: "EUR" }), DEFAULTS)).toBe(
-      "/budget?basis=12&cur=EUR",
+      "/budget?basis=12",
     );
     expect(routeUrl(state({ cat: "Expenses:Fun" }), DEFAULTS)).toBe(
       "/budget?cat=Expenses%3AFun",
@@ -187,7 +195,7 @@ describe("routeUrl", () => {
       state(),
       state({ page: "reports", basis: 3 }),
       state({ page: "liabilities", basis: 12 }),
-      state({ month: "2025-12", cur: "EUR", cat: "Expenses:Fun" }),
+      state({ month: "2025-12", cat: "Expenses:Fun" }),
       state({ page: "account", acct: "Assets:Cash" }),
       state({ page: "account", acct: "Assets:Cash", month: "2026-01" }),
     ]) {

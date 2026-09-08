@@ -77,19 +77,19 @@ export function parseRoute(loc: {
   };
 }
 
+/** The first operating currency is the ledger's display default. */
+export const defaultCurrency = (d: Pick<RouteDefaults, "operating_currencies">) =>
+  d.operating_currencies[0] ?? "USD";
+
 /** The route with the ledger's defaults filled in for anything missing
  * or out of range. */
 export function resolveRoute(r: Route, d: RouteDefaults): RouteState {
-  const fallbackCur = d.operating_currencies[0] ?? "USD";
   return {
     page: r.page,
     month:
       r.month != null && d.months.includes(r.month) ? r.month : d.default_month,
     basis: r.basis ?? DEFAULT_BASIS,
-    cur:
-      r.cur != null && d.operating_currencies.includes(r.cur)
-        ? r.cur
-        : fallbackCur,
+    cur: defaultCurrency(d),
     cat: r.cat,
     acct: r.acct,
   };
@@ -100,7 +100,6 @@ export function resolveRoute(r: Route, d: RouteDefaults): RouteState {
 export function routeUrl(s: RouteState, d: RouteDefaults): string {
   const q = new URLSearchParams();
   if (s.basis !== DEFAULT_BASIS) q.set("basis", String(s.basis));
-  if (s.cur !== (d.operating_currencies[0] ?? "USD")) q.set("cur", s.cur);
   if (s.page === "budget" && s.cat != null) q.set("cat", s.cat);
   const query = q.toString();
   const path = pagePath(s, d);

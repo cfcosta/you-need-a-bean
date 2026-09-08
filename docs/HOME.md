@@ -54,8 +54,10 @@ latest price available at the snapshot date, not future quotes.
 ## Account metadata
 
 Metadata belongs beneath an existing `open` directive. Amounts for reserves
-and goals use the ledger's **first operating currency**, independently of the
-currency selected for display.
+and goals use the ledger's **first operating currency**. The interface also
+uses that currency for display, falling back to USD when none is declared.
+Legacy currency overrides in page URLs are ignored; API callers can still
+request a currency explicitly.
 
 ```beancount
 2026-01-01 open Assets:Bank:Savings USD

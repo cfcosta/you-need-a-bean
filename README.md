@@ -25,7 +25,7 @@ Beancount stays the source of truth: this tool never writes to your ledger.
   good / warning / over states; navigate back through any month.
 - Targets are trailing averages of your own history (3, 6 or 12 months).
 - Multi-currency: amounts stay native, conversion uses your `price`
-  directives, per-category currency splits, operating-currency toggle.
+  directives and per-category currency splits, displayed in the ledger’s default currency.
 - Friendly account names via `name: "…"` metadata on `open` directives.
 - Follows `include` directives (relative paths and globs), scales to
   ledgers with hundreds of thousands of directives.

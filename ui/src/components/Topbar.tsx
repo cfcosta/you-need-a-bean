@@ -10,12 +10,10 @@ export function Topbar({
   view,
   month,
   basis,
-  cur,
   window,
   page,
   onMonth,
   onBasis,
-  onCur,
   onBurger,
   onSearch,
 }: {
@@ -23,12 +21,10 @@ export function Topbar({
   view: MonthView | null;
   month: string;
   basis: number;
-  cur: string;
   window: [string, string] | null;
   page: Page;
   onMonth: (m: string) => void;
   onBasis: (b: number) => void;
-  onCur: (c: string) => void;
   onBurger: () => void;
   onSearch: () => void;
 }) {
@@ -144,22 +140,7 @@ export function Topbar({
         </div>
         </>}
         <button className="top-search" onClick={onSearch} aria-label="Search ledger">⌕ Search</button>
-        {summary.operating_currencies.length > 1 && (
-          <>
-            <span className="seg-label">Currency</span>
-            <div className="seg" role="group" aria-label="Operating currency">
-              {summary.operating_currencies.map((c) => (
-                <button
-                  key={c}
-                  className={c === cur ? "on" : ""}
-                  onClick={() => onCur(c)}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+
       </div>
     </div>
   );
