@@ -1,0 +1,15 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Cash USD
+  reserve: 25
+2026-01-01 open Assets:Home USD
+2026-01-01 open Assets:Receivable USD
+2026-01-01 open Assets:Bank:Business USD
+2026-01-01 open Assets:Retirement USD
+2026-01-01 open Equity:Opening USD
+2026-01-01 * "opening"
+  Assets:Cash 100 USD
+  Assets:Home 500000 USD
+  Assets:Receivable 5000 USD
+  Assets:Bank:Business 20000 USD
+  Assets:Retirement 30000 USD
+  Equity:Opening -555100 USD

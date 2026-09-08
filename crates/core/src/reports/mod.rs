@@ -151,7 +151,6 @@ impl Ledger {
         let mut net_worth = Vec::with_capacity(months.len());
         let mut cashflow = Vec::with_capacity(months.len());
         let mut equity = Vec::with_capacity(months.len());
-        let mut liquid = Decimal::ZERO;
         for &month in &months {
             apply(&mut asset_bal, roots.assets.get(&month));
             apply(&mut liquid_bal, roots.liquid.get(&month));
@@ -171,9 +170,6 @@ impl Ledger {
                 liabilities: l,
                 net: a + l,
             });
-            if month <= current {
-                liquid = c;
-            }
 
             // Income postings are negative in beancount.
             let inc = roots.income.get(&month).map_or(Decimal::ZERO, |f| {
@@ -211,8 +207,11 @@ impl Ledger {
         let recurring = self.recurring_view(current, cur, fire.monthly_spend);
         let monthly_fixed = recurring.monthly_fixed;
         fire.with_fixed(monthly_fixed);
-        let runway =
-            fire::runway_view(liquid, fire.monthly_spend, monthly_fixed);
+        let runway = fire::runway_view(
+            self.liquid_cash(current, cur, &mut unpriced),
+            fire.monthly_spend,
+            monthly_fixed,
+        );
         // A year of history behind the growth split, matching the year
         // card's window without sharing its meaning.
         let growth_window = self.window(current, 12);

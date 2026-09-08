@@ -128,6 +128,7 @@ pub enum AccountKind {
 
 #[derive(Debug, Clone)]
 pub struct AccountInfo {
+    pub purpose: AccountPurpose,
     pub account: String,
     /// Pretty name: `name:` metadata on the open directive, else derived.
     pub label: String,
@@ -145,6 +146,25 @@ pub struct AccountInfo {
     pub closed: Option<Day>,
     /// What the open directive said about the account as a debt.
     pub debt: DebtMeta,
+}
+
+/// Financial meaning is independent of sidebar visibility.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AccountPurpose {
+    pub scope: String,
+    pub liquidity: String,
+    pub declared: bool,
+    /// Reserved amount in the ledger's first operating currency.
+    pub reserve: Decimal,
+    pub goal: Option<Decimal>,
+    pub goal_date: Option<String>,
+    /// External source coverage, explicitly declared by the ledger owner.
+    pub updated: Option<String>,
+}
+impl AccountPurpose {
+    pub fn liquid(&self) -> bool {
+        self.liquidity == "cash"
+    }
 }
 
 /// What an `open` directive says about a debt that its postings cannot:
@@ -174,6 +194,7 @@ struct OpenMeta {
     income: Option<String>,
     currencies: Vec<String>,
     debt: DebtMeta,
+    purpose: Option<AccountPurpose>,
 }
 
 /// What a posting's `{...}` lot annotation named, resolved to a total.
@@ -595,6 +616,26 @@ impl Builder {
                             ynab: meta_string(meta, "ynab"),
                             income: meta_string(meta, "income"),
                             currencies,
+                            purpose: Some(AccountPurpose {
+                                scope: meta_string(meta, "scope")
+                                    .unwrap_or_else(|| {
+                                        inferred_scope(open.account.as_str())
+                                    }),
+                                liquidity: meta_string(meta, "liquidity")
+                                    .unwrap_or_else(|| {
+                                        inferred_liquidity(
+                                            open.account.as_str(),
+                                        )
+                                    }),
+                                declared: meta_string(meta, "liquidity")
+                                    .is_some(),
+                                reserve: meta_number(meta, "reserve")
+                                    .unwrap_or_default()
+                                    .max(Decimal::ZERO),
+                                goal: meta_number(meta, "goal"),
+                                goal_date: meta_string(meta, "goal-date"),
+                                updated: meta_string(meta, "updated"),
+                            }),
                             debt: DebtMeta {
                                 rate: meta_number(meta, "rate")
                                     .map(|r| r / Decimal::from(100)),
@@ -804,6 +845,17 @@ impl Builder {
             accounts.insert(
                 name.clone(),
                 AccountInfo {
+                    purpose: open
+                        .and_then(|o| o.purpose.clone())
+                        .unwrap_or_else(|| AccountPurpose {
+                            scope: inferred_scope(name),
+                            liquidity: inferred_liquidity(name),
+                            declared: false,
+                            reserve: Decimal::ZERO,
+                            goal: None,
+                            goal_date: None,
+                            updated: None,
+                        }),
                     account: name.clone(),
                     label,
                     group,
@@ -941,4 +993,34 @@ fn value_string(value: &Value<Decimal>) -> Option<String> {
         Value::Currency(c) => Some(c.to_string()),
         _ => None,
     }
+}
+
+fn inferred_scope(name: &str) -> String {
+    if name.split(':').any(|s| s.eq_ignore_ascii_case("business")) {
+        "business"
+    } else {
+        "personal"
+    }
+    .into()
+}
+fn inferred_liquidity(name: &str) -> String {
+    let parts: Vec<String> = name.split(':').map(str::to_lowercase).collect();
+    if parts.iter().any(|s| {
+        ["home", "house", "property", "realestate", "car", "vehicle"]
+            .contains(&s.as_str())
+    }) {
+        "illiquid"
+    } else if parts.iter().any(|s| {
+        ["receivable", "receivables", "reimbursements"].contains(&s.as_str())
+    }) {
+        "receivable"
+    } else if parts.iter().any(|s| {
+        ["retirement", "pension", "restricted", "401k", "ira"]
+            .contains(&s.as_str())
+    }) {
+        "restricted"
+    } else {
+        "cash"
+    }
+    .into()
 }

@@ -837,7 +837,7 @@ impl Ledger {
     }
 
     /// Budget-kind assets at the month's end: the runway's liquid.
-    fn liquid_cash(
+    pub(crate) fn liquid_cash(
         &self,
         current: MonthKey,
         cur: &str,
@@ -848,11 +848,24 @@ impl Ledger {
         for info in self.accounts() {
             if !info.account.starts_with("Assets:")
                 || info.kind != AccountKind::Budget
+                || !info.purpose.liquid()
+                || info.purpose.scope == "business"
             {
                 continue;
             }
             let balances = self.balance_at(&info.account, current);
             cash += self.convertible(&balances, cur, at, unpriced);
+            let reserve_cur = self
+                .operating_currencies
+                .first()
+                .map(String::as_str)
+                .unwrap_or(cur);
+            cash -= self.convertible(
+                &[(reserve_cur.into(), info.purpose.reserve)],
+                cur,
+                at,
+                unpriced,
+            );
         }
         cents(cash)
     }

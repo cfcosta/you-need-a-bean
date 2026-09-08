@@ -67,3 +67,18 @@ fn future_pay_is_not_cash_available_today() {
     let debts = l.liabilities_view((2026, 9, 7), 6, "USD");
     assert_eq!(debts.extra.now.to_string(), "100");
 }
+
+#[test]
+fn household_cash_excludes_property_receivables_business_and_reserves() {
+    let l = Ledger::build(
+        load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/validation/purpose.beancount"),
+        )
+        .unwrap(),
+    );
+    let reports = l.reports_view((2026, 9, 7), 6, "USD");
+    assert_eq!(reports.runway.liquid.to_string(), "75");
+    let debts = l.liabilities_view((2026, 9, 7), 6, "USD");
+    assert_eq!(debts.extra.now.to_string(), "75");
+}
