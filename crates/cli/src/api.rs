@@ -606,6 +606,7 @@ async fn reports(
 
     Ok(Json(json!({
         "month": view.month.to_string(),
+        "planning_ready": snapshot.ledger.audit.issues.is_empty() && view.unpriced.is_empty() && state.reload_error().is_none(),
         "net_worth": net_worth,
         "cashflow": cashflow,
         "fire": {
@@ -776,6 +777,7 @@ async fn liabilities(
         .collect();
     Ok(Json(json!({
         "month": view.month.to_string(),
+        "planning_ready": snapshot.ledger.audit.issues.is_empty() && view.unpriced.is_empty() && state.reload_error().is_none(),
         "owed": num(view.owed),
         "installment": num(view.installment),
         "revolving": num(view.revolving),

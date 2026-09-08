@@ -533,6 +533,7 @@ export interface Trust {
 }
 
 export interface ReportsView {
+  planning_ready: boolean;
   month: string;
   net_worth: NetWorthPoint[];
   cashflow: CashflowPoint[];
@@ -765,6 +766,7 @@ export interface Beaten {
 }
 
 export interface LiabilitiesView {
+  planning_ready: boolean;
   month: string;
   owed: number;
   installment: number;

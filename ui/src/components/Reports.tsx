@@ -1811,7 +1811,7 @@ function leanTitle(f: Fire, coverage: number | null, cur: string): string {
 
 export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
   const f = data.fire;
-  const hasTarget = f.fire_number > 0;
+  const hasTarget = f.fire_number > 0 && data.planning_ready;
   const fill = fireFill(f.progress);
   // The lean target is a second point on the same line as the first,
   // so the bar carries it and the sentence under the bar saying where
@@ -1840,7 +1840,7 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
                   {windowLabel(f.window)}
                 </>
               ) : (
-                "no spending history to size one yet"
+                data.planning_ready ? "no spending history to size one yet" : "projection paused · review accounting and prices"
               )}
             </div>
           </div>
@@ -1877,14 +1877,14 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
                 className="v num"
                 title={`${fmt(data.runway.liquid, cur)} in cash, against ${fmt(f.monthly_spend, cur)} a month`}
               >
-                {data.runway.months != null
+                {data.planning_ready && data.runway.months != null
                   ? `${data.runway.months.toFixed(1)} mo`
                   : "—"}
               </div>
             </div>
             <div className="fire-stat">
               <div className="lbl">4% pays today</div>
-              <div className="v num">{fmt(f.swr_monthly, cur)} / mo</div>
+              <div className="v num">{data.planning_ready ? fmt(f.swr_monthly, cur) : "—"} / mo</div>
             </div>
           </div>
         </div>

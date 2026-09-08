@@ -1053,3 +1053,12 @@ async fn search_finds_scheduled_and_historical_entries_with_provenance() {
     .await;
     assert_eq!(empty["total"], json!(0));
 }
+
+#[tokio::test]
+async fn invalid_accounts_disable_global_planning() {
+    for endpoint in ["/api/reports", "/api/liabilities"] {
+        let (_, b) =
+            get_at(app_at("validation/main", (2026, 9, 7)), endpoint).await;
+        assert_eq!(b["planning_ready"], json!(false));
+    }
+}

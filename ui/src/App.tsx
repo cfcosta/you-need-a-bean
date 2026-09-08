@@ -409,14 +409,14 @@ export function App() {
           )}
           {page === "reports" &&
             (reports != null ? (
-              <Reports data={reports} cur={cur} />
+              <Reports data={{...reports, planning_ready: reports.planning_ready && summary.reload_error == null && summary.audit.issues.length === 0}} cur={cur} />
             ) : (
               <ReportsSkeleton />
             ))}
           {page === "liabilities" &&
             (debts != null ? (
               <Liabilities
-                data={debts}
+                data={{...debts, planning_ready: debts.planning_ready && summary.reload_error == null && summary.audit.issues.length === 0}}
                 cur={cur}
                 today={summary.today}
                 basis={basis}

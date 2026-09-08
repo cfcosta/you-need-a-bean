@@ -2046,9 +2046,9 @@ export function Liabilities({
   // clear the lot. Either can be missing, and then the other takes
   // the whole width rather than sitting in half of it.
   const plan =
-    data.debts.length > 0 &&
+    data.planning_ready && data.debts.length > 0 &&
     (data.upcoming.length > 0 || data.extra.now > EPS);
-  const race = down.length > 1;
+  const race = data.planning_ready && down.length > 1;
 
   return (
     <section id="reports" className="debts">
