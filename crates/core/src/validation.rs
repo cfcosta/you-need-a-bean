@@ -32,11 +32,11 @@ pub struct Audit {
 
 pub(crate) fn validate(loaded: &LoadedLedger, ledger: &Ledger) -> Audit {
     let mut audit = Audit::default();
-    for (name, path) in &loaded.plugins {
+    for (name, source) in &loaded.plugins {
         audit.issues.push(Issue {
             code: "unsupported".into(),
             message: format!("Unsupported plugin {name}; its transformations have not been applied"),
-            account: None, source: Some(SourceLocation { path: path.clone(), line: 1 }),
+            account: None, source: Some(source.clone()),
         });
     }
     for (i, d) in loaded.directives.iter().enumerate() {
@@ -52,6 +52,47 @@ pub(crate) fn validate(loaded: &LoadedLedger, ledger: &Ledger) -> Audit {
                 });
             };
         match &d.content {
+            DirectiveContent::Open(open) => {
+                for (key, value) in &d.metadata {
+                    let key = key.to_string();
+                    let text = value.as_string();
+                    let number = value.as_number().copied().or_else(|| {
+                        text.and_then(|s| s.parse::<Decimal>().ok())
+                    });
+                    let valid = match key.as_str() {
+                        "scope" => text.is_some_and(|v| {
+                            ["personal", "business"].contains(&v)
+                        }),
+                        "liquidity" => text.is_some_and(|v| {
+                            [
+                                "cash",
+                                "investment",
+                                "illiquid",
+                                "receivable",
+                                "restricted",
+                            ]
+                            .contains(&v)
+                        }),
+                        "reserve" => number.is_some_and(|n| n >= Decimal::ZERO),
+                        "goal" => number.is_some_and(|n| n > Decimal::ZERO),
+                        "updated" | "goal-date" => {
+                            text.and_then(crate::home::parse_date).is_some()
+                        }
+                        _ => true,
+                    };
+                    if !valid {
+                        issue(
+                            "metadata",
+                            format!(
+                                "Invalid {key} metadata on {}; review the account declaration",
+                                open.account
+                            ),
+                            Some(open.account.to_string()),
+                        );
+                    }
+                }
+            }
+
             DirectiveContent::Pad(p) => issue(
                 "unsupported",
                 format!(

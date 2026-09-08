@@ -50,7 +50,7 @@ pub struct LoadedLedger {
     /// All directives from all files.
     pub directives: Vec<Directive<Decimal>>,
     pub origins: Vec<SourceLocation>,
-    pub plugins: Vec<(String, PathBuf)>,
+    pub plugins: Vec<(String, SourceLocation)>,
     /// Every `document` directive, with its path resolved.
     pub documents: Vec<Document>,
     /// Non-fatal problems (e.g. globs that matched nothing).
@@ -348,7 +348,30 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
                     )?;
                 }
                 Entry::Plugin(plugin) => {
-                    ledger.plugins.push((plugin.name, path.clone()))
+                    let prior = ledger
+                        .plugins
+                        .iter()
+                        .filter(|(name, source)| {
+                            name == &plugin.name && source.path == path
+                        })
+                        .count();
+                    let line = text
+                        .lines()
+                        .enumerate()
+                        .filter(|(_, line)| {
+                            line.trim_start().starts_with("plugin ")
+                                && line.contains(&plugin.name)
+                        })
+                        .nth(prior)
+                        .map(|(n, _)| n as u32 + 1)
+                        .unwrap_or(1);
+                    ledger.plugins.push((
+                        plugin.name,
+                        SourceLocation {
+                            path: path.clone(),
+                            line,
+                        },
+                    ))
                 }
                 _ => {}
             }

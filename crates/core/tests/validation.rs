@@ -100,3 +100,23 @@ fn retirement_projection_does_not_compound_a_house_or_business_cash() {
         "75"
     );
 }
+
+#[test]
+fn invalid_financial_metadata_is_reported_instead_of_ignored() {
+    let l = ledger();
+    assert!(
+        l.audit
+            .issues
+            .iter()
+            .filter(|i| i.code == "metadata")
+            .count()
+            >= 4
+    );
+    let plugin = l
+        .audit
+        .issues
+        .iter()
+        .find(|i| i.message.contains("plugin"))
+        .unwrap();
+    assert_eq!(plugin.source.as_ref().unwrap().line, 2);
+}

@@ -15,3 +15,8 @@ plugin "example.booking"
   Expenses:Food 10 USD
   Assets:Cash
   Equity:Opening
+2026-01-01 open Assets:Bad USD
+  scope: "persoanl"
+  liquidity: "cahs"
+  reserve: -100
+  updated: "2026-02-30"
