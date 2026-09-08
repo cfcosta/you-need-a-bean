@@ -157,7 +157,7 @@ impl Ledger {
                 }
                 for (currency, (units, flow)) in changes {
                     let h = holdings.get_mut(currency).unwrap();
-                    if h.units < Decimal::ZERO {
+                    if h.units < Decimal::ZERO && txn.date > start {
                         issues.insert(format!(
                             "{currency}: negative inventory is unsupported"
                         ));
@@ -271,6 +271,9 @@ impl Ledger {
             return Some(Decimal::ZERO);
         }
         if units < Decimal::ZERO {
+            issues.insert(format!(
+                "{currency}: negative inventory is unsupported"
+            ));
             return None;
         }
         let value = self.convert(units, currency, cur, date);

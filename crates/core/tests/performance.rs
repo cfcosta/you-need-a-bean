@@ -71,3 +71,21 @@ fn performance_withholds_totals_when_historical_prices_are_missing() {
     assert_eq!(p.gain, None);
     assert!(!p.issues.is_empty());
 }
+
+#[test]
+fn negative_inventory_resolved_before_the_period_does_not_void_later_performance()
+ {
+    let mut l = ledger();
+    // A historical short is closed before the selected opening date.
+    l.txns[0].postings[0].amounts[0].0 = dec("-10");
+    l.txns[1].postings[0].amounts[0].0 = dec("20");
+    let p = l.investment_performance((2026, 1, 12), (2026, 1, 16), "USD");
+    assert_eq!(p.opening, Some(dec("1000")));
+    assert_eq!(p.gain, Some(Decimal::ZERO));
+    assert_eq!(p.ret, Some(Decimal::ZERO));
+    assert!(p.issues.is_empty());
+    // The same short is unsupported when it is inside the measured period.
+    let p = l.investment_performance((2025, 12, 30), (2026, 1, 16), "USD");
+    assert_eq!(p.gain, None);
+    assert!(!p.issues.is_empty());
+}
