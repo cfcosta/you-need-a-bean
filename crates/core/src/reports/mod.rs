@@ -25,7 +25,7 @@ pub use fire::{
 };
 pub use growth::{GrowthPoint, GrowthView};
 pub use income::{IncomeSource, IncomeView};
-pub use investments::{AssetClass, InvestmentsView, Position};
+pub use investments::{AssetClass, InvestmentsView, Position, PositionAccount};
 pub use liabilities::{
     Amortization, Beaten, Collateral, Cover, Cycle, Debt, DebtKind, DebtPoint,
     Extra, Foreign, LiabilitiesView, Makeup, MakeupRow, Notice, NoticeKind,

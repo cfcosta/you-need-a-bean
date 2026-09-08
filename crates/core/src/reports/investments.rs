@@ -61,6 +61,7 @@ pub struct Position {
     pub units: Decimal,
     /// Price of one unit in the report currency, at the anchor date.
     pub price: Decimal,
+    pub price_date: Option<Day>,
     pub value: Decimal,
     /// `value` over the whole portfolio, dust included, so the shares
     /// are against everything held and not against what is listed.
@@ -75,11 +76,20 @@ pub struct Position {
     /// Accounts it sits in. A holding moved between brokers is one
     /// position with two, not two positions.
     pub accounts: usize,
+    pub locations: Vec<PositionAccount>,
     /// Postings that touched it. A three-posting stock and a
     /// thousand-posting token are different kinds of thing.
     pub postings: usize,
     pub first: Day,
     pub last: Day,
+}
+
+/// An account that currently holds units of a position.
+#[derive(Debug, Clone)]
+pub struct PositionAccount {
+    pub account: String,
+    pub label: String,
+    pub units: Decimal,
 }
 
 /// What the ledger calls a kind of holding, and how much is in it.
@@ -255,7 +265,7 @@ impl Ledger {
         // position can never disagree with the band it sits in on the
         // chart. The walk above is only how the cost got here.
         let mut held: BTreeMap<String, Decimal> = BTreeMap::new();
-        let mut sites: BTreeMap<String, usize> = BTreeMap::new();
+        let mut sites: BTreeMap<String, Vec<PositionAccount>> = BTreeMap::new();
         for info in self.accounts() {
             if !info.account.starts_with("Assets:") {
                 continue;
@@ -276,7 +286,13 @@ impl Ledger {
                 *held.entry(currency.to_string()).or_default() += value;
                 // A holding is somewhere now; the brokers it passed
                 // through on the way are history, not places it sits.
-                *sites.entry(currency.to_string()).or_default() += 1;
+                sites.entry(currency.to_string()).or_default().push(
+                    PositionAccount {
+                        account: info.account.clone(),
+                        label: info.label.clone(),
+                        units: value,
+                    },
+                );
             }
         }
 
@@ -323,6 +339,7 @@ impl Ledger {
                 class: declared.and_then(|c| c.asset_class.clone()),
                 units,
                 price,
+                price_date: self.priced_at(currency, cur, today),
                 value,
                 share: Decimal::ZERO,
                 basis,
@@ -330,7 +347,8 @@ impl Ledger {
                 ret: basis
                     .filter(|b| *b > Decimal::ZERO)
                     .map(|basis| ((value - basis) / basis).round_dp(4)),
-                accounts: sites.get(currency).copied().unwrap_or_default(),
+                accounts: sites.get(currency).map_or(0, Vec::len),
+                locations: sites.remove(currency).unwrap_or_default(),
                 postings: trace.map_or(0, |t| t.postings),
                 first,
                 last,

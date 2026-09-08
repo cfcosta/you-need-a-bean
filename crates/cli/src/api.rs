@@ -237,6 +237,9 @@ async fn search(
             );
             for p in &t.postings {
                 text.push_str(&format!(" {}", p.account));
+                for (amount, currency) in &p.amounts {
+                    text.push_str(&format!(" {amount} {currency}"));
+                }
             }
             for (k, v) in &t.meta {
                 text.push_str(&format!(" {k} {v}"));
@@ -999,7 +1002,9 @@ fn position_json(p: &Position) -> Value {
         "label": p.label,
         "class": p.class,
         "units": units_json(p.units),
-        "price": num(p.price),
+        "price": units_json(p.price),
+        "price_date": p.price_date.map(format_day),
+        "locations": p.locations.iter().map(|a| json!({"account":a.account,"label":a.label,"units":units_json(a.units)})).collect::<Vec<_>>(),
         "value": num(p.value),
         "share": ratio_json(Some(p.share)),
         "basis": opt_num(p.basis),

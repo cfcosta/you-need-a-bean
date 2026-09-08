@@ -656,6 +656,8 @@ async fn reports_endpoint_details_the_positions_held() {
             "class": "etf",
             "units": 24.0,
             "price": 120.0,
+            "price_date": "2026-06-01",
+            "locations": [{"account":"Assets:Broker", "label":"Broker", "units":24.0}],
             "value": 2880.0,
             "share": 0.4737,
             "basis": 2480.0,
@@ -1138,4 +1140,36 @@ async fn home_runway_has_zero_months_when_reserves_exceed_cash() {
     assert_eq!(b["available"], json!(-50.0));
     assert_eq!(b["runway"]["months"], json!(0.0));
     assert_eq!(b["runway"]["status"], "ready");
+}
+
+#[tokio::test]
+async fn portfolio_positions_show_current_accounts_and_quote_dates() {
+    let (_, b) =
+        get_at(app_at("reports/investments", (2026, 6, 15)), "/api/reports")
+            .await;
+    let acme = b["investments"]["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["currency"] == "ACME")
+        .unwrap();
+    assert_eq!(acme["price_date"], "2026-06-01");
+    let locations = acme["locations"].as_array().expect("current accounts");
+    assert_eq!(locations.len(), 2);
+    assert_eq!(locations[0]["account"], "Assets:Broker");
+    assert_eq!(locations[0]["units"], json!(100.0));
+    assert_eq!(locations[1]["account"], "Assets:Broker2");
+    assert_eq!(locations[1]["units"], json!(50.0));
+    assert_eq!(b["investments"]["dust"][0]["price"], json!(0.0001));
+}
+
+#[tokio::test]
+async fn search_finds_a_holding_named_only_in_posting_amounts() {
+    let (_, b) = get_at(
+        app_at("reports/investments", (2026, 6, 15)),
+        "/api/search?q=ETH",
+    )
+    .await;
+    assert_eq!(b["total"], json!(2));
+    assert!(b["items"][0]["source"]["path"].is_string());
 }
