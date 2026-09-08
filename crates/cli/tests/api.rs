@@ -1062,3 +1062,16 @@ async fn invalid_accounts_disable_global_planning() {
         assert_eq!(b["planning_ready"], json!(false));
     }
 }
+
+#[tokio::test]
+async fn forecast_stops_payments_when_an_installment_loan_is_paid() {
+    let (_, b) = get_at(app_at("home/loan", (2026, 9, 7)), "/api/home").await;
+    let payments: f64 = b["events"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| e["account"] == "Liabilities:Loan")
+        .map(|e| -e["amount"].as_f64().unwrap())
+        .sum();
+    assert_eq!(payments, 100.0);
+}

@@ -1,0 +1,14 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Cash USD
+2026-01-01 open Liabilities:Loan USD
+  rate: 0
+  due: 15
+2026-01-01 * "loan"
+  Assets:Cash 1000 USD
+  Liabilities:Loan -1000 USD
+2026-08-15 * "payment"
+  Assets:Cash -450 USD
+  Liabilities:Loan 450 USD
+2026-07-15 * "payment"
+  Assets:Cash -450 USD
+  Liabilities:Loan 450 USD

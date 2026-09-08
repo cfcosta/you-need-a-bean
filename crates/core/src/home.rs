@@ -288,10 +288,25 @@ impl Ledger {
             }
         }
         for u in &debts.upcoming {
+            let debt = debts.debts.iter().find(|d| d.account == u.account);
+            let installment = debt.is_some_and(|d| {
+                d.kind == crate::reports::DebtKind::Installment
+            });
+            let mut remaining =
+                debt.map(|d| d.owed).unwrap_or_default().max(Decimal::ZERO);
             for month in 0..=3 {
                 let day = shift_month(u.date, month);
                 if day < today || days_between(today, day) > 90 {
                     continue;
+                }
+                if installment && remaining.is_zero() {
+                    break;
+                }
+                if installment {
+                    remaining += (remaining
+                        * debt.and_then(|d| d.rate).unwrap_or_default()
+                        / Decimal::from(12))
+                    .round_dp(2);
                 }
                 let booked = scoped.txns.iter().any(|t| {
                     t.date > today
@@ -301,16 +316,50 @@ impl Ledger {
                         && cash_delta(&scoped, t, cur, &l, today)
                             .is_some_and(|v| v < Decimal::ZERO)
                 });
+                if booked && installment {
+                    let paid: Decimal = scoped
+                        .txns
+                        .iter()
+                        .filter(|t| {
+                            t.date > today
+                                && MonthKey::new(t.date.0, t.date.1)
+                                    == MonthKey::new(day.0, day.1)
+                        })
+                        .flat_map(|t| &t.postings)
+                        .filter(|p| p.account == u.account)
+                        .flat_map(|p| &p.amounts)
+                        .filter_map(|(v, c)| l.convert(*v, c, cur, today))
+                        .filter(|v| *v > Decimal::ZERO)
+                        .sum();
+                    remaining = (remaining - paid).max(Decimal::ZERO);
+                }
                 if !booked {
+                    let amount = if installment {
+                        u.amount.min(remaining)
+                    } else {
+                        u.amount
+                    };
+                    if installment {
+                        remaining = (remaining - amount).max(Decimal::ZERO);
+                    }
                     events.push(Event {
                         day,
-                        amount: -u.amount,
+                        amount: -amount,
                         label: u.label.clone(),
                         account: u.account.clone(),
                         kind: "estimated",
                     });
                 }
             }
+        }
+        for debt in debts.debts.iter().filter(|d| {
+            d.owed > Decimal::ZERO
+                && (d.next_due.is_none() || d.payment.is_none())
+        }) {
+            attention.push(json!({"kind":"debt","label":format!("{} needs a payment schedule",debt.label),"detail":"The forecast cannot account for every payment without a due date and payment history","account":debt.account}));
+        }
+        if !forecast_priced {
+            attention.push(json!({"kind":"price","label":"Scheduled money has no price","detail":"The forecast is paused until future currency amounts can be converted","account":null}));
         }
         events.sort_by(|a, b| a.day.cmp(&b.day).then(a.amount.cmp(&b.amount)));
         let trustworthy = l.audit.issues.is_empty() && missing.is_empty();
