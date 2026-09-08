@@ -1,0 +1,18 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Cash USD
+  scope: "shared"
+2026-01-01 open Assets:Business:Cash USD
+2026-01-01 open Income:Salary USD
+2026-01-01 open Income:Business:Consulting USD
+2026-01-01 open Expenses:Food USD
+2026-01-01 open Expenses:Business:Supplies USD
+2026-01-02 * "Income"
+  Assets:Cash 1000 USD
+  Assets:Business:Cash 2000 USD
+  Income:Salary -1000 USD
+  Income:Business:Consulting -2000 USD
+2026-01-03 * "Spending"
+  Assets:Cash -100 USD
+  Assets:Business:Cash -300 USD
+  Expenses:Food 100 USD
+  Expenses:Business:Supplies 300 USD

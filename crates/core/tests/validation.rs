@@ -99,7 +99,7 @@ fn future_pay_is_not_cash_available_today() {
 }
 
 #[test]
-fn household_cash_excludes_property_receivables_business_and_reserves() {
+fn cash_includes_every_account_owner_but_excludes_nonliquid_assets() {
     let l = Ledger::build(
         load(
             &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -108,13 +108,13 @@ fn household_cash_excludes_property_receivables_business_and_reserves() {
         .unwrap(),
     );
     let reports = l.reports_view((2026, 9, 7), 6, "USD");
-    assert_eq!(reports.runway.liquid.to_string(), "75");
+    assert_eq!(reports.runway.liquid.to_string(), "20075");
     let debts = l.liabilities_view((2026, 9, 7), 6, "USD");
-    assert_eq!(debts.extra.now.to_string(), "75");
+    assert_eq!(debts.extra.now.to_string(), "20075");
 }
 
 #[test]
-fn retirement_projection_does_not_compound_a_house_or_business_cash() {
+fn retirement_capital_includes_all_eligible_accounts() {
     let l = Ledger::build(
         load(
             &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -127,7 +127,7 @@ fn retirement_projection_does_not_compound_a_house_or_business_cash() {
             .fire
             .net_worth
             .to_string(),
-        "75"
+        "20075"
     );
 }
 
@@ -140,8 +140,9 @@ fn invalid_financial_metadata_is_reported_instead_of_ignored() {
             .iter()
             .filter(|i| i.code == "metadata")
             .count()
-            >= 4
+            == 3
     );
+    assert!(!l.audit.issues.iter().any(|i| i.message.contains("scope")));
     let plugin = l
         .audit
         .issues
@@ -149,4 +150,20 @@ fn invalid_financial_metadata_is_reported_instead_of_ignored() {
         .find(|i| i.message.contains("plugin"))
         .unwrap();
     assert_eq!(plugin.source.as_ref().unwrap().line, 2);
+}
+
+#[test]
+fn planning_uses_income_and_spending_from_the_whole_ledger() {
+    let l = Ledger::build(
+        load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/validation/whole-ledger.beancount"),
+        )
+        .unwrap(),
+    );
+    assert!(l.audit.issues.is_empty(), "{:?}", l.audit.issues);
+    let r = l.reports_view((2026, 2, 1), 1, "USD");
+    assert_eq!(r.fire.monthly_spend.to_string(), "400");
+    assert_eq!(r.fire.monthly_savings.to_string(), "2600");
+    assert_eq!(r.fire.net_worth.to_string(), "2600");
 }

@@ -12,10 +12,11 @@ cargo run -- examples/overview.beancount
 python3 examples/build-overview.py --today 2026-09-07
 ```
 
-The home offers Personal, Business, and Everything scopes. Scope changes
-apply to the home; the existing reports and sidebar still cover the full
-ledger. The independence scenario within Reports uses personal funds and
-personal spending. Opening a particular account shows its own register.
+The home, reports, and planning read the whole ledger. Account names do not
+select ownership scopes: a `Business` segment has no special meaning.
+Custom `scope` metadata remains ordinary ledger metadata and does not filter
+balances. Liquidity and reserves determine which funds are available for
+cash and investment scenarios. Opening an account shows its own register.
 
 ## Dated facts and planning
 
@@ -52,7 +53,6 @@ currency selected for display.
 ```beancount
 2026-01-01 open Assets:Bank:Savings USD
   name: "A little breathing room"
-  scope: "personal"
   liquidity: "cash"
   reserve: 3000
   goal: 10000
@@ -60,9 +60,6 @@ currency selected for display.
   updated: "2026-09-07"
 ```
 
-- `scope`: `personal` or `business`. Without it, a `Business` account segment
-  selects business; other accounts default to personal. Declare business
-  income and expenses explicitly if their names do not identify them.
 - `liquidity`: `cash`, `investment`, `illiquid`, `receivable`, or `restricted`.
   This is separate from `ynab` sidebar metadata. Recognizable property,
   receivable, and retirement account names receive conservative defaults;
@@ -109,7 +106,7 @@ links, and metadata. All words must match, case-insensitively. Results include
 future entries, full postings, attached documents, and source file/line.
 Search spans the whole ledger and returns 50 results per page.
 
-- `GET /api/home?scope=personal&cur=USD&as_of=2026-09-07`
+- `GET /api/home?cur=USD&as_of=2026-09-07`
 - `GET /api/search?q=rent&offset=0&cur=USD&as_of=2026-09-07`
 - `/api/summary` now includes structured accounting issues and assertions.
 - `/api/reports` and `/api/liabilities` expose `planning_ready`.

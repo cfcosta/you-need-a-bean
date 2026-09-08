@@ -196,53 +196,27 @@ impl Ledger {
             ));
         }
 
-        let personal = self.scoped(self.scope.as_deref().unwrap_or("personal"));
-        let personal_roots = personal.roots();
-        let personal_flows: Vec<_> = months
-            .iter()
-            .map(|month| {
-                let at = month.end_of_month();
-                let income = personal_roots
-                    .income
-                    .get(month)
-                    .map_or(Decimal::ZERO, |f| {
-                        -self.convertible(f, cur, at, &mut unpriced)
-                    });
-                let expenses = personal_roots
-                    .expenses
-                    .get(month)
-                    .map_or(Decimal::ZERO, |f| {
-                        self.convertible(f, cur, at, &mut unpriced)
-                    });
-                CashflowPoint {
-                    month: *month,
-                    income,
-                    expenses,
-                    net: income - expenses,
-                }
-            })
-            .collect();
         let reserve_cur = self
             .operating_currencies
             .first()
             .map(String::as_str)
             .unwrap_or(cur);
         let mut capital = Decimal::ZERO;
-        for a in personal.accounts() {
+        for a in self.accounts() {
             let asset = a.account.starts_with("Assets:")
                 && !["illiquid", "receivable", "restricted"]
                     .contains(&a.purpose.liquidity.as_str());
             if !asset && !a.account.starts_with("Liabilities:") {
                 continue;
             }
-            capital += personal.convertible(
-                &personal.balance_at(&a.account, current),
+            capital += self.convertible(
+                &self.balance_at(&a.account, current),
                 cur,
                 today,
                 &mut unpriced,
             );
             if asset {
-                capital -= personal.convertible(
+                capital -= self.convertible(
                     &[(reserve_cur.to_string(), a.purpose.reserve)],
                     cur,
                     today,
@@ -253,12 +227,12 @@ impl Ledger {
         let mut fire = fire::fire_view(
             self.window(current, basis),
             cents(capital),
-            &personal_flows,
+            &cashflow,
         );
         // What the charges that come back cost every month, which is
         // both the lean FIRE target and the runway you have if you cut
         // everything discretionary.
-        let recurring = personal.recurring_view(today, cur, fire.monthly_spend);
+        let recurring = self.recurring_view(today, cur, fire.monthly_spend);
         let monthly_fixed = recurring.monthly_fixed;
         fire.with_fixed(monthly_fixed);
         let runway = fire::runway_view(

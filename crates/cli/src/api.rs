@@ -281,11 +281,7 @@ async fn home(
     let snapshot = state.snapshot();
     let today = view_day(&state, &query)?;
     let (_, cur) = params(&snapshot, &query)?;
-    let scope = query.get("scope").map(String::as_str).unwrap_or("personal");
-    if !["personal", "business", "all"].contains(&scope) {
-        return Err(err(StatusCode::BAD_REQUEST, "unknown scope"));
-    }
-    Ok(Json(snapshot.ledger.home_view(today, scope, &cur)))
+    Ok(Json(snapshot.ledger.home_view(today, &cur)))
 }
 
 async fn month_view(

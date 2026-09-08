@@ -843,7 +843,6 @@ impl Ledger {
             if !info.account.starts_with("Assets:")
                 || info.kind != AccountKind::Budget
                 || !info.purpose.liquid()
-                || info.purpose.scope == "business"
             {
                 continue;
             }

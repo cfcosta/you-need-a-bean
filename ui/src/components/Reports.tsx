@@ -1826,7 +1826,7 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
       <div className="report-card fire">
         <div className="fire-top">
           <div className="fire-main">
-            <div className="lbl">Financial independence · personal · 4% scenario</div>
+            <div className="lbl">Financial independence · 4% scenario</div>
             <div className="fire-num num">
               {hasTarget ? fmt(f.fire_number, cur, 0) : "—"}
             </div>
@@ -1849,7 +1849,7 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
               <div className="lbl">Investable capital</div>
               <div
                 className="v num"
-                title={`${fmt(f.net_worth, cur)} — personal investment and cash assets less debts and reserves. Business funds, property, receivables, and restricted funds are excluded.`}
+                title={`${fmt(f.net_worth, cur)} — Investment and cash assets less debts and reserves. Property, receivables, and restricted funds are excluded.`}
               >
                 {fmt(f.net_worth, cur, 0)}
               </div>
@@ -1858,7 +1858,7 @@ export function Reports({ data, cur }: { data: ReportsView; cur: string }) {
               <div className="lbl">Spend / month</div>
               <div
                 className="v num"
-                title={`Averaged over ${windowLabel(f.window)}, across personal accounts, including hidden accounts. Business expenses are excluded.`}
+                title={`Averaged over ${windowLabel(f.window)}, across the whole ledger, including hidden accounts.`}
               >
                 {fmt(f.monthly_spend, cur)}
               </div>

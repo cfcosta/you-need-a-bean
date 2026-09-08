@@ -60,9 +60,6 @@ pub(crate) fn validate(loaded: &LoadedLedger, ledger: &Ledger) -> Audit {
                         text.and_then(|s| s.parse::<Decimal>().ok())
                     });
                     let valid = match key.as_str() {
-                        "scope" => text.is_some_and(|v| {
-                            ["personal", "business"].contains(&v)
-                        }),
                         "liquidity" => text.is_some_and(|v| {
                             [
                                 "cash",

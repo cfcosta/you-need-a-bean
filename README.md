@@ -14,7 +14,7 @@ Beancount stays the source of truth: this tool never writes to your ledger.
 
 ## Features
 
-- A responsive financial overview with personal/business scopes, account
+- A responsive financial overview across the whole ledger, with account
   coverage, goals, a review queue, and a 30/60/90-day commitments forecast.
 - Explicit accounting checks and source references; incomplete accounting
   and missing prices pause global planning.
@@ -52,7 +52,7 @@ cargo run -- examples/realistic/main.beancount
 `examples/overview.beancount` is the overview demo to open first. Regenerate
 it with `python3 examples/build-overview.py --today YYYY-MM-DD`.
 [Overview rules and account metadata](docs/HOME.md) explain coverage,
-reserves, scopes, forecasting assumptions, and unsupported accounting.
+reserves, forecasting assumptions, and unsupported accounting.
 
 `examples/realistic/` exercises the broader reports: two and a half years of
 a household and a one-person business sharing a chart of accounts, with a

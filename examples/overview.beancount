@@ -27,7 +27,6 @@ option "operating_currency" "USD"
 2025-12-01 open Assets:Business:Checking USD
   name: "Studio account"
   liquidity: "cash"
-  scope: "business"
   updated: "2026-09-07"
 2025-12-01 open Liabilities:Loan:Car USD
   name: "The little blue car"
@@ -38,7 +37,6 @@ option "operating_currency" "USD"
   name: "Salary"
 2025-12-01 open Income:Business:Consulting USD
   name: "Studio income"
-  scope: "business"
 2025-12-01 open Expenses:Home:Rent USD
   name: "A place to call home"
 2025-12-01 open Expenses:Food:Groceries USD

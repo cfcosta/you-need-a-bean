@@ -151,7 +151,6 @@ pub struct AccountInfo {
 /// Financial meaning is independent of sidebar visibility.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct AccountPurpose {
-    pub scope: String,
     pub liquidity: String,
     pub declared: bool,
     /// Reserved amount in the ledger's first operating currency.
@@ -250,7 +249,6 @@ type CurrencySums = Vec<(String, Decimal)>;
 /// The fully indexed ledger. Built once at startup, then read-only.
 #[derive(Debug, Clone)]
 pub struct Ledger {
-    pub scope: Option<String>,
     pub title: Option<String>,
     pub operating_currencies: Vec<String>,
     pub files: Vec<PathBuf>,
@@ -284,23 +282,6 @@ impl Ledger {
             .warnings
             .extend(ledger.audit.issues.iter().map(|i| i.message.clone()));
         ledger
-    }
-
-    /// A reporting scope keeps original audit evidence and source references.
-    pub fn scoped(&self, scope: &str) -> std::borrow::Cow<'_, Self> {
-        if scope == "all" {
-            return std::borrow::Cow::Borrowed(self);
-        }
-        let mut l = self.clone();
-        l.scope = Some(scope.to_string());
-        l.accounts.retain(|_, a| a.purpose.scope == scope);
-        l.monthly.retain(|a, _| l.accounts.contains_key(a));
-        l.txn_index.retain(|a, _| l.accounts.contains_key(a));
-        // Keep transaction indices stable for existing account drilldowns.
-        for t in &mut l.txns {
-            t.postings.retain(|p| l.accounts.contains_key(&p.account));
-        }
-        std::borrow::Cow::Owned(l)
     }
 
     /// A dated reading: future postings and future quotes never become cash today.
@@ -635,10 +616,6 @@ impl Builder {
                             income: meta_string(meta, "income"),
                             currencies,
                             purpose: Some(AccountPurpose {
-                                scope: meta_string(meta, "scope")
-                                    .unwrap_or_else(|| {
-                                        inferred_scope(open.account.as_str())
-                                    }),
                                 liquidity: meta_string(meta, "liquidity")
                                     .unwrap_or_else(|| {
                                         inferred_liquidity(
@@ -696,7 +673,6 @@ impl Builder {
         }
 
         Ledger {
-            scope: None,
             title,
             operating_currencies: operating,
             files: loaded.files.clone(),
@@ -867,7 +843,6 @@ impl Builder {
                     purpose: open
                         .and_then(|o| o.purpose.clone())
                         .unwrap_or_else(|| AccountPurpose {
-                            scope: inferred_scope(name),
                             liquidity: inferred_liquidity(name),
                             declared: false,
                             reserve: Decimal::ZERO,
@@ -1014,14 +989,6 @@ fn value_string(value: &Value<Decimal>) -> Option<String> {
     }
 }
 
-fn inferred_scope(name: &str) -> String {
-    if name.split(':').any(|s| s.eq_ignore_ascii_case("business")) {
-        "business"
-    } else {
-        "personal"
-    }
-    .into()
-}
 fn inferred_liquidity(name: &str) -> String {
     let parts: Vec<String> = name.split(':').map(str::to_lowercase).collect();
     if parts.iter().any(|s| {

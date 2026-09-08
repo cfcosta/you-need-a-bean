@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import type { Attention, HomeView, Scope } from "../api";
+import type { Attention, HomeView } from "../api";
 import { getHome } from "../api";
 import { fmt, fmtCompact } from "../format";
 import { accountUrl, dayLabel, scenario } from "../home";
 import { ReportsSkeleton } from "./Skeleton";
 
-const scopes: [Scope,string][] = [["personal","Personal"],["business","Business"],["all","Everything"]];
 const money = (n:number|null, cur:string) => n == null ? "—" : fmt(n,cur,0);
 const pct = (n:number,d:number) => Math.max(0,Math.min(100,d>0?n/d*100:0));
 const shortAccount = (s:string) => s.split(":").slice(-2).join(" · ");
@@ -61,7 +60,7 @@ function AttentionPanel({items,onSearch}:{items:Attention[];onSearch:(q:string)=
   </article>;
 }
 
-function HomeContent({data,cur,scope,onScope,onAccount,onSearch}:{data:HomeView;cur:string;scope:Scope;onScope:(s:Scope)=>void;onAccount:(a:string)=>void;onSearch:(q:string)=>void}) {
+function HomeContent({data,cur,onAccount,onSearch}:{data:HomeView;cur:string;onAccount:(a:string)=>void;onSearch:(q:string)=>void}) {
   const [allAccounts,setAllAccounts]=useState(false);
   const [eventTab,setEventTab]=useState("next");
   const [allEvents,setAllEvents]=useState(false);
@@ -74,7 +73,7 @@ function HomeContent({data,cur,scope,onScope,onAccount,onSearch}:{data:HomeView;
   const itemLimit=allEvents?undefined:6;
   return <section id="financial-home">
     <div className="h-heading"><div><span className="h-eyebrow">{new Date(data.today+"T12:00:00Z").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",timeZone:"UTC"}).toUpperCase()}</span><h1>A little clarity.<br/><em>A lot more possibility.</em></h1></div>
-      <div className="h-heading-tools"><div className="h-segment" role="group" aria-label="Financial scope">{scopes.map(([s,label])=><button key={s} aria-pressed={scope===s} onClick={()=>onScope(s)}>{label}</button>)}</div><button className="h-find" onClick={()=>onSearch("")}><span>⌕</span> Find a transaction <kbd>⌘ K</kbd></button></div>
+      <div className="h-heading-tools"><button className="h-find" onClick={()=>onSearch("")}><span>⌕</span> Find a transaction <kbd>⌘ K</kbd></button></div>
     </div>
     <div className="h-overview">
       <article className="h-balance"><div className="h-balance-top"><span className="h-eyebrow">CASH AFTER RESERVES</span><span className="h-pill">As of {dayLabel(data.today)}</span></div>
@@ -87,7 +86,7 @@ function HomeContent({data,cur,scope,onScope,onAccount,onSearch}:{data:HomeView;
       <article className="h-worth"><span className="h-eyebrow">THE BIGGER PICTURE</span><span className="h-worth-label">Net worth {data.unpriced.length>0&&<span className="h-pill">Partial</span>}</span><strong>{money(data.net_worth,cur)}</strong>
         <svg viewBox="0 0 250 65" role="img" aria-label="Recorded net worth history"><path d={spark} fill="none" stroke="var(--market)" strokeWidth="2"/><path d={`${spark} L250,65 L0,65Z`} fill="var(--market)" opacity=".06"/></svg>
         <div className="h-worth-split"><div><span>Assets</span><b>{money(data.assets,cur)}</b></div><div><span>Liabilities</span><b>{money(data.owed,cur)}</b></div></div>
-        <a href="/reports">View all-finances reports <span>↗</span></a>
+        <a href="/reports">Explore your reports <span>↗</span></a>
       </article>
     </div>
     <div className="h-main-grid"><div className="h-left-stack"><Trajectory data={data} cur={cur}/>      <article className="h-card h-movements"><header className="h-card-head"><div><span className="h-eyebrow">MONEY IN MOTION</span><h2>What’s coming up</h2></div><span className="h-pill">Next 90 days</span></header>
@@ -104,27 +103,26 @@ function HomeContent({data,cur,scope,onScope,onAccount,onSearch}:{data:HomeView;
     <article className="h-card h-accounts" id="home-accounts"><header className="h-card-head"><div><span className="h-eyebrow">EVERY ACCOUNT HAS A PLACE</span><h2>Your financial landscape</h2></div><label className="h-account-filter"><span className="sr-only">Filter accounts</span><input placeholder="Find an account…" value={accountFilter} onChange={e=>setAccountFilter(e.target.value)}/></label></header>
       <div className="h-account-header"><span>Account</span><span>Purpose</span><span>Source coverage</span><span>Balance · {cur}</span></div>
       {accounts.slice(0,allAccounts?undefined:8).map(a=><a className="h-account" href={accountUrl(a.account,data.today)} key={a.account} onClick={e=>{if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();onAccount(a.account)}}>
-        <span className="h-account-name"><i className={a.cash?'cash':a.account.startsWith('Liabilities:')?'debt':'holding'}>{a.cash?'↙':a.account.startsWith('Liabilities:')?'↗':'◇'}</i><span><b>{a.label}</b><small>{a.scope} · {a.native.map(n=>n.currency).join(' / ')}</small></span></span>
+        <span className="h-account-name"><i className={a.cash?'cash':a.account.startsWith('Liabilities:')?'debt':'holding'}>{a.cash?'↙':a.account.startsWith('Liabilities:')?'↗':'◇'}</i><span><b>{a.label}</b><small>{a.native.map(n=>n.currency).join(' / ')}</small></span></span>
         <span className="h-account-purpose">{a.cash?'Cash':a.liquidity==='cash'?'Investment':a.liquidity}<small>{a.declared?'Declared in ledger':'Inferred · review if needed'}</small></span>
         <span className={`h-account-fresh ${a.fresh?'current':''}`}><span>{a.updated?`Through ${dayLabel(a.updated)}`:a.checked?`Assertion ${dayLabel(a.checked)}`:'Not recorded'}</span><small>{a.last_transaction?`Last activity ${dayLabel(a.last_transaction)}`:'No recorded activity'}</small></span>
         <strong className={a.value!=null&&a.value<0?'h-red':''}>{money(a.value,cur)} <span>↗</span></strong>
       </a>)}
       {!accounts.length&&<div className="h-empty">No accounts match this view.</div>}
       {accounts.length>8&&<button className="h-more" onClick={()=>setAllAccounts(!allAccounts)}>{allAccounts?'Show fewer accounts':`Explore all ${accounts.length} accounts`} ↓</button>}
-      <details className="h-guide"><summary>What does source coverage mean? <span>+</span></summary><p>Coverage comes from your declared <code>updated: "YYYY-MM-DD"</code> date or a balance assertion. Recent means within seven days. This app reads your ledger; it does not connect to institutions or independently confirm balances. You can declare <code>scope: "personal"</code> or <code>scope: "business"</code>, and <code>liquidity: "cash"</code>, <code>"restricted"</code>, <code>"receivable"</code>, or <code>"illiquid"</code> on an account.</p></details>
+      <details className="h-guide"><summary>What does source coverage mean? <span>+</span></summary><p>Coverage comes from your declared <code>updated: "YYYY-MM-DD"</code> date or a balance assertion. Recent means within seven days. This app reads your ledger; it does not connect to institutions or independently confirm balances. You can declare <code>liquidity: "cash"</code>, <code>"restricted"</code>, <code>"receivable"</code>, or <code>"illiquid"</code> on an account.</p></details>
     </article>
     <footer className="h-footer"><span>YOUR MONEY. YOUR RECORDS. YOUR PACE.</span><span>One local ledger · {data.accounts.length} accounts · {cur}</span></footer>
   </section>;
 }
 
 export function Home({cur,revision,unavailable,onAccount,onSearch}:{cur:string;revision:string;unavailable:boolean;onAccount:(a:string)=>void;onSearch:(q:string)=>void}) {
-  const [scope,setScope]=useState<Scope>("personal");
   const [loaded,setLoaded]=useState<{key:string;data:HomeView}|null>(null);
   const [error,setError]=useState<string|null>(null);
-  const key=`${scope}:${cur}:${revision}`;
-  useEffect(()=>{let active=true;setError(null);getHome(scope,cur).then(data=>{if(active)setLoaded({key,data})}).catch(e=>{if(active)setError(String(e.message))});return()=>{active=false}},[key]);
+  const key=`${cur}:${revision}`;
+  useEffect(()=>{let active=true;setError(null);getHome(cur).then(data=>{if(active)setLoaded({key,data})}).catch(e=>{if(active)setError(String(e.message))});return()=>{active=false}},[key]);
   if(error)return <div className="h-empty" role="alert"><strong>Couldn’t load your financial home</strong><p>{error}</p><button onClick={()=>location.reload()}>Try again</button></div>;
   if(loaded?.key!==key)return <ReportsSkeleton/>;
   const data=unavailable?{...loaded.data,available:null,forecast:Object.fromEntries(Object.entries(loaded.data.forecast).map(([k,v])=>[k,{...v,balance:null,low:null,points:[]}]))}:loaded.data;
-  return <HomeContent key={`${scope}:${cur}`} data={data} cur={cur} scope={scope} onScope={setScope} onAccount={onAccount} onSearch={onSearch}/>;
+  return <HomeContent key={cur} data={data} cur={cur} onAccount={onAccount} onSearch={onSearch}/>;
 }

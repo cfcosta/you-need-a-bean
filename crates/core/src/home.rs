@@ -74,9 +74,8 @@ fn cash_delta(
 }
 
 impl Ledger {
-    pub fn home_view(&self, today: Day, scope: &str, cur: &str) -> Value {
-        let scoped = self.scoped(scope);
-        let l = scoped.as_of(today);
+    pub fn home_view(&self, today: Day, cur: &str) -> Value {
+        let l = self.as_of(today);
         let current = MonthKey::new(today.0, today.1);
         let reports = l.reports_view(today, 6, cur);
         let debts = l.liabilities_view(today, 6, cur);
@@ -153,7 +152,7 @@ impl Ledger {
                 .filter(|t| t.postings.iter().any(|p| p.account == a.account))
                 .map(|t| t.date)
                 .max();
-            accounts.push(json!({"account": a.account, "label": a.label, "scope": a.purpose.scope,
+            accounts.push(json!({"account": a.account, "label": a.label,
                 "liquidity": if is_cash { "cash" } else { &a.purpose.liquidity }, "declared": a.purpose.declared,
                 "value": priced.then(|| num(value)), "native": balances.iter().map(|(c,v)| json!({"currency":c,"amount":num(*v)})).collect::<Vec<_>>(),
                 "cash": is_cash, "reserve": reserve.map(num), "updated": updated.map(date), "checked": checked.map(date),
@@ -192,20 +191,18 @@ impl Ledger {
         }
         let mut events = Vec::<Event>::new();
         let mut forecast_priced = true;
-        for t in scoped
+        for t in self
             .txns
             .iter()
             .filter(|t| t.date > today && days_between(today, t.date) <= 90)
         {
-            match cash_delta(&scoped, t, cur, &l, today) {
+            match cash_delta(self, t, cur, &l, today) {
                 Some(v) if !v.is_zero() => {
                     let account = t
                         .postings
                         .iter()
                         .find(|p| {
-                            !scoped
-                                .account(&p.account)
-                                .is_some_and(cash_account)
+                            !self.account(&p.account).is_some_and(cash_account)
                         })
                         .or_else(|| t.postings.first())
                         .map(|p| p.account.clone())
@@ -308,16 +305,16 @@ impl Ledger {
                         / Decimal::from(12))
                     .round_dp(2);
                 }
-                let booked = scoped.txns.iter().any(|t| {
+                let booked = self.txns.iter().any(|t| {
                     t.date > today
                         && MonthKey::new(t.date.0, t.date.1)
                             == MonthKey::new(day.0, day.1)
                         && t.postings.iter().any(|p| p.account == u.account)
-                        && cash_delta(&scoped, t, cur, &l, today)
+                        && cash_delta(self, t, cur, &l, today)
                             .is_some_and(|v| v < Decimal::ZERO)
                 });
                 if booked && installment {
-                    let paid: Decimal = scoped
+                    let paid: Decimal = self
                         .txns
                         .iter()
                         .filter(|t| {
@@ -394,7 +391,7 @@ impl Ledger {
             })
             .map(|e| -e.amount)
             .sum();
-        json!({"today":date(today),"scope":scope,"currency":cur,"assets":num(assets),"owed":num(owed),"net_worth":num(assets-owed),
+        json!({"today":date(today),"currency":cur,"assets":num(assets),"owed":num(owed),"net_worth":num(assets-owed),
             "cash":num(cash),"reserved":num(reserved),"available":trustworthy.then(||num(available)),"accounts":accounts,
             "coverage":{"current":current_accounts,"total":accounts.len()},"goals":goals,"attention":attention,"unpriced":missing,
             "forecast":forecast,"forecast_priced":forecast_priced,"events":events.iter().map(event_value).collect::<Vec<_>>(),

@@ -997,29 +997,28 @@ async fn current_account_register_does_not_include_scheduled_pay() {
 
 #[tokio::test]
 async fn home_separates_actual_reserved_and_scheduled_money() {
-    let (_, b) = get_at(
-        app_at("home/main", (2026, 9, 7)),
-        "/api/home?scope=personal&cur=USD",
-    )
-    .await;
-    assert_eq!(b["cash"], json!(3000.0));
+    let (_, b) =
+        get_at(app_at("home/main", (2026, 9, 7)), "/api/home?cur=USD").await;
+    assert_eq!(b["cash"], json!(13000.0));
     assert_eq!(b["reserved"], json!(300.0));
-    assert_eq!(b["available"], json!(2700.0));
+    assert_eq!(b["available"], json!(12700.0));
     assert_eq!(
         b["events"].as_array().unwrap().len(),
         2,
         "internal transfers are not new income or spending"
     );
-    assert_eq!(b["forecast"]["30"]["balance"], json!(3500.0));
-    assert_eq!(b["forecast"]["30"]["low"], json!(2500.0));
+    assert_eq!(b["forecast"]["30"]["balance"], json!(13500.0));
+    assert_eq!(b["forecast"]["30"]["low"], json!(12500.0));
     assert_eq!(b["goals"][0]["funded"], json!(1000.0));
     assert_eq!(b["goals"][0]["target"], json!(2000.0));
-    let (_, business) = get_at(
-        app_at("home/main", (2026, 9, 7)),
-        "/api/home?scope=business",
-    )
-    .await;
-    assert_eq!(business["cash"], json!(10000.0));
+    assert!(b.get("scope").is_none());
+    assert!(
+        b["accounts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a["account"] == "Assets:Bank:Business")
+    );
 }
 
 #[tokio::test]
