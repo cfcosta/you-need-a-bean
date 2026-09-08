@@ -72,3 +72,6 @@
 
 .h-balance>* { position:relative; z-index:1; }
 @media(max-width:700px) { #app.home-app #topbar .topbar-right { width:auto;flex:none;margin-left:auto; } #app.home-app #topbar { flex-wrap:nowrap; } }
+
+.h-left-stack,.h-right-stack { display:grid;gap:22px;min-width:0; }
+@media(max-width:700px) { .h-left-stack,.h-right-stack { gap:16px; } }
