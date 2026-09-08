@@ -205,3 +205,11 @@ describe("routeUrl", () => {
     }
   });
 });
+
+test("the investments page supports direct links and browser navigation", () => {
+  const r=resolveRoute(parseRoute(at('/investments?cur=EUR&cat=Expenses:Fun')), DEFAULTS);
+  expect(r.page).toBe('investments');
+  expect(r.cur).toBe('USD');
+  expect(r.cat).toBeNull();
+  expect(routeUrl(r,DEFAULTS)).toBe('/investments');
+});

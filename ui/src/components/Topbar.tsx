@@ -34,7 +34,7 @@ export function Topbar({
   const next = i >= 0 && i < months.length - 1 ? months[i + 1] : null;
 
   const title =
-    page === "home" ? "Overview" : page === "reports" ? "Reports" : page === "liabilities" ? "Liabilities" : null;
+    page === "investments" ? "Investments" : page === "home" ? "Overview" : page === "reports" ? "Reports" : page === "liabilities" ? "Liabilities" : null;
 
   return (
     <div id="topbar">
@@ -114,7 +114,7 @@ export function Topbar({
       <div className="topbar-right">
         {/* The same window, read two ways: the months a target is
             taken from, and the months an account's chart covers. */}
-        {page !== "home" && <>
+        {page !== "home" && page !== "investments" && <>
         <span className="seg-label">
           {page === "account" || page === "liabilities" ? "History" : "Target"}
         </span>

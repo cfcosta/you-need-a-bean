@@ -66,7 +66,7 @@
 @media (prefers-reduced-motion:no-preference) { .h-overview,.h-main-grid,.h-bottom-grid { animation:home-enter .45s ease-out both; }.h-main-grid { animation-delay:.06s; }.h-bottom-grid { animation-delay:.12s; } @keyframes home-enter { from { transform:translateY(8px);opacity:0; } to { transform:translateY(0);opacity:1; } } }
 
 .h-balance>* { position:relative; z-index:1; }
-@media(max-width:700px) { #app.home-app #topbar .topbar-right { width:auto;flex:none;margin-left:auto; } #app.home-app #topbar { flex-wrap:nowrap; } }
+@media(max-width:700px) { #app:is(.home-app,.investments-app) #topbar .topbar-right { width:auto;flex:none;margin-left:auto; } #app:is(.home-app,.investments-app) #topbar { flex-wrap:nowrap; } }
 
 .h-left-stack,.h-right-stack { display:grid;gap:22px;min-width:0; }
 @media(max-width:700px) { .h-left-stack,.h-right-stack { gap:16px; } }

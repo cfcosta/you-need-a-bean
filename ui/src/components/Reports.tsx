@@ -1418,6 +1418,8 @@ function InvestmentsCard({
         )}
       </div>
 
+      <a className="i-text" href="/investments">Explore all investments ↗</a>
+
       {/* The two halves of the same portfolio, side by side: what the
           ledger can price against a cost, and what it can only price.
           Putting the second beside the first turns the gap from an

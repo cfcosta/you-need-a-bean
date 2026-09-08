@@ -402,6 +402,8 @@ export interface Position {
   class: string | null;
   units: number;
   price: number;
+  price_date: string | null;
+  locations: {account:string;label:string;units:number}[];
   value: number;
   /** `value` over the whole portfolio, dust included. */
   share: number;

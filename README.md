@@ -14,6 +14,8 @@ Beancount stays the source of truth: this tool never writes to your ledger.
 
 ## Features
 
+- A dedicated Investments page with allocation, searchable holdings, average-cost
+  gain estimates, account drilldowns, and dated quote evidence.
 - A responsive financial overview across the whole ledger, with account
   coverage, goals, a review queue, and a 30/60/90-day commitments forecast.
 - Explicit accounting checks and source references; incomplete accounting

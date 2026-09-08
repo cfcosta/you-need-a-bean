@@ -16,6 +16,7 @@ import {
   getReports,
   getSummary,
 } from "./api";
+import { InvestmentsPage } from "./components/Investments";
 import { Home } from "./components/Home";
 import { Search } from "./components/Search";
 import { Account } from "./components/Account";
@@ -312,12 +313,12 @@ export function App() {
   };
 
   const navigate = (p: Page) => {
-    if (p === "home" || p === "reports" || p === "liabilities") setMonth(summary.default_month);
+    if (p === "home" || p === "reports" || p === "liabilities" || p === "investments") setMonth(summary.default_month);
     setPage(p);
     setSidebarOpen(false);
   };
   const openAccount = (account: string) => {
-    if (page === "home") setMonth(summary.default_month);
+    if (page === "home" || page === "investments") setMonth(summary.default_month);
     setPage("account");
     setAcct(account);
     setOpenTxns(new Set());
@@ -337,7 +338,7 @@ export function App() {
 
   return (
     <>
-      <div id="app" className={page === "budget" ? "" : `no-insp${page === "home" ? " home-app" : ""}`}>
+      <div id="app" className={page === "budget" ? "" : `no-insp${page === "home" ? " home-app" : page === "investments" ? " investments-app" : ""}`}>
         <Sidebar
           summary={summary}
           view={view}
@@ -397,6 +398,7 @@ export function App() {
             </div>
           )}
           {page === "home" && <Home cur={cur} revision={revision} unavailable={summary.reload_error != null || disconnected} onAccount={openAccount} onSearch={setSearch} />}
+          {page === "investments" && <InvestmentsPage cur={cur} today={summary.today} revision={revision} unavailable={disconnected || summary.reload_error != null || summary.audit.issues.length > 0} onAccount={openAccount} onSearch={setSearch} />}
           {page === "budget" && view != null && (
             <>
               <StatStrip view={view} cur={cur} window={window} />

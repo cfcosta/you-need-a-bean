@@ -5,7 +5,7 @@
  * state should look like as a URL.
  */
 
-export type Page = "home" | "budget" | "reports" | "account" | "liabilities";
+export type Page = "home" | "budget" | "reports" | "account" | "liabilities" | "investments";
 
 /** The bases the month picker offers. */
 export const BASES = [3, 6, 12];
@@ -58,6 +58,7 @@ export function parseRoute(loc: {
       : null;
   const page: Page =
     (head == null && !q.has("cat")) || head === "home" ? "home" :
+    head === "investments" ? "investments" :
     head === "reports"
       ? "reports"
       : head === "liabilities"
@@ -109,6 +110,7 @@ export function routeUrl(s: RouteState, d: RouteDefaults): string {
 /** The path half of the URL: which page, and which month of it. */
 function pagePath(s: RouteState, d: RouteDefaults): string {
   if (s.page === "home") return "/";
+  if (s.page === "investments") return "/investments";
   if (s.page === "reports") return "/reports";
   if (s.page === "liabilities") return "/liabilities";
   // An account page with no account is nowhere; the budget is home.
