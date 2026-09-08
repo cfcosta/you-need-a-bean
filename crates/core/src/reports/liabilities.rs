@@ -503,14 +503,8 @@ impl Ledger {
         let revolving = sum_kind(DebtKind::Revolving);
         let upcoming = upcoming(&debts, today);
         let notices = notices(&debts, today, current);
-        let extra = self.extra_of(
-            &upcoming,
-            &principal_paid,
-            cash,
-            current,
-            basis,
-            cur,
-        );
+        let extra =
+            self.extra_of(&upcoming, &principal_paid, cash, today, basis, cur);
 
         LiabilitiesView {
             month: current,
@@ -1022,10 +1016,11 @@ impl Ledger {
         upcoming: &[Upcoming],
         principal_paid: &BTreeMap<MonthKey, Decimal>,
         cash: Decimal,
-        current: MonthKey,
+        today: Day,
         basis: u32,
         cur: &str,
     ) -> Extra {
+        let current = MonthKey::new(today.0, today.1);
         let due = cents(upcoming.iter().map(|u| u.amount).sum());
         let window = self.window(current, basis);
         let months: Vec<MonthKey> = window
@@ -1046,9 +1041,8 @@ impl Ledger {
         } else {
             cents(median(&mut spent))
         };
-        let buffer = self
-            .recurring_view(current, cur, Decimal::ZERO)
-            .monthly_fixed;
+        let buffer =
+            self.recurring_view(today, cur, Decimal::ZERO).monthly_fixed;
         let now = cents(cash - due - spend - buffer).max(Decimal::ZERO);
         let mut left: Vec<Decimal> = months
             .iter()

@@ -1,0 +1,19 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Cash USD
+2026-01-01 open Expenses:Subscription USD
+2026-01-01 open Equity:Opening USD
+2026-01-02 * "Opening"
+  Assets:Cash 1000 USD
+  Equity:Opening -1000 USD
+2026-06-08 * "Music" "Monthly"
+  Assets:Cash -10 USD
+  Expenses:Subscription 10 USD
+2026-07-08 * "Music" "Monthly"
+  Assets:Cash -10 USD
+  Expenses:Subscription 10 USD
+2026-08-08 * "Music" "Monthly"
+  Assets:Cash -10 USD
+  Expenses:Subscription 10 USD
+2026-09-08 * "Music" "Scheduled"
+  Assets:Cash -10 USD
+  Expenses:Subscription 10 USD

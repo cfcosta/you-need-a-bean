@@ -258,8 +258,7 @@ impl Ledger {
         // What the charges that come back cost every month, which is
         // both the lean FIRE target and the runway you have if you cut
         // everything discretionary.
-        let recurring =
-            personal.recurring_view(current, cur, fire.monthly_spend);
+        let recurring = personal.recurring_view(today, cur, fire.monthly_spend);
         let monthly_fixed = recurring.monthly_fixed;
         fire.with_fixed(monthly_fixed);
         let runway = fire::runway_view(

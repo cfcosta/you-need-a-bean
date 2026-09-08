@@ -148,13 +148,13 @@ impl Ledger {
     /// The charges that repeat on a cadence for a steady amount.
     pub(super) fn recurring_view(
         &self,
-        current: MonthKey,
+        today: Day,
         cur: &str,
         monthly_spend: Decimal,
     ) -> RecurringView {
+        let current = MonthKey::new(today.0, today.1);
         let from = current.minus(LOOKBACK_MONTHS);
         let cutoff = current.minus(RELEVANT_MONTHS).end_of_month();
-        let today = current.end_of_month();
 
         // (account, payee) is the series. The same payee billing two
         // different accounts is two charges, which is what you want:

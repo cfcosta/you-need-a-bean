@@ -1091,3 +1091,20 @@ async fn browser_calendar_date_controls_the_snapshot() {
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn recurring_bills_stay_active_before_this_months_due_date() {
+    let (_, b) =
+        get_at(app_at("home/recurring", (2026, 9, 7)), "/api/home").await;
+    assert_eq!(b["recurring"][0]["active"], json!(true));
+    let events = b["events"].as_array().unwrap();
+    assert_eq!(
+        events.iter().filter(|e| e["date"] == "2026-09-08").count(),
+        1,
+        "recorded bills replace estimates"
+    );
+    assert_eq!(
+        events.iter().filter(|e| e["date"] == "2026-10-08").count(),
+        1
+    );
+}
