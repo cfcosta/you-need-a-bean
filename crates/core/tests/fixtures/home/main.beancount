@@ -1,0 +1,34 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Cash USD
+  liquidity: "cash"
+  updated: "2026-09-06"
+2026-01-01 open Assets:Savings USD
+  liquidity: "cash"
+  reserve: 300
+  goal: 2000
+  goal-date: "2026-12-31"
+  updated: "2026-09-06"
+2026-01-01 open Assets:Bank:Business USD
+  liquidity: "cash"
+2026-01-01 open Assets:Home USD
+2026-01-01 open Liabilities:Card USD
+2026-01-01 open Expenses:Rent USD
+2026-01-01 open Income:Salary USD
+2026-01-01 open Equity:Opening USD
+2026-09-01 * "Opening"
+  Assets:Cash 2000 USD
+  Assets:Savings 1000 USD
+  Assets:Bank:Business 10000 USD
+  Assets:Home 500000 USD
+  Liabilities:Card -200 USD
+  Equity:Opening -512800 USD
+2026-09-02 balance Assets:Cash 2000 USD
+2026-09-10 * "Landlord" "Scheduled rent"
+  Assets:Cash -200 USD
+  Expenses:Rent 200 USD
+2026-09-20 * "Internal transfer"
+  Assets:Cash -500 USD
+  Assets:Savings 500 USD
+2026-09-30 * "Employer" "Scheduled salary"
+  Assets:Cash 1000 USD
+  Income:Salary -1000 USD

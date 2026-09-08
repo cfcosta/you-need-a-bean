@@ -129,6 +129,7 @@ impl AppState {
 pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/summary", get(summary))
+        .route("/api/home", get(home))
         .route("/api/month/{month}", get(month_view))
         .route("/api/category/{account}/{month}", get(category_view))
         .route("/api/account/{account}/{month}", get(account_view))
@@ -184,6 +185,19 @@ async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {
         "revision": snapshot.revision,
         "reload_error": state.reload_error(),
     }))
+}
+
+async fn home(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Result<Json<Value>, ApiError> {
+    let snapshot = state.snapshot();
+    let (_, cur) = params(&snapshot, &query)?;
+    let scope = query.get("scope").map(String::as_str).unwrap_or("personal");
+    if !["personal", "business", "all"].contains(&scope) {
+        return Err(err(StatusCode::BAD_REQUEST, "unknown scope"));
+    }
+    Ok(Json(snapshot.ledger.home_view(state.today(), scope, &cur)))
 }
 
 async fn month_view(

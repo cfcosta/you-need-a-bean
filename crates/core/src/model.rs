@@ -285,6 +285,22 @@ impl Ledger {
         ledger
     }
 
+    /// A reporting scope keeps original audit evidence and source references.
+    pub fn scoped(&self, scope: &str) -> std::borrow::Cow<'_, Self> {
+        if scope == "all" {
+            return std::borrow::Cow::Borrowed(self);
+        }
+        let mut l = self.clone();
+        l.accounts.retain(|_, a| a.purpose.scope == scope);
+        l.monthly.retain(|a, _| l.accounts.contains_key(a));
+        l.txn_index.retain(|a, _| l.accounts.contains_key(a));
+        // Keep transaction indices stable for existing account drilldowns.
+        for t in &mut l.txns {
+            t.postings.retain(|p| l.accounts.contains_key(&p.account));
+        }
+        std::borrow::Cow::Owned(l)
+    }
+
     /// A dated reading: future postings and future quotes never become cash today.
     /// The usual case borrows the existing indexes without copying the ledger.
     pub fn as_of(&self, day: Day) -> std::borrow::Cow<'_, Self> {

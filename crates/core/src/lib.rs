@@ -8,3 +8,5 @@ pub mod reports;
 pub mod watch;
 
 pub mod validation;
+
+pub mod home;
