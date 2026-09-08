@@ -278,8 +278,8 @@ async fn account_view(
     let month = parse_month(&month)?;
     let snapshot = state.snapshot();
     let (basis, cur) = params(&snapshot, &query)?;
-    let Some(view) = snapshot.ledger.account_view(&account, month, basis, &cur)
-    else {
+    let dated = snapshot.ledger.as_of(state.today());
+    let Some(view) = dated.account_view(&account, month, basis, &cur) else {
         return Err(err(StatusCode::NOT_FOUND, "unknown account"));
     };
 

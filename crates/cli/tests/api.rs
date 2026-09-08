@@ -984,3 +984,13 @@ async fn summary_exposes_accounting_issues_with_source_locations() {
             .any(|i| i["code"] == "balance" && i["source"]["line"] == 9)
     );
 }
+
+#[tokio::test]
+async fn current_account_register_does_not_include_scheduled_pay() {
+    let (_, body) = get_at(
+        app_at("validation/future", (2026, 9, 7)),
+        "/api/account/Assets:Cash/2026-09",
+    )
+    .await;
+    assert_eq!(body["txns"].as_array().unwrap().len(), 0);
+}
