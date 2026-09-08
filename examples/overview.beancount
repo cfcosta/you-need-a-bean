@@ -1,0 +1,442 @@
+; Entirely fictional. Regenerate with examples/build-overview.py.
+option "title" "A life in balance"
+option "operating_currency" "USD"
+
+2025-12-01 open Assets:Bank:Everyday USD
+  name: "Everyday account"
+  liquidity: "cash"
+  updated: "2026-09-07"
+2025-12-01 open Assets:Bank:Emergency USD
+  name: "A little breathing room"
+  liquidity: "cash"
+  reserve: 10000
+  goal: 24000
+  goal-date: "2027-06-01"
+  updated: "2026-09-07"
+2025-12-01 open Assets:Bank:Travel USD
+  name: "Somewhere by the sea"
+  liquidity: "cash"
+  reserve: 2800
+  goal: 5000
+  goal-date: "2027-03-01"
+  updated: "2026-09-07"
+2025-12-01 open Assets:Investments:Index BEAN
+  name: "Long-term portfolio"
+  liquidity: "investment"
+  updated: "2026-09-07"
+2025-12-01 open Assets:Business:Checking USD
+  name: "Studio account"
+  liquidity: "cash"
+  scope: "business"
+  updated: "2026-09-07"
+2025-12-01 open Liabilities:Loan:Car USD
+  name: "The little blue car"
+  rate: 6
+  due: 20
+  updated: "2026-09-07"
+2025-12-01 open Income:Salary USD
+  name: "Salary"
+2025-12-01 open Income:Business:Consulting USD
+  name: "Studio income"
+  scope: "business"
+2025-12-01 open Expenses:Home:Rent USD
+  name: "A place to call home"
+2025-12-01 open Expenses:Food:Groceries USD
+  name: "Good food"
+2025-12-01 open Expenses:Home:Utilities USD
+  name: "Lights & warmth"
+2025-12-01 open Expenses:Subscriptions:Music USD
+  name: "A soundtrack for life"
+2025-12-01 open Expenses:Food:Coffee USD
+  name: "Coffee with friends"
+2025-12-01 open Expenses:Travel USD
+  name: "Places to go"
+2025-12-01 open Expenses:Interest USD
+  name: "Loan interest"
+2025-12-01 open Expenses:Uncategorized USD
+  name: "A receipt to remember"
+2025-12-01 open Equity:Opening USD
+  name: "Opening balances"
+2025-12-01 commodity BEAN
+  name: "Broad Market Example Fund"
+  asset-class: "Global equities"
+2025-12-01 price BEAN 100 USD
+
+2025-12-01 * "" "Opening balance"
+  Assets:Bank:Everyday  14000 USD
+  Equity:Opening  -14000 USD
+
+2025-12-01 * "" "Opening balance"
+  Assets:Bank:Emergency  18500 USD
+  Equity:Opening  -18500 USD
+
+2025-12-01 * "" "Opening balance"
+  Assets:Bank:Travel  2800 USD
+  Equity:Opening  -2800 USD
+
+2025-12-01 * "" "Opening balance"
+  Assets:Business:Checking  9200 USD
+  Equity:Opening  -9200 USD
+
+2025-12-01 * "" "Opening investment"
+  Assets:Investments:Index  420 BEAN {100 USD} 
+  Equity:Opening  -42000 USD
+
+2025-12-01 * "" "Car financing"
+  Assets:Bank:Everyday  12000 USD
+  Liabilities:Loan:Car  -12000 USD
+
+2026-01-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-01-03 * "Green Basket" ""
+  Expenses:Food:Groceries  221 USD
+  Assets:Bank:Everyday  -221 USD
+
+2026-01-08 * "Cloud Nine" ""
+  Expenses:Subscriptions:Music  14 USD
+  Assets:Bank:Everyday  -14 USD
+
+2026-01-12 * "Bright Energy" ""
+  Expenses:Home:Utilities  116 USD
+  Assets:Bank:Everyday  -116 USD
+
+2026-01-17 * "Green Basket" ""
+  Expenses:Food:Groceries  195 USD
+  Assets:Bank:Everyday  -195 USD
+
+2026-01-22 * "Sunday Coffee" ""
+  Expenses:Food:Coffee  55 USD
+  Assets:Bank:Everyday  -55 USD
+
+2026-01-05 * "Northstar Payroll" "Monthly salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-01-05 * "" "Room for tomorrow"
+  Assets:Bank:Emergency  300 USD
+  Assets:Bank:Everyday  -300 USD
+
+2026-01-20 * "Bluebird Finance" "Monthly payment"
+  Liabilities:Loan:Car  285.00 USD
+  Expenses:Interest  60.00 USD
+  Assets:Bank:Everyday  -345 USD
+
+2026-01-01 price BEAN 103 USD
+2026-02-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-02-03 * "Green Basket" ""
+  Expenses:Food:Groceries  224 USD
+  Assets:Bank:Everyday  -224 USD
+
+2026-02-08 * "Cloud Nine" ""
+  Expenses:Subscriptions:Music  14 USD
+  Assets:Bank:Everyday  -14 USD
+
+2026-02-12 * "Bright Energy" ""
+  Expenses:Home:Utilities  116 USD
+  Assets:Bank:Everyday  -116 USD
+
+2026-02-17 * "Green Basket" ""
+  Expenses:Food:Groceries  197 USD
+  Assets:Bank:Everyday  -197 USD
+
+2026-02-22 * "Sunday Coffee" ""
+  Expenses:Food:Coffee  56 USD
+  Assets:Bank:Everyday  -56 USD
+
+2026-02-05 * "Northstar Payroll" "Monthly salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-02-05 * "" "Room for tomorrow"
+  Assets:Bank:Emergency  300 USD
+  Assets:Bank:Everyday  -300 USD
+
+2026-02-20 * "Bluebird Finance" "Monthly payment"
+  Liabilities:Loan:Car  286.42 USD
+  Expenses:Interest  58.58 USD
+  Assets:Bank:Everyday  -345 USD
+
+2026-02-01 price BEAN 106 USD
+2026-03-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-03-03 * "Green Basket" ""
+  Expenses:Food:Groceries  227 USD
+  Assets:Bank:Everyday  -227 USD
+
+2026-03-08 * "Cloud Nine" ""
+  Expenses:Subscriptions:Music  14 USD
+  Assets:Bank:Everyday  -14 USD
+
+2026-03-12 * "Bright Energy" ""
+  Expenses:Home:Utilities  116 USD
+  Assets:Bank:Everyday  -116 USD
+
+2026-03-17 * "Green Basket" ""
+  Expenses:Food:Groceries  199 USD
+  Assets:Bank:Everyday  -199 USD
+
+2026-03-22 * "Sunday Coffee" ""
+  Expenses:Food:Coffee  57 USD
+  Assets:Bank:Everyday  -57 USD
+
+2026-03-05 * "Northstar Payroll" "Monthly salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-03-05 * "" "Room for tomorrow"
+  Assets:Bank:Emergency  300 USD
+  Assets:Bank:Everyday  -300 USD
+
+2026-03-20 * "Bluebird Finance" "Monthly payment"
+  Liabilities:Loan:Car  287.86 USD
+  Expenses:Interest  57.14 USD
+  Assets:Bank:Everyday  -345 USD
+
+2026-03-01 price BEAN 109 USD
+2026-04-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-04-03 * "Green Basket" ""
+  Expenses:Food:Groceries  230 USD
+  Assets:Bank:Everyday  -230 USD
+
+2026-04-08 * "Cloud Nine" ""
+  Expenses:Subscriptions:Music  14 USD
+  Assets:Bank:Everyday  -14 USD
+
+2026-04-12 * "Bright Energy" ""
+  Expenses:Home:Utilities  116 USD
+  Assets:Bank:Everyday  -116 USD
+
+2026-04-17 * "Green Basket" ""
+  Expenses:Food:Groceries  201 USD
+  Assets:Bank:Everyday  -201 USD
+
+2026-04-22 * "Sunday Coffee" ""
+  Expenses:Food:Coffee  58 USD
+  Assets:Bank:Everyday  -58 USD
+
+2026-04-05 * "Northstar Payroll" "Monthly salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-04-05 * "" "Room for tomorrow"
+  Assets:Bank:Emergency  300 USD
+  Assets:Bank:Everyday  -300 USD
+
+2026-04-20 * "Bluebird Finance" "Monthly payment"
+  Liabilities:Loan:Car  289.30 USD
+  Expenses:Interest  55.70 USD
+  Assets:Bank:Everyday  -345 USD
+
+2026-04-01 price BEAN 112 USD
+2026-05-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-05-03 * "Green Basket" ""
+  Expenses:Food:Groceries  233 USD
+  Assets:Bank:Everyday  -233 USD
+
+2026-05-08 * "Cloud Nine" ""
+  Expenses:Subscriptions:Music  14 USD
+  Assets:Bank:Everyday  -14 USD
+
+2026-05-12 * "Bright Energy" ""
+  Expenses:Home:Utilities  116 USD
+  Assets:Bank:Everyday  -116 USD
+
+2026-05-17 * "Green Basket" ""
+  Expenses:Food:Groceries  203 USD
+  Assets:Bank:Everyday  -203 USD
+
+2026-05-22 * "Sunday Coffee" ""
+  Expenses:Food:Coffee  59 USD
+  Assets:Bank:Everyday  -59 USD
+
+2026-05-05 * "Northstar Payroll" "Monthly salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-05-05 * "" "Room for tomorrow"
+  Assets:Bank:Emergency  300 USD
+  Assets:Bank:Everyday  -300 USD
+
+2026-05-20 * "Bluebird Finance" "Monthly payment"
+  Liabilities:Loan:Car  290.74 USD
+  Expenses:Interest  54.26 USD
+  Assets:Bank:Everyday  -345 USD
+
+2026-05-01 price BEAN 115 USD
+2026-06-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-06-03 * "Green Basket" ""
+  Expenses:Food:Groceries  236 USD
+  Assets:Bank:Everyday  -236 USD
+
+2026-06-08 * "Cloud Nine" ""
+  Expenses:Subscriptions:Music  14 USD
+  Assets:Bank:Everyday  -14 USD
+
+2026-06-12 * "Bright Energy" ""
+  Expenses:Home:Utilities  116 USD
+  Assets:Bank:Everyday  -116 USD
+
+2026-06-17 * "Green Basket" ""
+  Expenses:Food:Groceries  205 USD
+  Assets:Bank:Everyday  -205 USD
+
+2026-06-22 * "Sunday Coffee" ""
+  Expenses:Food:Coffee  60 USD
+  Assets:Bank:Everyday  -60 USD
+
+2026-06-05 * "Northstar Payroll" "Monthly salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-06-05 * "" "Room for tomorrow"
+  Assets:Bank:Emergency  300 USD
+  Assets:Bank:Everyday  -300 USD
+
+2026-06-20 * "Bluebird Finance" "Monthly payment"
+  Liabilities:Loan:Car  292.20 USD
+  Expenses:Interest  52.80 USD
+  Assets:Bank:Everyday  -345 USD
+
+2026-06-01 price BEAN 118 USD
+2026-07-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-07-03 * "Green Basket" ""
+  Expenses:Food:Groceries  239 USD
+  Assets:Bank:Everyday  -239 USD
+
+2026-07-08 * "Cloud Nine" ""
+  Expenses:Subscriptions:Music  17 USD
+  Assets:Bank:Everyday  -17 USD
+
+2026-07-12 * "Bright Energy" ""
+  Expenses:Home:Utilities  116 USD
+  Assets:Bank:Everyday  -116 USD
+
+2026-07-17 * "Green Basket" ""
+  Expenses:Food:Groceries  207 USD
+  Assets:Bank:Everyday  -207 USD
+
+2026-07-22 * "Sunday Coffee" ""
+  Expenses:Food:Coffee  61 USD
+  Assets:Bank:Everyday  -61 USD
+
+2026-07-05 * "Northstar Payroll" "Monthly salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-07-05 * "" "Room for tomorrow"
+  Assets:Bank:Emergency  300 USD
+  Assets:Bank:Everyday  -300 USD
+
+2026-07-20 * "Bluebird Finance" "Monthly payment"
+  Liabilities:Loan:Car  293.66 USD
+  Expenses:Interest  51.34 USD
+  Assets:Bank:Everyday  -345 USD
+
+2026-07-01 price BEAN 121 USD
+2026-08-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-08-03 * "Green Basket" ""
+  Expenses:Food:Groceries  242 USD
+  Assets:Bank:Everyday  -242 USD
+
+2026-08-08 * "Cloud Nine" ""
+  Expenses:Subscriptions:Music  17 USD
+  Assets:Bank:Everyday  -17 USD
+
+2026-08-12 * "Bright Energy" ""
+  Expenses:Home:Utilities  116 USD
+  Assets:Bank:Everyday  -116 USD
+
+2026-08-17 * "Green Basket" ""
+  Expenses:Food:Groceries  209 USD
+  Assets:Bank:Everyday  -209 USD
+
+2026-08-22 * "Sunday Coffee" ""
+  Expenses:Food:Coffee  62 USD
+  Assets:Bank:Everyday  -62 USD
+
+2026-08-05 * "Northstar Payroll" "Monthly salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-08-05 * "" "Room for tomorrow"
+  Assets:Bank:Emergency  300 USD
+  Assets:Bank:Everyday  -300 USD
+
+2026-08-20 * "Bluebird Finance" "Monthly payment"
+  Liabilities:Loan:Car  295.13 USD
+  Expenses:Interest  49.87 USD
+  Assets:Bank:Everyday  -345 USD
+
+2026-08-01 price BEAN 124 USD
+2026-09-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-09-03 * "Green Basket" ""
+  Expenses:Food:Groceries  245 USD
+  Assets:Bank:Everyday  -245 USD
+
+2026-09-05 * "Northstar Payroll" "Monthly salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-09-05 * "" "Room for tomorrow"
+  Assets:Bank:Emergency  300 USD
+  Assets:Bank:Everyday  -300 USD
+
+2026-09-01 price BEAN 127 USD
+2026-09-07 price BEAN 128 USD
+2026-09-05 ! "Corner Market" ""
+  Expenses:Uncategorized  78.42 USD
+  Assets:Bank:Everyday  -78.42 USD
+
+2026-10-05 * "Northstar Payroll" "Expected salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-10-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-11-05 * "Northstar Payroll" "Expected salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-11-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-12-05 * "Northstar Payroll" "Expected salary"
+  Assets:Bank:Everyday  6200 USD
+  Income:Salary  -6200 USD
+
+2026-12-01 * "Willow House" ""
+  Expenses:Home:Rent  1450 USD
+  Assets:Bank:Everyday  -1450 USD
+
+2026-10-01 * "Coastline Rail" ""
+  Expenses:Travel  680 USD
+  Assets:Bank:Everyday  -680 USD
+

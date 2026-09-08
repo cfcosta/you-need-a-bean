@@ -1,10 +1,9 @@
 # you need a bean
 
-A read-only, YNAB-style web UI for [beancount](https://beancount.github.io/)
-ledgers. Point it at your main file and it shows each month as a budget:
-what you spent per category versus what you *typically* spend (a trailing
-3/6/12-month average as the target), multi-currency aware, with the full
-transaction detail — metadata, tags, links, postings — one click away.
+A local, read-only financial home for [Beancount](https://beancount.github.io/)
+ledgers. See your current position, cash after reserves, upcoming commitments,
+savings goals, and the evidence behind the numbers. Explore spending,
+investments, and debts, or search the full ledger with Cmd/Ctrl+K.
 
 ```sh
 you-need-a-bean path/to/main.beancount
@@ -14,6 +13,13 @@ you-need-a-bean path/to/main.beancount
 Beancount stays the source of truth: this tool never writes to your ledger.
 
 ## Features
+
+- A responsive financial overview with personal/business scopes, account
+  coverage, goals, a review queue, and a 30/60/90-day commitments forecast.
+- Explicit accounting checks and source references; incomplete accounting
+  and missing prices pause global planning.
+- Search across payees, accounts, dates, tags, links, and metadata.
+- Current figures exclude future transactions and future quotes.
 
 - Monthly budget table with per-category "vs typical" bars and
   good / warning / over states; navigate back through any month.
@@ -43,7 +49,12 @@ treefmt                    # formatting (nix flake formatter)
 cargo run -- examples/realistic/main.beancount
 ```
 
-`examples/realistic/` is the ledger to open first: two and a half years of
+`examples/overview.beancount` is the overview demo to open first. Regenerate
+it with `python3 examples/build-overview.py --today YYYY-MM-DD`.
+[Overview rules and account metadata](docs/HOME.md) explain coverage,
+reserves, scopes, forecasting assumptions, and unsupported accounting.
+
+`examples/realistic/` exercises the broader reports: two and a half years of
 a household and a one-person business sharing a chart of accounts, with a
 portfolio, recurring merchants, two trips and the loose ends that give
 every report something to report on. All of it invented — no part of it
