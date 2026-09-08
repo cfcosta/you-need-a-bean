@@ -1037,6 +1037,29 @@ async fn home_withholds_available_money_when_accounting_is_incomplete() {
 }
 
 #[tokio::test]
+async fn home_runway_uses_cash_after_reserves_and_completed_month_spending() {
+    let (_, b) = get_at(app_at("runway/main", (2026, 2, 1)), "/api/home").await;
+    assert_eq!(b["available"], json!(12000.0));
+    assert_eq!(b["runway"]["months"], json!(12.0));
+    assert_eq!(b["runway"]["monthly_spend"], json!(1000.0));
+    assert_eq!(b["runway"]["window"], json!(["2026-01", "2026-01"]));
+    assert_eq!(b["runway"]["status"], "ready");
+}
+
+#[tokio::test]
+async fn home_runway_distinguishes_missing_history_from_incomplete_evidence() {
+    let (_, no_history) =
+        get_at(app_at("home/main", (2026, 9, 7)), "/api/home").await;
+    assert!(no_history["runway"]["months"].is_null());
+    assert_eq!(no_history["runway"]["status"], "no_baseline");
+    for fixture in ["validation/main", "runway/unpriced"] {
+        let (_, b) = get_at(app_at(fixture, (2026, 2, 1)), "/api/home").await;
+        assert!(b["runway"]["months"].is_null());
+        assert_eq!(b["runway"]["status"], "needs_review", "{fixture}");
+    }
+}
+
+#[tokio::test]
 async fn search_finds_scheduled_and_historical_entries_with_provenance() {
     let (_, b) =
         get_at(app_at("home/main", (2026, 9, 7)), "/api/search?q=Employer")
@@ -1106,4 +1129,13 @@ async fn recurring_bills_stay_active_before_this_months_due_date() {
         events.iter().filter(|e| e["date"] == "2026-10-08").count(),
         1
     );
+}
+
+#[tokio::test]
+async fn home_runway_has_zero_months_when_reserves_exceed_cash() {
+    let (_, b) =
+        get_at(app_at("runway/exhausted", (2026, 2, 1)), "/api/home").await;
+    assert_eq!(b["available"], json!(-50.0));
+    assert_eq!(b["runway"]["months"], json!(0.0));
+    assert_eq!(b["runway"]["status"], "ready");
 }

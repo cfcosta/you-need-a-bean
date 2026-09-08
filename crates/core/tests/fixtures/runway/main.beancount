@@ -1,0 +1,21 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Cash USD
+  reserve: 2000
+2026-01-01 open Assets:Tracked USD
+  ynab: "tracking"
+  liquidity: "cash"
+2026-01-01 open Assets:Home USD
+2026-01-01 open Income:Salary USD
+2026-01-01 open Expenses:Living USD
+2026-01-01 open Equity:Opening USD
+2026-01-02 * "Opening"
+  Assets:Cash 10000 USD
+  Assets:Tracked 5000 USD
+  Assets:Home 200000 USD
+  Equity:Opening -215000 USD
+2026-01-10 * "Living costs"
+  Assets:Cash -1000 USD
+  Expenses:Living 1000 USD
+2026-02-20 * "Future salary"
+  Assets:Cash 90000 USD
+  Income:Salary -90000 USD

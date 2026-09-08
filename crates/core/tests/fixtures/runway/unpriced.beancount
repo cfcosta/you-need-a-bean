@@ -1,0 +1,15 @@
+option "operating_currency" "USD"
+2026-01-01 open Assets:Cash USD
+2026-01-01 open Assets:Foreign EUR
+2026-01-01 open Income:Salary EUR
+2026-01-01 open Expenses:Living EUR
+2026-01-01 open Equity:Opening USD
+2026-01-02 * "Opening"
+  Assets:Cash 1000 USD
+  Equity:Opening -1000 USD
+2026-01-03 * "Foreign income"
+  Assets:Foreign 100 EUR
+  Income:Salary -100 EUR
+2026-01-04 * "Foreign spending"
+  Assets:Foreign -100 EUR
+  Expenses:Living 100 EUR

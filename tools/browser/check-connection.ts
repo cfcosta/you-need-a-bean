@@ -48,6 +48,9 @@ try {
   if (!await evaluate('document.querySelector("#extra-spending")?.disabled')) {
     throw new Error("Forecast remains actionable while disconnected");
   }
+  if (!await evaluate('document.querySelector(".h-runway")?.dataset.runwayStatus === "needs_review"')) {
+    throw new Error("Runway remains available while disconnected");
+  }
   await send("Network.setBlockedURLs", { urls: [] });
   await until('!document.body.textContent.includes("Connection lost")');
   console.log("PASS: interrupted connection pauses planning and recovers");

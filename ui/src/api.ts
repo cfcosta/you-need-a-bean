@@ -851,6 +851,7 @@ export interface Attention { kind:string; label:string; detail:string; account:s
 export interface HomeView {
   today:string; currency:string; assets:number; owed:number; net_worth:number;
   cash:number; reserved:number; available:number|null; accounts:HomeAccount[];
+  runway:{months:number|null;monthly_spend:number|null;window:[string,string]|null;status:"ready"|"no_baseline"|"needs_review"};
   coverage:{current:number;total:number}; attention:Attention[]; unpriced:string[];
   goals:{account:string;label:string;funded:number|null;target:number;date:string|null;reserved:number|null}[];
   forecast:Record<string,{balance:number|null;low:number|null;points:{date:string;balance:number}[]}>;

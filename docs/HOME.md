@@ -30,6 +30,13 @@ reserves. It is **not a safe-to-spend guarantee**. Known upcoming outflows
 appear separately. Unrecorded obligations, source gaps, or incomplete prices
 can still change the picture. Negative available cash remains negative.
 
+Cash runway divides cash after reserves by average recorded expenses across
+up to six completed months, using the same window as the overview's spending
+baseline. It assumes no new income and excludes loan principal repayments.
+Zero or negative available cash gives zero months; missing or nonpositive
+spending history has no estimate. Accounting, pricing, or connection issues
+pause the estimate. The card shows its monthly expense baseline and dates.
+
 The 30/60/90-day timeline combines recorded future cash movements with
 estimated recurring cash expenses and debt payments. Internal transfers
 between eligible cash accounts do not become income or spending. Recorded

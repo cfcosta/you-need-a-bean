@@ -361,6 +361,23 @@ impl Ledger {
         events.sort_by(|a, b| a.day.cmp(&b.day).then(a.amount.cmp(&b.amount)));
         let trustworthy = l.audit.issues.is_empty() && missing.is_empty();
         let available = cash - reserved;
+        // Use the same cash basis as the overview, including explicitly liquid
+        // tracking accounts. Historical prices must also cover the spend basis.
+        let runway_status = if !trustworthy || !reports.unpriced.is_empty() {
+            "needs_review"
+        } else if reports.fire.monthly_spend <= Decimal::ZERO {
+            "no_baseline"
+        } else {
+            "ready"
+        };
+        let runway = json!({
+            "status": runway_status,
+            "months": (runway_status == "ready").then(|| num(
+                (available.max(Decimal::ZERO) / reports.fire.monthly_spend).round_dp(1)
+            )),
+            "monthly_spend": reports.unpriced.is_empty().then(|| num(reports.fire.monthly_spend)),
+            "window": reports.fire.window.map(|(start, end)| [start.to_string(), end.to_string()]),
+        });
         let mut forecast = serde_json::Map::new();
         for horizon in [30, 60, 90] {
             let mut balance = available;
@@ -396,7 +413,7 @@ impl Ledger {
             "coverage":{"current":current_accounts,"total":accounts.len()},"goals":goals,"attention":attention,"unpriced":missing,
             "forecast":forecast,"forecast_priced":forecast_priced,"events":events.iter().map(event_value).collect::<Vec<_>>(),
             "upcoming_in":num(scheduled_in),"upcoming_out":num(scheduled_out),"recurring":recurring,
-            "monthly_spend":num(reports.fire.monthly_spend),"monthly_saved":num(reports.fire.monthly_savings),
+            "monthly_spend":num(reports.fire.monthly_spend),"monthly_saved":num(reports.fire.monthly_savings),"runway":runway,
             "history":reports.net_worth.iter().map(|p|json!({"month":p.month.to_string(),"net":num(p.net)})).collect::<Vec<_>>()})
     }
 }

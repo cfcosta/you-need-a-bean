@@ -75,3 +75,11 @@
 
 .h-left-stack,.h-right-stack { display:grid;gap:22px;min-width:0; }
 @media(max-width:700px) { .h-left-stack,.h-right-stack { gap:16px; } }
+
+.h-runway { display:flex;align-items:center;justify-content:space-between;gap:24px;border-top:1px solid var(--line);padding:20px 0 23px; }
+.h-runway strong { display:block;font:500 32px/1.2 var(--font-display);letter-spacing:-.025em;margin-top:8px;color:var(--accent-ink); }
+.h-runway strong small { font:400 14px var(--font-ui);letter-spacing:0;color:var(--h-soft); }
+.h-runway-basis { display:grid;gap:5px;font-size:10px;color:var(--h-soft);line-height:1.5;max-width:300px; }
+.h-runway-basis b { font-size:11px;color:var(--ink-2);font-weight:500; }
+.h-runway[data-runway-status]:not([data-runway-status="ready"]) strong { font-size:22px;color:var(--h-soft); }
+@media(max-width:1250px) { .h-runway { flex-wrap:wrap;gap:12px; } }

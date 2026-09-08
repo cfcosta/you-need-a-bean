@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Attention, HomeView } from "../api";
 import { getHome } from "../api";
-import { fmt, fmtCompact } from "../format";
+import { fmt, fmtCompact, monthYear } from "../format";
 import { accountUrl, dayLabel, scenario } from "../home";
 import { ReportsSkeleton } from "./Skeleton";
 
@@ -81,6 +81,10 @@ function HomeContent({data,cur,onAccount,onSearch}:{data:HomeView;cur:string;onA
         <p>{data.available==null?"Some totals are incomplete. Your review queue has the details.":"Money held in cash accounts, less what you have set aside."}</p>
         <div className="h-cash-track"><span style={{width:`${pct(Math.max(0,data.cash-data.reserved),data.cash)}%`}}/><span style={{width:`${pct(data.reserved,data.cash)}%`}}/></div>
         <div className="h-cash-key"><div><i/><span>Cash held</span><b>{money(data.cash,cur)}</b></div><div><i/><span>Reserved</span><b>{money(data.reserved,cur)}</b></div><div><i/><span>Known outflows · 30 days</span><b>{money(data.upcoming_out,cur)}</b></div></div>
+        <div className="h-runway" data-runway-status={data.runway.status}>
+          <div><span className="h-eyebrow">CASH RUNWAY</span><strong>{data.runway.months==null ? (data.runway.status==="needs_review" ? "Needs review" : "No spending baseline") : <>{data.runway.months.toLocaleString("en-US",{maximumFractionDigits:1})} <small>{data.runway.months===1?'month':'months'}</small></>}</strong></div>
+          <div className="h-runway-basis">{data.runway.status==="ready" ? <><b>Without new income</b><span>At {money(data.runway.monthly_spend,cur)} / month in recorded expenses</span>{data.runway.window&&<span>{monthYear(data.runway.window[0])}{data.runway.window[0]!==data.runway.window[1]&&` – ${monthYear(data.runway.window[1])}`}</span>}<span>Cash after reserves. Loan principal payments excluded.</span></> : <p>{data.runway.status==="needs_review" ? "Accounting, pricing, or connection issues prevent a reliable estimate." : "Record a completed month with positive spending to estimate your runway."}</p>}</div>
+        </div>
         <div className="h-balance-foot"><span>◉</span> {data.coverage.current} of {data.coverage.total} accounts have recent coverage evidence <a href="#home-accounts">Review coverage ↗</a></div>
       </article>
       <article className="h-worth"><span className="h-eyebrow">THE BIGGER PICTURE</span><span className="h-worth-label">Net worth {data.unpriced.length>0&&<span className="h-pill">Partial</span>}</span><strong>{money(data.net_worth,cur)}</strong>
@@ -123,6 +127,6 @@ export function Home({cur,revision,unavailable,onAccount,onSearch}:{cur:string;r
   useEffect(()=>{let active=true;setError(null);getHome(cur).then(data=>{if(active)setLoaded({key,data})}).catch(e=>{if(active)setError(String(e.message))});return()=>{active=false}},[key]);
   if(error)return <div className="h-empty" role="alert"><strong>Couldn’t load your financial home</strong><p>{error}</p><button onClick={()=>location.reload()}>Try again</button></div>;
   if(loaded?.key!==key)return <ReportsSkeleton/>;
-  const data=unavailable?{...loaded.data,available:null,forecast:Object.fromEntries(Object.entries(loaded.data.forecast).map(([k,v])=>[k,{...v,balance:null,low:null,points:[]}]))}:loaded.data;
+  const data=unavailable?{...loaded.data,available:null,runway:{...loaded.data.runway,months:null,status:"needs_review" as const},forecast:Object.fromEntries(Object.entries(loaded.data.forecast).map(([k,v])=>[k,{...v,balance:null,low:null,points:[]}]))}:loaded.data;
   return <HomeContent key={cur} data={data} cur={cur} onAccount={onAccount} onSearch={onSearch}/>;
 }
