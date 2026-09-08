@@ -81,7 +81,7 @@ export function App() {
   } | null>(null);
   // What the last poll saw of the server's reading of the ledger, so a
   // reload is noticed exactly once.
-  const seen = useRef<{ revision: number; error: string | null } | null>(null);
+  const seen = useRef<{ revision: number; error: string | null; today: string } | null>(null);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSearch(""); } };
@@ -102,7 +102,7 @@ export function App() {
         // The URL decides where we open; the ledger decides what of it
         // makes sense.
         const r = resolveRoute(parseRoute(location), s);
-        seen.current = { revision: s.revision, error: s.reload_error };
+        seen.current = { revision: s.revision, error: s.reload_error, today: s.today };
         setCatChosen(r.cat != null);
         setSummary(s);
         setPage(r.page);
@@ -131,7 +131,7 @@ export function App() {
   const loaded = summary != null;
   // Every view below is derived from one reading of the ledger, so they
   // all refetch when the server moves to the next one.
-  const revision = summary?.revision ?? 0;
+  const revision = `${summary?.revision ?? 0}:${summary?.today ?? ""}`;
   useEffect(() => {
     if (!loaded) return;
     let alive = true;
@@ -143,14 +143,14 @@ export function App() {
             !alive ||
             (was != null &&
               was.revision === s.revision &&
-              was.error === s.reload_error)
+              was.error === s.reload_error && was.today === s.today)
           ) {
             return;
           }
           if (was != null && s.revision > was.revision) {
             showToast("ledger reloaded");
           }
-          seen.current = { revision: s.revision, error: s.reload_error };
+          seen.current = { revision: s.revision, error: s.reload_error, today: s.today };
           setSummary(s);
         })
         // A poll that misses is not worth interrupting anyone over; the

@@ -1075,3 +1075,19 @@ async fn forecast_stops_payments_when_an_installment_loan_is_paid() {
         .sum();
     assert_eq!(payments, 100.0);
 }
+
+#[tokio::test]
+async fn browser_calendar_date_controls_the_snapshot() {
+    let (_, s) = get_at(
+        app_at("home/main", (2026, 9, 8)),
+        "/api/summary?as_of=2026-09-07",
+    )
+    .await;
+    assert_eq!(s["today"], json!("2026-09-07"));
+    let (status, _) = get_at(
+        app_at("home/main", (2026, 9, 8)),
+        "/api/home?as_of=2026-02-30",
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+}

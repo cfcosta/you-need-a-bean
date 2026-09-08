@@ -10,3 +10,6 @@ export function scenario(points: CashPoint[], today: string, horizon: number, mo
 }
 export const accountUrl = (account:string, day:string) => `/account/${encodeURIComponent(account)}/${day.slice(0,7)}`;
 export const dayLabel = (day:string) => new Date(day+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
+
+/** Financial days follow the reader's calendar, not the UTC date. */
+export const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;

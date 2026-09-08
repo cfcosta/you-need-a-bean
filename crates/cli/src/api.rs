@@ -156,10 +156,24 @@ async fn fallback(State(state): State<Arc<AppState>>, uri: Uri) -> Response {
     state.ui.respond(path)
 }
 
-async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {
+fn view_day(
+    state: &AppState,
+    query: &HashMap<String, String>,
+) -> Result<Day, ApiError> {
+    match query.get("as_of") {
+        None => Ok(state.today()),
+        Some(day) => bean_core::home::parse_date(day)
+            .ok_or_else(|| err(StatusCode::BAD_REQUEST, "invalid as_of date")),
+    }
+}
+
+async fn summary(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Result<Json<Value>, ApiError> {
     let snapshot = state.snapshot();
+    let today = view_day(&state, &query)?;
     let ledger = &snapshot.ledger;
-    let today = state.today();
     let months: Vec<String> = ledger
         .months_range(today)
         .iter()
@@ -170,7 +184,7 @@ async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {
         .first()
         .and_then(|p| p.file_name())
         .map(|n| n.to_string_lossy().into_owned());
-    Json(json!({
+    Ok(Json(json!({
         "title": ledger.title,
         "audit": ledger.audit,
         "root": root,
@@ -185,7 +199,7 @@ async fn summary(State(state): State<Arc<AppState>>) -> Json<Value> {
         // has reloaded, and holds the reason it last could not.
         "revision": snapshot.revision,
         "reload_error": state.reload_error(),
-    }))
+    })))
 }
 
 async fn search(
@@ -193,6 +207,7 @@ async fn search(
     Query(query): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, ApiError> {
     let snapshot = state.snapshot();
+    let today = view_day(&state, &query)?;
     let l = &snapshot.ledger;
     let (_, cur) = params(&snapshot, &query)?;
     let q = query.get("q").map(String::as_str).unwrap_or("");
@@ -249,10 +264,10 @@ async fn search(
                 .or_else(|| t.postings.first())
                 .map(|p| p.account.as_str())
                 .unwrap_or("");
-            let mut v = txn_json(l, t, a, &cur, t.date.min(state.today()));
+            let mut v = txn_json(l, t, a, &cur, t.date.min(today));
             v["source"] = json!(t.source);
             v["account"] = json!(a);
-            v["scheduled"] = json!(t.date > state.today());
+            v["scheduled"] = json!(t.date > today);
             v
         })
         .collect();
@@ -264,12 +279,13 @@ async fn home(
     Query(query): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, ApiError> {
     let snapshot = state.snapshot();
+    let today = view_day(&state, &query)?;
     let (_, cur) = params(&snapshot, &query)?;
     let scope = query.get("scope").map(String::as_str).unwrap_or("personal");
     if !["personal", "business", "all"].contains(&scope) {
         return Err(err(StatusCode::BAD_REQUEST, "unknown scope"));
     }
-    Ok(Json(snapshot.ledger.home_view(state.today(), scope, &cur)))
+    Ok(Json(snapshot.ledger.home_view(today, scope, &cur)))
 }
 
 async fn month_view(
@@ -279,11 +295,11 @@ async fn month_view(
 ) -> Result<Json<Value>, ApiError> {
     let month = parse_month(&month)?;
     let snapshot = state.snapshot();
+    let today = view_day(&state, &query)?;
     let (basis, cur) = params(&snapshot, &query)?;
-    let dated = snapshot.ledger.as_of(state.today());
+    let dated = snapshot.ledger.as_of(today);
     let view = dated.month_view(month, basis, &cur);
 
-    let today = state.today();
     let today_month = MonthKey::new(today.0, today.1);
     let is_current = month == today_month;
     // How far through the month we are: complete for past months, zero
@@ -321,8 +337,9 @@ async fn category_view(
 ) -> Result<Json<Value>, ApiError> {
     let month = parse_month(&month)?;
     let snapshot = state.snapshot();
+    let today = view_day(&state, &query)?;
     let (basis, cur) = params(&snapshot, &query)?;
-    let dated = snapshot.ledger.as_of(state.today());
+    let dated = snapshot.ledger.as_of(today);
     let Some(view) = dated.category_view(&account, month, basis, &cur) else {
         return Err(err(StatusCode::NOT_FOUND, "unknown category"));
     };
@@ -363,8 +380,9 @@ async fn account_view(
 ) -> Result<Json<Value>, ApiError> {
     let month = parse_month(&month)?;
     let snapshot = state.snapshot();
+    let today = view_day(&state, &query)?;
     let (basis, cur) = params(&snapshot, &query)?;
-    let dated = snapshot.ledger.as_of(state.today());
+    let dated = snapshot.ledger.as_of(today);
     let Some(view) = dated.account_view(&account, month, basis, &cur) else {
         return Err(err(StatusCode::NOT_FOUND, "unknown account"));
     };
@@ -415,8 +433,9 @@ async fn reports(
     Query(query): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, ApiError> {
     let snapshot = state.snapshot();
+    let today = view_day(&state, &query)?;
     let (basis, cur) = params(&snapshot, &query)?;
-    let view = snapshot.ledger.reports_view(state.today(), basis, &cur);
+    let view = snapshot.ledger.reports_view(today, basis, &cur);
 
     let net_worth: Vec<Value> = view
         .net_worth
@@ -744,8 +763,9 @@ async fn liabilities(
     Query(query): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, ApiError> {
     let snapshot = state.snapshot();
+    let today = view_day(&state, &query)?;
     let (basis, cur) = params(&snapshot, &query)?;
-    let view = snapshot.ledger.liabilities_view(state.today(), basis, &cur);
+    let view = snapshot.ledger.liabilities_view(today, basis, &cur);
     let debts: Vec<Value> = view.debts.iter().map(debt_json).collect();
     let upcoming: Vec<Value> = view
         .upcoming

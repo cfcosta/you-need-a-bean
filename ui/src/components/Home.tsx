@@ -120,7 +120,7 @@ function HomeContent({data,cur,scope,onScope,onAccount,onSearch}:{data:HomeView;
   </section>;
 }
 
-export function Home({cur,revision,unavailable,onAccount,onSearch}:{cur:string;revision:number;unavailable:boolean;onAccount:(a:string)=>void;onSearch:(q:string)=>void}) {
+export function Home({cur,revision,unavailable,onAccount,onSearch}:{cur:string;revision:string;unavailable:boolean;onAccount:(a:string)=>void;onSearch:(q:string)=>void}) {
   const [scope,setScope]=useState<Scope>("personal");
   const [loaded,setLoaded]=useState<{key:string;data:HomeView}|null>(null);
   const [error,setError]=useState<string|null>(null);

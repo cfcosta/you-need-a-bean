@@ -12,3 +12,10 @@ test("an unavailable projection stays unavailable", () => {
 test("account links retain the date and quote special characters", () => {
   expect(accountUrl("Assets:Bank:Cash","2026-09-07")).toBe("/account/Assets%3ABank%3ACash/2026-09");
 });
+
+test("the financial day follows the local calendar across UTC midnight", async () => {
+  const {localDay}=await import("./home");
+  const old=process.env.TZ; process.env.TZ="America/Sao_Paulo";
+  try { expect(localDay(new Date("2026-09-08T01:00:00Z"))).toBe("2026-09-07"); }
+  finally { if(old==null)delete process.env.TZ; else process.env.TZ=old; }
+});

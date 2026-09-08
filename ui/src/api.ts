@@ -1,3 +1,4 @@
+import { localDay } from "./home";
 // Typed client for the JSON endpoints the Rust binary serves.
 
 export type Status = "good" | "warn" | "over";
@@ -799,7 +800,7 @@ export interface LiabilitiesView {
 }
 
 async function get<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  const res = await fetch(`${url}${url.includes("?")?"&":"?"}as_of=${localDay()}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(
