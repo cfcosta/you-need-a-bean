@@ -72,7 +72,7 @@ function HomeContent({data,cur,onAccount,onSearch}:{data:HomeView;cur:string;onA
   const spark=vals.map((v,i)=>`${i?'L':'M'}${i/Math.max(1,vals.length-1)*250},${55-(v-min)/(max-min)*45}`).join(" ");
   const itemLimit=allEvents?undefined:6;
   return <section id="financial-home">
-    <div className="h-heading"><div><span className="h-eyebrow">{new Date(data.today+"T12:00:00Z").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",timeZone:"UTC"}).toUpperCase()}</span><h1>A little clarity.<br/><em>A lot more possibility.</em></h1></div>
+    <div className="h-heading"><div><span className="h-eyebrow">{new Date(data.today+"T12:00:00Z").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",timeZone:"UTC"}).toUpperCase()}</span></div>
       <div className="h-heading-tools"><button className="h-find" onClick={()=>onSearch("")}><span>⌕</span> Find a transaction <kbd>⌘ K</kbd></button></div>
     </div>
     <div className="h-overview">
