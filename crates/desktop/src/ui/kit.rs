@@ -172,22 +172,33 @@ pub enum Fill {
     Solid(Hsla),
     /// `repeating-linear-gradient(135deg, c 0 2px, transparent 2px 5px)`.
     Hatch(Hsla),
+    /// The same with other measures: a `band` of colour every `period`.
+    Stripes(Hsla, f32, f32),
 }
 
 fn paint_fill(window: &mut Window, bounds: Bounds<Pixels>, f: Fill) {
     match f {
         Fill::Solid(c) => window.paint_quad(fill(bounds, c)),
-        Fill::Hatch(c) => hatch(window, bounds, c),
+        Fill::Hatch(c) => hatch(window, bounds, c, 2., 5.),
+        Fill::Stripes(c, band, period) => {
+            hatch(window, bounds, c, band, period)
+        }
     }
 }
 
-/// Diagonal bands two pixels thick every five, measured across the band,
+/// Diagonal bands `band` thick every `period`, measured across the band,
 /// running from bottom left to top right.
-fn hatch(window: &mut Window, bounds: Bounds<Pixels>, color: Hsla) {
+fn hatch(
+    window: &mut Window,
+    bounds: Bounds<Pixels>,
+    color: Hsla,
+    band: f32,
+    period: f32,
+) {
     let w = f32::from(bounds.size.width);
     let h = f32::from(bounds.size.height);
-    let period = 5.0 * std::f32::consts::SQRT_2;
-    let band = 2.0 * std::f32::consts::SQRT_2;
+    let period = period * std::f32::consts::SQRT_2;
+    let band = band * std::f32::consts::SQRT_2;
     let o = bounds.origin;
     window.with_content_mask(Some(ContentMask { bounds }), |window| {
         let mut k = 0.0;

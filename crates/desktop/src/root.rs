@@ -15,6 +15,7 @@ use crate::{
         account::Register,
         budget::Budget,
         investments::{Investments, Range, Sort},
+        liabilities::Liabilities,
         overview::Overview,
         reports::Reports,
     },
@@ -173,6 +174,9 @@ pub struct Root {
     /// The page field taking the keys, if any.
     pub typing: Option<Field>,
     investments: Option<(Range, Investments)>,
+    liabilities: Option<(u32, Liabilities)>,
+    /// What the payoff slider adds to each debt's payment, by account.
+    pub extra: std::collections::HashMap<String, rust_decimal::Decimal>,
     /// Why the last reread of the ledger failed; the last good reading
     /// stays on screen meanwhile.
     pub reload_error: Option<String>,
@@ -197,6 +201,8 @@ impl Root {
             holding_sort: Sort::Value,
             typing: None,
             investments: None,
+            liabilities: None,
+            extra: Default::default(),
             reload_error: None,
             focus: cx.focus_handle(),
         }
@@ -240,6 +246,7 @@ impl Root {
         self.budget = None;
         self.reports = None;
         self.investments = None;
+        self.liabilities = None;
         self.reload_error = None;
         cx.notify();
     }
@@ -331,6 +338,35 @@ impl Root {
         );
         self.investments = Some((self.range, i.clone()));
         Some(i)
+    }
+
+    pub fn liabilities(&mut self) -> Option<Liabilities> {
+        let data = self.data.as_ref()?;
+        if let Some((basis, l)) = &self.liabilities
+            && *basis == self.basis
+        {
+            return Some(l.clone());
+        }
+        let l = Liabilities::build(
+            &data.ledger,
+            data.today,
+            self.basis,
+            &data.currency,
+        );
+        self.liabilities = Some((self.basis, l.clone()));
+        Some(l)
+    }
+
+    pub fn set_extra(
+        &mut self,
+        account: String,
+        extra: rust_decimal::Decimal,
+        cx: &mut Context<Self>,
+    ) {
+        if self.extra.get(&account) != Some(&extra) {
+            self.extra.insert(account, extra);
+            cx.notify();
+        }
     }
 
     pub fn set_range(&mut self, range: Range, cx: &mut Context<Self>) {
@@ -549,7 +585,7 @@ impl Render for Root {
             Page::Account => ui::account::page(self, &t, width, cx),
             Page::Reports => ui::reports::page(self, &t, width, cx),
             Page::Investments => ui::investments::page(self, &t, width, cx),
-            _ => kit::any(div()),
+            Page::Liabilities => ui::liabilities::page(self, &t, width, cx),
         };
         base.child(status).child(
             div()

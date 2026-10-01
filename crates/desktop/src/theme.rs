@@ -63,6 +63,9 @@ pub struct Theme {
     pub scrim: Hsla,
     /// Text on the yellow and blue status blocks, dark in both schemes.
     pub on_block: Hsla,
+    /// The range slider's track, as Chromium draws one in each scheme.
+    pub range_track: Hsla,
+    pub range_edge: Hsla,
 }
 
 fn c(color: Rgba) -> Hsla {
@@ -94,6 +97,8 @@ impl Theme {
             match_: c(rgba(0xe0af6847)),
             scrim: c(rgba(0x0d0e14b8)),
             on_block: c(rgb(0x1a1b26)),
+            range_track: c(rgb(0x3b3b3b)),
+            range_edge: c(rgb(0x858585)),
         }
     }
 
@@ -121,6 +126,8 @@ impl Theme {
             match_: c(rgba(0x8c6c3e40)),
             scrim: c(rgba(0xa1a6c599)),
             on_block: c(rgb(0x1a1b26)),
+            range_track: c(rgb(0xefefef)),
+            range_edge: c(rgb(0xb2b2b2)),
         }
     }
 
