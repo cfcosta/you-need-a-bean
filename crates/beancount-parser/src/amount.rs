@@ -212,7 +212,8 @@ pub(crate) fn currency(input: Span<'_>) -> IResult<'_, Currency> {
                 s.fragment()
                     .chars()
                     .last()
-                    .map_or(true, |c| c.is_uppercase() || c.is_numeric())
+                    // Local patch vs upstream 2.6.0: `is_none_or` for clippy. See VENDOR.md.
+                    .is_none_or(|c| c.is_uppercase() || c.is_numeric())
             },
         ),
     ))

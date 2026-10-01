@@ -536,7 +536,8 @@ pub struct Include {
 /// Entry in the beancount syntax
 ///
 /// It is more general than `Directive` as an entry can also be option or an include.
-#[allow(missing_docs)]
+// Local patch vs upstream 2.6.0: allow `large_enum_variant`. See VENDOR.md.
+#[allow(missing_docs, clippy::large_enum_variant)]
 #[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum Entry<D> {
@@ -579,6 +580,8 @@ impl<D> Entry<D> {
     }
 }
 
+// Local patch vs upstream 2.6.0: allow `large_enum_variant`. See VENDOR.md.
+#[allow(clippy::large_enum_variant)]
 enum RawEntry<D> {
     Directive(Directive<D>),
     Option(BeanOption),

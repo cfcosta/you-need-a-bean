@@ -145,9 +145,8 @@ impl Ledger {
                             }
                         });
                         let flow = if p.amounts.len() == 1
-                            && annotation.is_some()
+                            && let Some(a) = annotation
                         {
-                            let a = annotation.unwrap();
                             self.convert(a.total, &a.currency, cur, txn.date)
                         } else {
                             self.convert(*units, currency, cur, txn.date)
@@ -171,12 +170,12 @@ impl Ledger {
                         issues.insert(format!("{currency}: missing flow conversion on {}-{:02}-{:02}", txn.date.0,txn.date.1,txn.date.2));
                     }
                     h.flows = h.flows.zip(flow).map(|(a, b)| a + b);
-                    if let Some(flow) = flow {
-                        if days > 0 {
-                            h.weighted += flow
-                                * Decimal::from(days_between(txn.date, end))
-                                / Decimal::from(days);
-                        }
+                    if let Some(flow) = flow
+                        && days > 0
+                    {
+                        h.weighted += flow
+                            * Decimal::from(days_between(txn.date, end))
+                            / Decimal::from(days);
                     }
                 }
             }

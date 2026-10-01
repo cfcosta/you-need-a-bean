@@ -148,3 +148,14 @@ Upstream's 1.68 floor held the whole workspace back: Cargo's resolver
 picks dependency versions that satisfy the lowest `rust-version` of any
 member, so a plain `cargo update` left dozens of crates behind. miette 5
 also pulled a second copy of `thiserror` (1.x) into the build.
+
+## Clippy
+
+`src/amount.rs`: `currency` uses `is_none_or` where upstream had
+`map_or(true, …)`; same behaviour.
+
+`src/lib.rs`: `Entry` and `RawEntry` allow `clippy::large_enum_variant`.
+`Directive` is far bigger than the other variants, but nearly every
+entry the parser yields is a directive, so boxing it would add a heap
+allocation per entry, and change the public `Entry` type, to save space
+on the rare `option`, `include` and `plugin` lines.
