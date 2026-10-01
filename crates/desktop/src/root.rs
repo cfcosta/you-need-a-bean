@@ -18,6 +18,7 @@ use crate::{
         liabilities::Liabilities,
         overview::Overview,
         reports::Reports,
+        search::{Hit, search},
     },
     theme::{MONO, Scheme, Theme, theme},
     ui::{self, kit, status::Status},
@@ -72,6 +73,8 @@ pub enum Field {
 pub struct Search {
     pub query: String,
     pub selected: usize,
+    /// The hits for `query`, kept until it changes.
+    pub hits: Option<(String, Vec<Hit>)>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -421,6 +424,32 @@ impl Root {
         cx.notify();
     }
 
+    /// The hits for what the prompt holds now.
+    pub fn hits(&mut self) -> Vec<Hit> {
+        let (Some(data), Some(s)) = (self.data.as_ref(), self.search.as_mut())
+        else {
+            return vec![];
+        };
+        if let Some((q, hits)) = &s.hits
+            && *q == s.query
+        {
+            return hits.clone();
+        }
+        let hits = search(&data.ledger, data.today, &s.query);
+        s.hits = Some((s.query.clone(), hits.clone()));
+        hits
+    }
+
+    /// Open the register a hit's money moved through, at its month.
+    pub fn pick_hit(&mut self, k: usize, cx: &mut Context<Self>) {
+        let hits = self.hits();
+        let Some(hit) = hits.get(k) else { return };
+        self.month = Some(MonthKey::new(hit.date.0, hit.date.1));
+        let bank = hit.bank.clone();
+        self.close_search(cx);
+        self.open_account(bank, cx);
+    }
+
     pub fn close_search(&mut self, cx: &mut Context<Self>) {
         self.search = None;
         self.typing = None;
@@ -452,6 +481,12 @@ impl Root {
                 text.pop();
             }
             "enter" if selected.is_none() => self.typing = None,
+            "enter" => {
+                let k = selected.map_or(0, |s| *s);
+                self.pick_hit(k, cx);
+                cx.stop_propagation();
+                return;
+            }
             "up" => {
                 if let Some(s) = selected {
                     *s = s.saturating_sub(1);
@@ -587,13 +622,34 @@ impl Render for Root {
             Page::Investments => ui::investments::page(self, &t, width, cx),
             Page::Liabilities => ui::liabilities::page(self, &t, width, cx),
         };
+        let overlay = self
+            .search
+            .as_ref()
+            .map(|s| (s.query.clone(), s.selected))
+            .map(|(query, selected)| {
+                let hits = self.hits();
+                ui::search::overlay(
+                    &query,
+                    selected,
+                    &hits,
+                    &t,
+                    width < 900.,
+                    cx,
+                )
+            });
         base.child(status).child(
             div()
-                .id("page")
+                .relative()
                 .flex_1()
                 .min_h(px(0.))
-                .overflow_y_scroll()
-                .child(page),
+                .child(
+                    div()
+                        .id("page")
+                        .size_full()
+                        .overflow_y_scroll()
+                        .child(page),
+                )
+                .children(overlay),
         )
     }
 }

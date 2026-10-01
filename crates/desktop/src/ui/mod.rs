@@ -7,4 +7,5 @@ pub mod kit;
 pub mod liabilities;
 pub mod overview;
 pub mod reports;
+pub mod search;
 pub mod status;

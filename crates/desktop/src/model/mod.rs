@@ -7,6 +7,7 @@ pub mod investments;
 pub mod liabilities;
 pub mod overview;
 pub mod reports;
+pub mod search;
 
 use bean_core::model::{Day, MonthKey};
 use rust_decimal::Decimal;

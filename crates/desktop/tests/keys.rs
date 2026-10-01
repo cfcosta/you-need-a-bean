@@ -76,3 +76,22 @@ fn a_page_field_takes_the_keys_until_escape(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("escape 1");
     assert_eq!(root.read_with(cx, |r, _| r.page), Page::Overview);
 }
+
+#[gpui::test]
+fn enter_on_a_hit_opens_its_register_at_its_month(cx: &mut TestAppContext) {
+    let (root, cx) = open(cx);
+    cx.simulate_keystrokes("/");
+    cx.simulate_input("coffee");
+    cx.simulate_keystrokes("down enter");
+    let (page, account, month, search) = root.read_with(cx, |r, _| {
+        (r.page, r.account.clone(), r.month, r.search.is_some())
+    });
+    assert_eq!(page, Page::Account);
+    assert_eq!(account.as_deref(), Some("Assets:Bank:Everyday"));
+    assert_eq!(
+        month,
+        Some(bean_core::model::MonthKey::new(2026, 7)),
+        "the second hit is July's"
+    );
+    assert!(!search);
+}

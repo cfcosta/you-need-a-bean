@@ -51,6 +51,16 @@ pub fn pixel(image: &RgbaImage, x: u32, y: u32) -> [u8; 3] {
 /// Writes the picture and a diff (mismatches in red over a faded copy of
 /// the reference) to `target/visual/` for a person to look at.
 pub fn mismatch(shot: &RgbaImage, reference: &str) -> f64 {
+    mismatch_in(shot, reference, None)
+}
+
+/// The same, counted only inside `area` (x, y, width, height in CSS
+/// pixels) — for a board whose surroundings were drawn as a stand-in.
+pub fn mismatch_in(
+    shot: &RgbaImage,
+    reference: &str,
+    area: Option<(u32, u32, u32, u32)>,
+) -> f64 {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let expected =
         image::open(dir.join(format!("tests/reference/{reference}.png")))
@@ -65,14 +75,21 @@ pub fn mismatch(shot: &RgbaImage, reference: &str) -> f64 {
         expected.width().min(shot.width()),
         expected.height().min(shot.height()),
     );
+    // Both pictures are at the 2x the headless renderer works at.
+    let (ax, ay, aw, ah) = area.map_or((0, 0, w, h), |(x, y, aw, ah)| {
+        (x * 2, y * 2, aw * 2, ah * 2)
+    });
     let mut diff = RgbaImage::new(w, h);
     let mut off = 0u64;
+    let mut counted = 0u64;
     for y in 0..h {
         for x in 0..w {
+            let inside = x >= ax && x < ax + aw && y >= ay && y < ay + ah;
             let a = shot.get_pixel(x, y).0;
             let b = expected.get_pixel(x, y).0;
             let delta = (0..3).map(|i| a[i].abs_diff(b[i])).max().unwrap();
-            if delta > 48 {
+            counted += u64::from(inside);
+            if delta > 48 && inside {
                 off += 1;
                 diff.put_pixel(x, y, image::Rgba([255, 0, 64, 255]));
             } else {
@@ -94,5 +111,5 @@ pub fn mismatch(shot: &RgbaImage, reference: &str) -> f64 {
     } else {
         1.0
     };
-    off as f64 / f64::from(w * h) + size_penalty
+    off as f64 / counted.max(1) as f64 + size_penalty
 }

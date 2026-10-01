@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use bean_desktop::{Page, Root};
 use common::{TODAY, overview_ledger};
-use support::{frame, headless, mismatch, shoot};
+use support::{frame, headless, mismatch, mismatch_in, shoot};
 
 fn page(page: Page, width: f32, height: f32) -> image::RgbaImage {
     let mut cx = headless();
@@ -103,6 +103,30 @@ fn liabilities_match_the_canvas() {
     assert!(
         off < 0.02,
         "{:.2}% of liabilities is off the canvas",
+        off * 100.
+    );
+}
+
+#[test]
+fn search_matches_the_canvas() {
+    let mut cx = headless();
+    let ledger = Arc::new(overview_ledger());
+    let shot = shoot(&mut cx, frame(1440., 640.), move |_, cx| {
+        let mut root = Root::new(ledger, TODAY, cx);
+        root.search = Some(bean_desktop::root::Search {
+            query: "coffee".into(),
+            ..Default::default()
+        });
+        root
+    });
+    // The canvas drew the palette over an empty page; the app dims the
+    // page it was opened on. Count the status line and the palette.
+    // The status line differs only by the example's file name.
+    let off = mismatch_in(&shot, "Search-night", Some((200, 106, 1040, 413)));
+    eprintln!("search: {:.3}% off", off * 100.);
+    assert!(
+        off < 0.03,
+        "{:.2}% of the palette is off the canvas",
         off * 100.
     );
 }
