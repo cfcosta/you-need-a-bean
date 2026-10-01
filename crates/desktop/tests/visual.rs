@@ -50,3 +50,23 @@ fn budget_matches_the_canvas() {
         off * 100.
     );
 }
+
+#[test]
+fn account_register_matches_the_canvas() {
+    let mut cx = headless();
+    let ledger = Arc::new(overview_ledger());
+    let shot = shoot(&mut cx, frame(1440., 820.), move |_, cx| {
+        let mut root = Root::new(ledger, TODAY, cx);
+        root.page = Page::Account;
+        root.account = Some("Assets:Bank:Everyday".into());
+        root.month = Some(bean_core::model::MonthKey::new(2026, 9));
+        root
+    });
+    let off = mismatch(&shot, "Account-night");
+    eprintln!("account: {:.3}% off", off * 100.);
+    assert!(
+        off < 0.02,
+        "{:.2}% of the register is off the canvas",
+        off * 100.
+    );
+}

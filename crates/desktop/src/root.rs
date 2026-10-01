@@ -11,7 +11,7 @@ use gpui::{
 };
 
 use crate::{
-    model::{budget::Budget, overview::Overview},
+    model::{account::Register, budget::Budget, overview::Overview},
     theme::{MONO, Scheme, Theme, theme},
     ui::{self, kit, status::Status},
 };
@@ -67,6 +67,8 @@ pub enum Page {
     Reports,
     Investments,
     Liabilities,
+    /// One account's register; it lives under the budget tab.
+    Account,
 }
 
 impl Page {
@@ -85,6 +87,15 @@ impl Page {
             Page::Reports => "reports",
             Page::Investments => "invest",
             Page::Liabilities => "debts",
+            Page::Account => "budget",
+        }
+    }
+
+    /// The tab that is lit while this page is open.
+    pub fn tab(self) -> Page {
+        match self {
+            Page::Account => Page::Budget,
+            page => page,
         }
     }
 }
@@ -138,6 +149,8 @@ pub struct Root {
     pub basis: u32,
     /// The category the budget inspector shows; `None` picks one.
     pub category: Option<String>,
+    /// The account whose register is open.
+    pub account: Option<String>,
     budget: Option<(BudgetKey, Budget)>,
     /// Why the last reread of the ledger failed; the last good reading
     /// stays on screen meanwhile.
@@ -155,6 +168,7 @@ impl Root {
             month: None,
             basis: 6,
             category: None,
+            account: None,
             budget: None,
             reload_error: None,
             focus: cx.focus_handle(),
@@ -252,6 +266,28 @@ impl Root {
         };
         self.budget = Some((key, built.clone()));
         Some(built)
+    }
+
+    /// The register of the open account, for the chosen month.
+    pub fn register(&self) -> Option<Register> {
+        let data = self.data.as_ref()?;
+        let month = self
+            .month
+            .unwrap_or_else(|| data.ledger.default_month(data.today));
+        Register::build(
+            &data.ledger,
+            data.today,
+            self.account.as_deref()?,
+            month,
+            self.basis,
+            &data.currency,
+        )
+    }
+
+    pub fn open_account(&mut self, account: String, cx: &mut Context<Self>) {
+        self.account = Some(account);
+        self.page = Page::Account;
+        cx.notify();
     }
 
     pub fn set_month(&mut self, month: MonthKey, cx: &mut Context<Self>) {
@@ -389,9 +425,14 @@ impl Render for Root {
         let Some(data) = &self.data else {
             return base;
         };
+        let crumb = (self.page == Page::Account)
+            .then(|| {
+                self.register().map(|r| ui::account::crumb(&r.label).into())
+            })
+            .flatten();
         let status = Status {
-            page: self.page,
-            crumb: None,
+            page: self.page.tab(),
+            crumb: crumb,
             ledger: data.ledger_name(),
             today: bean_core::home::date(data.today).into(),
             narrow: width < 640.,
@@ -402,6 +443,7 @@ impl Render for Root {
         let page = match self.page {
             Page::Overview => ui::overview::page(self, &t, width, cx),
             Page::Budget => ui::budget::page(self, &t, width, cx),
+            Page::Account => ui::account::page(self, &t, width, cx),
             _ => kit::any(div()),
         };
         base.child(status).child(

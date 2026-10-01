@@ -587,13 +587,18 @@ fn accounts(b: &Budget, t: &Theme, cx: &mut Context<Root>) -> Div {
         };
         let label = div().child(a.label.clone());
         let value = div().text_color(color).child(money(a.value));
+        let account = a.account.clone();
         col = col.child(
             row(label, value)
                 .py(px(3.))
                 .px(px(8.))
                 .mx(px(-8.))
                 .id(("account", k))
-                .hover(|s| s.bg(t.hl)),
+                .hover(|s| s.bg(t.hl))
+                .cursor_pointer()
+                .on_click(cx.listener(move |r, _, _, cx| {
+                    r.open_account(account.clone(), cx)
+                })),
         );
     }
     col = col.child(

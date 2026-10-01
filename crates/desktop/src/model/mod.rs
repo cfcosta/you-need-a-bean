@@ -1,6 +1,7 @@
 //! What each page shows, read out of the core crate into plain Rust:
 //! no gpui here, so every figure can be tested without a window.
 
+pub mod account;
 pub mod budget;
 pub mod overview;
 
