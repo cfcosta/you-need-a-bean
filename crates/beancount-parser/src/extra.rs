@@ -191,7 +191,7 @@ fn account_value(input: Span<'_>) -> IResult<'_, Account> {
     let (_, token) =
         peek(take_while(|c: char| !c.is_whitespace())).parse(input)?;
     if !token.fragment().contains(':') {
-        return Err(nom::Err::Error(nom::error::Error::new(
+        return Err(nom::Err::Error(nom::error::make_error(
             input,
             nom::error::ErrorKind::Tag,
         )));

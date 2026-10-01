@@ -1,0 +1,8 @@
+include "other.beancount"
+
+2026-01-01 open Assets:Cash  USD
+2026-01-02 Opne Assets:Bank  USD
+
+2026-01-03 * "a posting the parser cannot read"
+  Assets:Cash  1 US$
+  Assets:Bank

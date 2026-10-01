@@ -25,7 +25,7 @@
 //!     cost unit amount=2 PLN date=2026-01-01
 //!     price total 25.00 EUR
 //!     meta lot string "A"
-//! error line=12
+//! error line=12 expected="the end of the line"
 //! ```
 //!
 //! Rules that make it canonical, and that a replacement must therefore match:
@@ -44,9 +44,11 @@
 //! - Numbers print as [`rust_decimal::Decimal`] does, which preserves the
 //!   scale the input was written with: `10.00` stays `10.00`, and an
 //!   expression prints the value it evaluates to.
-//! - Parsing stops at the first error, and the dump ends with `error line=N`.
-//!   That mirrors the parser's own iterator, which yields at most one error
-//!   and then stops.
+//! - An error prints `error line=N expected="…"`, naming what the parser was
+//!   looking for where it stopped, or just `error line=N` when nothing more
+//!   specific is known. Parsing then carries on at the next line that starts
+//!   in column 1, so a dump can hold several errors, each where the parser's
+//!   own iterator yields it.
 
 use std::{collections::HashSet, fmt::Write as _};
 
@@ -58,8 +60,8 @@ use rust_decimal::Decimal;
 
 /// Parse `input` and render the canonical dump of everything observed.
 ///
-/// Never fails and never panics: a syntax error becomes a trailing
-/// `error line=N` line.
+/// Never fails and never panics: a syntax error becomes an `error line=N`
+/// line where it was found, and the dump goes on from there.
 #[must_use]
 pub fn dump(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
@@ -96,8 +98,11 @@ pub fn dump(input: &str) -> String {
                 let _ = writeln!(out, "unknown-entry");
             }
             Err(err) => {
-                let _ = writeln!(out, "error line={}", err.line_number());
-                break;
+                let _ = write!(out, "error line={}", err.line_number());
+                if let Some(expected) = err.expected() {
+                    let _ = write!(out, " expected={}", quote(expected));
+                }
+                let _ = writeln!(out);
             }
         }
     }
@@ -115,8 +120,13 @@ pub fn without_line_numbers(dumped: &str) -> String {
                 let tail = rest.split_once(' ').map_or("", |(_, t)| t);
                 format!("directive {tail}\n")
             }
-            None if line.starts_with("error line=") => "error\n".to_string(),
-            None => format!("{line}\n"),
+            None => match line.strip_prefix("error line=") {
+                Some(rest) => match rest.split_once(' ') {
+                    Some((_, tail)) => format!("error {tail}\n"),
+                    None => "error\n".to_string(),
+                },
+                None => format!("{line}\n"),
+            },
         })
         .collect()
 }

@@ -1,1 +1,1 @@
-error line=1
+error line=1 expected="a date like 2026-01-31"

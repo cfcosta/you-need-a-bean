@@ -11,6 +11,7 @@ use nom::{
     bytes::complete::{take_while, take_while1},
     character::complete::{char, one_of, satisfy, space0, space1},
     combinator::{all_consuming, iterator, map_res, opt, recognize, verify},
+    error::context,
     sequence::{delimited, preceded, terminated},
     Finish, Parser,
 };
@@ -111,7 +112,8 @@ pub(crate) fn parse<D: Decimal>(input: Span<'_>) -> IResult<'_, Amount<D>> {
 }
 
 pub(crate) fn expression<D: Decimal>(input: Span<'_>) -> IResult<'_, D> {
-    alt((negation, sum)).parse(input)
+    // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
+    context("a number", alt((negation, sum))).parse(input)
 }
 
 fn sum<D: Decimal>(input: Span<'_>) -> IResult<'_, D> {
@@ -143,10 +145,7 @@ fn product<D: Decimal>(input: Span<'_>) -> IResult<'_, D> {
             // for every `D`, so the behaviour does not depend on which decimal
             // type the caller picked. See VENDOR.md.
             '/' if b == D::default() => {
-                return Err(nom::Err::Failure(nom::error::Error::new(
-                    start,
-                    nom::error::ErrorKind::Verify,
-                )));
+                return Err(crate::failure::reject(start, "a divisor other than zero"));
             }
             '/' => value / b,
             op => unreachable!("unsupported operator: {}", op),
@@ -202,7 +201,8 @@ pub(crate) fn price<D: Decimal>(input: Span<'_>) -> IResult<'_, Price<D>> {
 }
 
 pub(crate) fn currency(input: Span<'_>) -> IResult<'_, Currency> {
-    let (input, currency) = recognize((
+    // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
+    let (input, currency) = context("a currency", recognize((
         satisfy(char::is_uppercase),
         verify(
             take_while(|c: char| {
@@ -216,7 +216,7 @@ pub(crate) fn currency(input: Span<'_>) -> IResult<'_, Currency> {
                     .is_none_or(|c| c.is_uppercase() || c.is_numeric())
             },
         ),
-    ))
+    )))
     .parse(input)?;
     Ok((input, Currency(Arc::from(*currency.fragment()))))
 }

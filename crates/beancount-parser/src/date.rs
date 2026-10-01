@@ -4,6 +4,7 @@ use nom::{
     bytes::complete::take,
     character::complete::{char, digit1},
     combinator::{all_consuming, cut, map_res, peek, verify},
+    error::context,
     Finish, Parser,
 };
 
@@ -74,7 +75,8 @@ impl FromStr for Date {
 
 pub(super) fn parse(input: Span<'_>) -> IResult<'_, Date> {
     let (input, _) = peek((digit1, char('-'), digit1, char('-'), digit1)).parse(input)?;
-    cut(do_parse).parse(input)
+    // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
+    cut(context("a date like 2026-01-31", do_parse)).parse(input)
 }
 
 fn do_parse(input: Span<'_>) -> IResult<'_, Date> {
@@ -91,18 +93,20 @@ fn year(input: Span<'_>) -> IResult<'_, u16> {
 }
 
 fn month(input: Span<'_>) -> IResult<'_, u8> {
-    verify(
+    // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
+    context("a month from 01 to 12", verify(
         map_res(take(2usize), |s: Span<'_>| s.fragment().parse()),
         |&n| n > 0 && n < 13,
-    )
+    ))
     .parse(input)
 }
 
 fn day(input: Span<'_>) -> IResult<'_, u8> {
-    verify(
+    // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
+    context("a day from 01 to 31", verify(
         map_res(take(2usize), |s: Span<'_>| s.fragment().parse()),
         |&n| n > 0 && n < 32,
-    )
+    ))
     .parse(input)
 }
 

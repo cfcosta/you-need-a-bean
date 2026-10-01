@@ -1,1 +1,1 @@
-error line=2
+error line=2 expected="a closing quote"

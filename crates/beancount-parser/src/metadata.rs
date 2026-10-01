@@ -31,7 +31,7 @@ use nom::{
     Parser,
 };
 
-use crate::{amount, empty_line, end_of_line, string, Currency, Decimal, IResult, Span};
+use crate::{amount, empty_line, line_end, string, Currency, Decimal, IResult, Span};
 
 /// Metadata map
 ///
@@ -126,7 +126,7 @@ fn entry<D: Decimal>(input: Span<'_>) -> IResult<'_, (Key, Value<D>)> {
     let (input, _) = char(':')(input)?;
     let (input, _) = space1(input)?;
     let (input, value) = value(input)?;
-    let (input, ()) = end_of_line(input)?;
+    let (input, ()) = line_end(input)?;
     Ok((input, (key, value)))
 }
 

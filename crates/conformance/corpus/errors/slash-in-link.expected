@@ -1,1 +1,1 @@
-error line=3
+error line=3 expected="the end of the line"

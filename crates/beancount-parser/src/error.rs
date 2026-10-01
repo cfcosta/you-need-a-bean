@@ -40,6 +40,9 @@ pub struct Error {
     // likes -- and decide how far past the offset to underline, which is a
     // question the parser has no answer to. See VENDOR.md.
     offset: usize,
+    // Local addition vs upstream 2.6.0: what the parser was looking for at
+    // `offset`, when a rule said. See VENDOR.md.
+    expected: Option<&'static str>,
 }
 
 impl Debug for Error {
@@ -59,21 +62,37 @@ impl Display for Error {
 impl std::error::Error for Error {}
 
 impl Error {
+    pub(crate) fn new(src: impl Into<String>, span: Span<'_>) -> Self {
+        Self::at(src, span.location_offset(), span.location_line(), None)
+    }
+
     #[cfg(not(feature = "miette"))]
-    pub(crate) fn new(_: impl Into<String>, span: Span<'_>) -> Self {
+    pub(crate) fn at(
+        _: impl Into<String>,
+        offset: usize,
+        line_number: u32,
+        expected: Option<&'static str>,
+    ) -> Self {
         Self {
-            line_number: span.location_line(),
-            offset: span.location_offset(),
+            line_number,
+            offset,
+            expected,
         }
     }
 
     #[cfg(feature = "miette")]
-    pub(crate) fn new(src: impl Into<String>, span: Span<'_>) -> Self {
+    pub(crate) fn at(
+        src: impl Into<String>,
+        offset: usize,
+        line_number: u32,
+        expected: Option<&'static str>,
+    ) -> Self {
         Self {
             src: src.into(),
-            span: span.location_offset().into(),
-            line_number: span.location_line(),
-            offset: span.location_offset(),
+            span: offset.into(),
+            line_number,
+            offset,
+            expected,
         }
     }
 
@@ -91,6 +110,16 @@ impl Error {
     #[must_use]
     pub fn offset(&self) -> usize {
         self.offset
+    }
+
+    /// What the parser was looking for at [`Error::offset`], if a rule said
+    ///
+    /// A noun phrase meant to follow "expected": `"an account"`, `"the end of
+    /// the line"`, `"a day from 01 to 31"`. `None` when no rule had anything
+    /// more specific to say than that the input stopped making sense.
+    #[must_use]
+    pub fn expected(&self) -> Option<&'static str> {
+        self.expected
     }
 }
 

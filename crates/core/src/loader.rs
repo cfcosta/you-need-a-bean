@@ -7,6 +7,7 @@
 
 use std::collections::{HashSet, VecDeque};
 use std::path::{Component, Path, PathBuf};
+use std::sync::{Arc, OnceLock};
 
 use beancount_parser::{
     Directive, DirectiveContent, Entry, Include, parse_iter,
@@ -114,7 +115,7 @@ pub enum LoadError {
         #[source]
         source: std::io::Error,
         #[source_code]
-        src: NamedSource<String>,
+        src: Arc<NamedSource<String>>,
         #[label("included from here")]
         span: SourceSpan,
     },
@@ -129,27 +130,41 @@ pub enum LoadError {
         #[source]
         source: glob::PatternError,
         #[source_code]
-        src: NamedSource<String>,
+        src: Arc<NamedSource<String>>,
         #[label("{source}")]
         span: SourceSpan,
     },
 
     /// A line the parser could not read.
+    ///
+    /// The parser reads on past an error, so a ledger with several reports
+    /// them all: the first here, the rest as `others`, each with its own
+    /// source and label.
     #[error("invalid beancount syntax")]
-    #[diagnostic(
-        code(bean::syntax),
-        help(
-            "a line that is not blank and does not start a directive is an \
-             error; comments begin with `;`"
-        )
-    )]
+    #[diagnostic(code(bean::syntax))]
     Syntax {
         #[source_code]
-        src: NamedSource<String>,
-        #[label("the parser stopped here")]
+        src: Arc<NamedSource<String>>,
+        #[label("{label}")]
         span: SourceSpan,
+        /// What the parser wanted where it stopped, and what it found.
+        label: String,
+        #[help]
+        help: Option<String>,
+        #[related]
+        others: Vec<LoadError>,
+        /// Errors past the ones shown. A file that is not beancount at all
+        /// has one on every line, and a screenful of them says no more than
+        /// a count does.
+        omitted: usize,
     },
 }
+
+/// Syntax errors drawn in full; past this many, they are only counted.
+const SHOWN_SYNTAX_ERRORS: usize = 10;
+
+/// What the parser expects at the start of a line nothing claims.
+const LINE_START: &str = "a directive, option, include, plugin or comment";
 
 impl LoadError {
     /// Path of the file the error is *in*, as it would be shown to a reader.
@@ -184,28 +199,88 @@ impl LoadError {
     /// terminal should render the diagnostic itself and get the source line
     /// with it.
     pub fn summary(&self) -> String {
-        match self.location() {
+        let mut summary = match self.location() {
             Some((line, column)) => {
                 format!("{}:{line}:{column}: {self}", self.path())
             }
             None => format!("{}: {self}", self.path()),
+        };
+        if let LoadError::Syntax {
+            label,
+            others,
+            omitted,
+            ..
+        } = self
+        {
+            summary.push_str(": ");
+            summary.push_str(label);
+            match others.len() + omitted {
+                0 => {}
+                1 => summary.push_str(" (and 1 more syntax error)"),
+                more => summary
+                    .push_str(&format!(" (and {more} more syntax errors)")),
+            }
         }
+        summary
+    }
+
+    /// Every syntax error found, as one error: the first, carrying the rest.
+    fn syntax(mut errors: Vec<LoadError>) -> LoadError {
+        let omitted = errors.len().saturating_sub(SHOWN_SYNTAX_ERRORS);
+        errors.truncate(SHOWN_SYNTAX_ERRORS);
+        let mut errors = errors.into_iter();
+        let mut first = errors.next().expect("at least one syntax error");
+        if let LoadError::Syntax {
+            help,
+            others,
+            omitted: hidden,
+            ..
+        } = &mut first
+        {
+            *others = errors.collect();
+            *hidden = omitted;
+            if omitted > 0 {
+                let note =
+                    format!("{omitted} more syntax errors are not shown");
+                *help = Some(match help.take() {
+                    Some(help) => format!("{help}\n{note}"),
+                    None => note,
+                });
+            }
+        }
+        first
     }
 }
 
 /// A file being read, kept together so an error can quote it.
 ///
-/// Built once per file and cloned only when something actually goes wrong, so
-/// the happy path never copies the text.
+/// Built once per file. The text is copied only when something actually goes
+/// wrong, so the happy path never pays for it, and then only once however many
+/// errors the file holds.
 struct Source<'a> {
     path: &'a Path,
     text: &'a str,
+    named: OnceLock<Arc<NamedSource<String>>>,
 }
 
-impl Source<'_> {
-    fn named(&self) -> NamedSource<String> {
-        NamedSource::new(display_path(self.path), self.text.to_owned())
-            .with_language("beancount")
+impl<'a> Source<'a> {
+    fn new(path: &'a Path, text: &'a str) -> Self {
+        Self {
+            path,
+            text,
+            named: OnceLock::new(),
+        }
+    }
+
+    fn named(&self) -> Arc<NamedSource<String>> {
+        self.named
+            .get_or_init(|| {
+                Arc::new(NamedSource::new(
+                    display_path(self.path),
+                    self.text.to_owned(),
+                ))
+            })
+            .clone()
     }
 
     /// The span an `include` directive's quoted path occupies.
@@ -213,22 +288,61 @@ impl Source<'_> {
         (include.offset, include.length).into()
     }
 
-    /// The parser says where it stopped, not how much is wrong, so underline
-    /// from there to the end of the line: everything from here on is unread.
+    /// A parser error as a diagnostic: the token the parser stopped at,
+    /// underlined, labelled with what it wanted there instead.
     ///
-    /// Leading whitespace is skipped. The parser stops at column 1 of a line it
-    /// cannot read, and an underline that starts in the indentation reads as if
-    /// the indentation were the problem.
-    fn span_from(&self, offset: usize) -> SourceSpan {
+    /// The parser knows where it stopped, not how much is wrong, so the
+    /// underline covers the one token it could not get past. At the end of a
+    /// line or the file there is no token, and the underline is one
+    /// character wide so it still has somewhere to be.
+    fn syntax(&self, err: &beancount_parser::Error) -> LoadError {
         let len = self.text.len();
-        if offset >= len {
-            // A parse that ran off the end still needs somewhere to point.
-            return (len.saturating_sub(1), 1).into();
-        }
+        let offset = err.offset().min(len);
         let rest = &self.text[offset..];
-        let line = &rest[..rest.find('\n').unwrap_or(rest.len())];
-        let indent = line.len() - line.trim_start().len();
-        (offset + indent, line.trim().len().max(1)).into()
+        let token =
+            &rest[..rest.find(char::is_whitespace).unwrap_or(rest.len())];
+        let found = match rest.chars().next() {
+            None => "the end of the file".to_string(),
+            Some('\n' | '\r') => "the end of the line".to_string(),
+            Some(_) if token.is_empty() => "a space".to_string(),
+            Some(_) => format!("`{}`", shorten(token)),
+        };
+        let span: SourceSpan = if token.is_empty() {
+            let at = if offset < len {
+                offset
+            } else {
+                len.saturating_sub(1)
+            };
+            (at, 1).into()
+        } else {
+            (offset, token.len()).into()
+        };
+        let label = match err.expected() {
+            Some(expected) => format!("expected {expected}, found {found}"),
+            None => format!("unexpected {found}"),
+        };
+        let help = (err.expected() == Some(LINE_START)).then(|| {
+            "a line that is not blank and does not start a directive is an \
+             error; comments begin with `;`"
+                .to_string()
+        });
+        LoadError::Syntax {
+            src: self.named(),
+            span,
+            label,
+            help,
+            others: Vec::new(),
+            omitted: 0,
+        }
+    }
+}
+
+/// A token short enough to quote in a label.
+fn shorten(token: &str) -> String {
+    const MAX: usize = 32;
+    match token.char_indices().nth(MAX) {
+        Some((end, _)) => format!("{}…", &token[..end]),
+        None => token.to_string(),
     }
 }
 
@@ -286,6 +400,7 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
     };
     let mut seen: HashSet<PathBuf> = HashSet::new();
     let mut queue: VecDeque<PathBuf> = VecDeque::new();
+    let mut syntax: Vec<LoadError> = Vec::new();
 
     let root = root
         .canonicalize()
@@ -304,16 +419,18 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
             }
         })?;
         let dir = path.parent().expect("a readable file has a parent");
-        let source = Source {
-            path: &path,
-            text: &text,
-        };
+        let source = Source::new(&path, &text);
 
         for entry in parse_iter::<Decimal>(&text) {
-            let entry = entry.map_err(|err| LoadError::Syntax {
-                src: source.named(),
-                span: source.span_from(err.offset()),
-            })?;
+            let entry = match entry {
+                Ok(entry) => entry,
+                // Read on: the parser has resumed past it, and the rest of
+                // the file -- and whatever it includes -- may hold more.
+                Err(err) => {
+                    syntax.push(source.syntax(&err));
+                    continue;
+                }
+            };
             match entry {
                 Entry::Directive(directive) => {
                     if let DirectiveContent::Document(doc) = &directive.content
@@ -379,6 +496,9 @@ pub fn load(root: &Path) -> Result<LoadedLedger, LoadError> {
         ledger.files.push(path);
     }
 
+    if !syntax.is_empty() {
+        return Err(LoadError::syntax(syntax));
+    }
     Ok(ledger)
 }
 

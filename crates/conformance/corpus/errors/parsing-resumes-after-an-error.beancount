@@ -1,0 +1,14 @@
+; An error does not end the parse. The parser reports it, skips the rest of
+; the broken entry -- its own line and every indented line under it -- and
+; carries on at the next line starting in column 1, so one run reports every
+; mistake in a file rather than the first.
+2026-01-01 open Assets:Cash
+2026-13-01 * "a broken header takes its postings with it"
+  Assets:Cash  1 USD
+  Equity:Opening  -1 USD
+2026-01-02 open Assets:Bank:Checking
+2026-01-03 * "a broken posting takes the rest of its entry"
+  Assets:Cash  1 US$
+
+  Equity:Opening  -1 USD
+2026-01-04 open Assets:Reached

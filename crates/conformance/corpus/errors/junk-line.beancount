@@ -3,7 +3,7 @@
 ; was ever an error. That is how a typo lives in a ledger for months.
 ;
 ; The catch-all now claims only the lines beancount itself ignores (see
-; structure/org-mode-lines.beancount); anything else stops the parse.
+; structure/org-mode-lines.beancount); anything else is reported, and parsing carries on at the next line.
 2026-01-01 open Assets:Cash
 this is not beancount
 2026-01-02 open Assets:Bank:Checking

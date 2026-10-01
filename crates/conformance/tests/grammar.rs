@@ -60,20 +60,54 @@ fn parse_and_parse_iter_agree() {
     }
 }
 
-/// An error must stop both entry points at the same place.
+/// Both entry points agree on the first error. `parse` stops there; the
+/// streaming iterator reports it at the same place and carries on.
 #[test]
-fn both_entry_points_stop_at_the_same_error() {
+fn both_entry_points_report_the_same_first_error() {
     let input = "2026-01-01 open Assets:Cash\n2026-13-01 open Assets:Bad\n";
     let err = parse::<Decimal>(input).expect_err("month 13 is invalid");
     let streamed: Vec<_> = parse_iter::<Decimal>(input).collect();
     let before = streamed.iter().take_while(|e| e.is_ok()).count();
     assert_eq!(before, 1, "the good directive should come through first");
-    let last = streamed.last().expect("an error entry");
+    let first = streamed
+        .iter()
+        .find_map(|e| e.as_ref().err())
+        .expect("an error entry");
     assert_eq!(
         err.line_number(),
-        last.as_ref().expect_err("the trailing error").line_number(),
+        first.line_number(),
         "the two entry points reported the error on different lines",
     );
+}
+
+/// The streaming iterator reports every error in the input, each once, with
+/// the entries between them intact.
+#[test]
+fn the_iterator_reports_every_error() {
+    let input = "2026-13-01 open Assets:A\n\
+                 2026-01-01 open Assets:B\n\
+                 this is not beancount\n\
+                 2026-01-02 open Assets:C\n\
+                 2026-01-03 open Assets:D Opps\n";
+    let lines: Vec<Result<u32, u32>> = parse_iter::<Decimal>(input)
+        .map(|entry| match entry {
+            Ok(Entry::Directive(d)) => Ok(d.line_number),
+            Ok(other) => panic!("unexpected entry {other:?}"),
+            Err(err) => Err(err.line_number()),
+        })
+        .collect();
+    assert_eq!(lines, vec![Err(1), Ok(2), Err(3), Ok(4), Err(5)]);
+}
+
+/// An error says what the parser was looking for where it stopped, and where
+/// that was: the furthest point any rule reached, not the start of the entry.
+#[test]
+fn an_error_names_what_was_expected_and_where() {
+    let input = "2026-01-01 * \"x\"\n  Assets:Cash  -42.50 US$\n";
+    let err = parse::<Decimal>(input).expect_err("`US$` is not a currency");
+    assert_eq!(err.line_number(), 2);
+    assert_eq!(err.expected(), Some("the end of the line"));
+    assert_eq!(&input[err.offset()..], "$\n");
 }
 
 // ---------------------------------------------------------------------------

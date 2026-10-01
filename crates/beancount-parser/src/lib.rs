@@ -51,7 +51,8 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
     character::complete::{char, line_ending, not_line_ending, one_of, space0, space1},
-    combinator::{all_consuming, cut, eof, iterator, map, not, opt, value},
+    combinator::{all_consuming, cut, eof, map, not, opt, peek, value},
+    error::context,
     sequence::{preceded, terminated},
     Finish, Parser,
 };
@@ -81,6 +82,7 @@ mod date;
 mod error;
 mod event;
 mod extra;
+mod failure;
 mod iterator;
 pub mod metadata;
 mod transaction;
@@ -110,7 +112,7 @@ pub fn parse<D: Decimal>(input: &str) -> Result<BeancountFile<D>, Error> {
 pub fn parse_iter<'a, D: Decimal + 'a>(
     input: &'a str,
 ) -> impl Iterator<Item = Result<Entry<D>, Error>> + 'a {
-    Iter::new(input, iterator(Span::new(input), entry::<D>))
+    Iter::new(input, entry::<D>)
 }
 
 impl<D: Decimal> FromStr for BeancountFile<D> {
@@ -501,7 +503,7 @@ impl<D> DirectiveContent<D> {
 }
 
 type Span<'a> = nom_locate::LocatedSpan<&'a str>;
-type IResult<'a, O> = nom::IResult<Span<'a>, O>;
+type IResult<'a, O> = nom::IResult<Span<'a>, O, failure::Error<'a>>;
 
 /// An `include` directive, and where in the source it was written
 ///
@@ -607,15 +609,20 @@ pub struct BeanOption {
 }
 
 fn entry<D: Decimal>(input: Span<'_>) -> IResult<'_, RawEntry<D>> {
-    alt((
+    // Local patch vs upstream 2.6.0: names what a line has to start with, for
+    // a line nothing claims. See VENDOR.md.
+    context(
+        "a directive, option, include, plugin or comment",
+        alt((
         directive.map(RawEntry::Directive),
         option.map(|(name, value)| RawEntry::Option(BeanOption { name, value })),
         include.map(|p| RawEntry::Include(p)),
-        terminated(extra::plugin, end_of_line).map(RawEntry::Plugin),
+        terminated(extra::plugin, line_end).map(RawEntry::Plugin),
         tag_stack_operation,
         meta_stack_operation,
         ignored_line.map(|()| RawEntry::Comment),
-    ))
+        )),
+    )
     .parse(input)
 }
 
@@ -623,6 +630,7 @@ fn directive<D: Decimal>(input: Span<'_>) -> IResult<'_, Directive<D>> {
     let (input, position) = position(input)?;
     let (input, date) = date::parse(input)?;
     let (input, _) = cut(space1).parse(input)?;
+    let (input, ()) = keyword_or_flag(input)?;
     let (input, (content, (tags, links), metadata)) = alt((
         map(transaction::parse, |(t, m)| {
             (DirectiveContent::Transaction(t), <(HashSet<Tag>, HashSet<Link>)>::default(), m)
@@ -680,7 +688,7 @@ fn directive<D: Decimal>(input: Span<'_>) -> IResult<'_, Directive<D>> {
                 // a `document` is routine. Upstream parsed neither, so such a
                 // line matched no rule and disappeared down the catch-all.
                 // See VENDOR.md.
-                terminated(transaction::tags_and_links, end_of_line),
+                terminated(transaction::tags_and_links, line_end),
             ),
             metadata::parse,
         )
@@ -706,7 +714,7 @@ fn option(input: Span<'_>) -> IResult<'_, (String, String)> {
     let (input, _) = tag("option")(input)?;
     let (input, key) = preceded(space1, string).parse(input)?;
     let (input, value) = preceded(space1, string).parse(input)?;
-    let (input, ()) = end_of_line(input)?;
+    let (input, ()) = line_end(input)?;
     Ok((input, (key, value)))
 }
 
@@ -723,7 +731,7 @@ fn include(input: Span<'_>) -> IResult<'_, Include> {
     // Measured before `end_of_line`, so the span covers the quoted path and
     // stops there rather than swallowing the newline.
     let length = rest.location_offset() - offset;
-    let (rest, ()) = cut(end_of_line).parse(rest)?;
+    let (rest, ()) = cut(line_end).parse(rest)?;
     Ok((
         rest,
         Include {
@@ -745,11 +753,36 @@ fn tag_stack_operation<D>(input: Span<'_>) -> IResult<'_, RawEntry<D>> {
 
 fn meta_stack_operation<D: Decimal>(input: Span<'_>) -> IResult<'_, RawEntry<D>> {
     alt((
-        terminated(extra::pushmeta, end_of_line)
+        terminated(extra::pushmeta, line_end)
             .map(|(key, value)| RawEntry::PushMeta(key, value)),
-        terminated(extra::popmeta, end_of_line).map(RawEntry::PopMeta),
+        terminated(extra::popmeta, line_end).map(RawEntry::PopMeta),
     ))
     .parse(input)
+}
+
+// Local addition vs upstream 2.6.0: a directive word that is not a keyword is
+// reported as one. A transaction flag is any character but a lowercase one, so
+// `Open` read as the flag `O` followed by junk, and the error named whatever
+// that junk failed to be. A word of two or more letters never parsed, so
+// rejecting it here changes what is reported, not what is accepted. See
+// VENDOR.md.
+fn keyword_or_flag(input: Span<'_>) -> IResult<'_, ()> {
+    const KEYWORDS: [&str; 12] = [
+        "txn", "price", "balance", "open", "close", "pad", "commodity", "event", "note",
+        "document", "query", "custom",
+    ];
+    let (_, word) = peek(take_while(char::is_alphanumeric)).parse(input)?;
+    if word.chars().count() > 1 && !KEYWORDS.contains(word.fragment()) {
+        return Err(failure::reject(input, "a directive keyword or a transaction flag"));
+    }
+    Ok((input, ()))
+}
+
+// Local addition vs upstream 2.6.0: `end_of_line`, labelled for where running
+// into something else is the error. `empty_line` keeps the bare one, since a
+// line failing to be blank says nothing. See VENDOR.md.
+pub(crate) fn line_end(input: Span<'_>) -> IResult<'_, ()> {
+    context("the end of the line", end_of_line).parse(input)
 }
 
 fn end_of_line(input: Span<'_>) -> IResult<'_, ()> {
@@ -796,7 +829,7 @@ fn empty_line(input: Span<'_>) -> IResult<'_, ()> {
 // two in a row, so a string opening with an escape, two adjacent escapes, or a
 // string holding nothing but one escape were all syntax errors. See VENDOR.md.
 fn string(input: Span<'_>) -> IResult<'_, String> {
-    let (input, _) = char('"')(input)?;
+    let (input, _) = context("a quoted string", char('"')).parse(input)?;
     let mut string = String::new();
     let mut take_data = take_while(|c: char| c != '"' && c != '\\');
     let (mut input, mut part) = take_data.parse(input)?;
@@ -810,6 +843,6 @@ fn string(input: Span<'_>) -> IResult<'_, String> {
         input = new_input;
         part = new_part;
     }
-    let (input, _) = char('"')(input)?;
+    let (input, _) = context("a closing quote", char('"')).parse(input)?;
     Ok((input, string))
 }

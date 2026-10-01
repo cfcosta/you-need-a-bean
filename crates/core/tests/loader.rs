@@ -18,6 +18,33 @@ fn underlined(err: &dyn Diagnostic) -> String {
     String::from_utf8(contents.data().to_vec()).expect("utf-8 source")
 }
 
+/// The label's text: what the reader is told about the underlined part.
+fn label(err: &dyn Diagnostic) -> String {
+    let label = err.labels().expect("a located error is labelled").next();
+    label
+        .expect("at least one label")
+        .label()
+        .expect("the label has text")
+        .to_string()
+}
+
+/// File name, one-based line, underlined text and label of a located error.
+fn located(err: &dyn Diagnostic) -> (String, usize, String, String) {
+    let src = err
+        .source_code()
+        .expect("a located error carries its source");
+    let span = *err
+        .labels()
+        .expect("a located error is labelled")
+        .next()
+        .expect("at least one label")
+        .inner();
+    let contents = src.read_span(&span, 0, 0).expect("span inside source");
+    let name = contents.name().expect("a named source");
+    let name = name.rsplit('/').next().unwrap_or(name).to_string();
+    (name, contents.line() + 1, underlined(err), label(err))
+}
+
 fn fixture(rel: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures")
@@ -84,9 +111,66 @@ fn unparseable_posting_is_an_error() {
         panic!("expected Syntax error, got {err:?}");
     };
     assert!(err.path().ends_with("main.beancount"), "{}", err.path());
-    // Line 7 is `  Expenses:Stuff  10..0 USD`, and the underline covers the
-    // whole of it: the parser knows where it stopped, not how much is wrong.
-    assert_eq!(underlined(&err), "Expenses:Stuff  10..0 USD");
+    // Line 7 is `  Expenses:Stuff  10..0 USD`. The parser got as far as the
+    // amount, so that is what is underlined, and the label says what it
+    // wanted there instead.
+    assert_eq!(underlined(&err), "10..0");
+    assert_eq!(label(&err), "expected a number, found `10..0`");
+}
+
+#[test]
+fn every_syntax_error_is_reported_across_files() {
+    // One broken line used to hide every other: fix it, reload, meet the
+    // next. The loader now reads on past an error, follows includes from a
+    // file that has one, and reports them all at once.
+    let err = load(&fixture("several/main.beancount")).unwrap_err();
+    let LoadError::Syntax { .. } = err else {
+        panic!("expected Syntax error, got {err:?}");
+    };
+    let all: Vec<_> = std::iter::once(&err as &dyn Diagnostic)
+        .chain(err.related().into_iter().flatten())
+        .map(located)
+        .collect();
+    assert_eq!(
+        all,
+        vec![
+            (
+                "main.beancount".to_string(),
+                4,
+                "Opne".to_string(),
+                "expected a directive keyword or a transaction flag, found `Opne`"
+                    .to_string(),
+            ),
+            (
+                "main.beancount".to_string(),
+                7,
+                "$".to_string(),
+                "expected the end of the line, found `$`".to_string(),
+            ),
+            (
+                "other.beancount".to_string(),
+                2,
+                "13-01".to_string(),
+                "expected a month from 01 to 12, found `13-01`".to_string(),
+            ),
+        ]
+    );
+}
+
+#[test]
+fn a_syntax_summary_fits_on_one_line_and_counts_the_rest() {
+    // The browser cannot draw a diagnostic, so it gets the first error as a
+    // line of text -- and has to learn that it is not the only one.
+    let err = load(&fixture("several/main.beancount")).unwrap_err();
+    let summary = err.summary();
+    assert!(
+        summary.ends_with(
+            "main.beancount:4:12: invalid beancount syntax: expected a \
+             directive keyword or a transaction flag, found `Opne` \
+             (and 2 more syntax errors)"
+        ),
+        "{summary}"
+    );
 }
 
 #[test]
@@ -117,4 +201,35 @@ fn options_collect_in_load_order_and_first_wins() {
     let ledger = load(&fixture("includes/main.beancount")).unwrap();
     assert_eq!(ledger.title(), Some("Multi-file"));
     assert_eq!(ledger.operating_currencies(), vec!["USD", "EUR"]);
+}
+
+#[test]
+fn a_file_of_junk_is_counted_not_drawn_line_by_line() {
+    // Point the app at the wrong file and every line is an error. Ten drawn
+    // say all there is to say; the rest are counted.
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("junk-ledger");
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("main.beancount");
+    std::fs::write(&path, "this is not beancount\n".repeat(15)).unwrap();
+
+    let err = load(&path).unwrap_err();
+    let LoadError::Syntax {
+        others, omitted, ..
+    } = &err
+    else {
+        panic!("expected Syntax error, got {err:?}");
+    };
+    assert_eq!((others.len(), *omitted), (9, 5));
+    assert_eq!(
+        err.help().map(|h| h.to_string()).as_deref(),
+        Some(
+            "a line that is not blank and does not start a directive is an \
+             error; comments begin with `;`\n5 more syntax errors are not shown"
+        )
+    );
+    assert!(
+        err.summary().ends_with("(and 14 more syntax errors)"),
+        "{}",
+        err.summary()
+    );
 }

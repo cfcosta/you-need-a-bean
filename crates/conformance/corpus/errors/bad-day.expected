@@ -1,1 +1,1 @@
-error line=1
+error line=1 expected="a day from 01 to 31"

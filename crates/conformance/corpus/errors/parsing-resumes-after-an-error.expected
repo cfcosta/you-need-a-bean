@@ -1,0 +1,11 @@
+directive line=5 2026-01-01 open
+  account Assets:Cash
+error line=6 expected="a month from 01 to 12"
+directive line=9 2026-01-02 open
+  account Assets:Bank:Checking
+directive line=10 2026-01-03 txn
+  flag *
+  narration "a broken posting takes the rest of its entry"
+error line=11 expected="the end of the line"
+directive line=14 2026-01-04 open
+  account Assets:Reached

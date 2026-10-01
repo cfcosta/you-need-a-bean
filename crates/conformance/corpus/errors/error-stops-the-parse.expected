@@ -1,5 +1,0 @@
-directive line=2 2026-01-01 open
-  account Assets:Cash
-directive line=3 2026-01-02 open
-  account Assets:Bank:Checking
-error line=4

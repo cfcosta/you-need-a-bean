@@ -1,1 +1,1 @@
-error line=3
+error line=3 expected="a directive, option, include, plugin or comment"

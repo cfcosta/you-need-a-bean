@@ -4,4 +4,4 @@ directive line=9 2026-01-15 txn
   posting
     account Expenses:Groceries
     amount 42.50 USD
-error line=11
+error line=11 expected="the end of the line"

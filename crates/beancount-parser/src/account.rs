@@ -10,6 +10,7 @@ use nom::{
     bytes::complete::take_while,
     character::complete::{char, satisfy, space0, space1},
     combinator::{all_consuming, cut, iterator, opt, recognize},
+    error::context,
     multi::many1_count,
     sequence::{delimited, preceded},
     Finish, Parser,
@@ -229,7 +230,8 @@ impl Pad {
 }
 
 pub(super) fn parse(input: Span<'_>) -> IResult<'_, Account> {
-    let (input, name) = recognize(preceded(
+    // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
+    let (input, name) = context("an account", recognize(preceded(
         preceded(
             satisfy(|c: char| c.is_uppercase() || c.is_ascii_digit()),
             take_while(|c: char| c.is_alphanumeric() || c == '-'),
@@ -241,7 +243,7 @@ pub(super) fn parse(input: Span<'_>) -> IResult<'_, Account> {
                 take_while(|c: char| c.is_alphanumeric() || c == '-'),
             ),
         ))),
-    ))
+    )))
     .parse(input)?;
     Ok((input, Account(Arc::from(*name.fragment()))))
 }

@@ -9,13 +9,14 @@ use nom::{
     character::complete::satisfy,
     character::complete::{char as char_tag, space0, space1},
     combinator::{cut, iterator, map, opt, success, value},
+    error::context,
     sequence::{delimited, preceded, separated_pair, terminated},
     Parser,
 };
 
 use crate::string;
 use crate::{
-    account, account::Account, amount, amount::Amount, date, empty_line, end_of_line, metadata,
+    account, account::Account, amount, amount::Amount, date, empty_line, line_end, metadata,
     Date, Decimal, IResult, Span,
 };
 
@@ -257,7 +258,7 @@ fn do_parse<D: Decimal>(
         let (input, payee_and_narration) =
             opt(preceded(space1, payee_and_narration)).parse(input)?;
         let (input, (tags, links)) = tags_and_links(input)?;
-        let (input, ()) = end_of_line(input)?;
+        let (input, ()) = line_end(input)?;
         let (input, metadata) = metadata::parse(input)?;
         let mut iter = iterator(input, alt((posting.map(Some), empty_line.map(|()| None))));
         let postings = iter.by_ref().flatten().collect();
@@ -294,7 +295,11 @@ pub(super) fn parse_tag(input: Span<'_>) -> IResult<'_, Tag> {
     map(
         preceded(
             char_tag('#'),
-            take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
+            // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
+            context(
+                "a tag name",
+                take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
+            ),
         ),
         |s: Span<'_>| Tag((*s.fragment()).into()),
     )
@@ -307,7 +312,11 @@ pub(super) fn parse_link(input: Span<'_>) -> IResult<'_, Link> {
     map(
         preceded(
             char_tag('^'),
-            take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '.'),
+            // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
+            context(
+                "a link name",
+                take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_' || c == '.'),
+            ),
         ),
         |s: Span<'_>| Link((*s.fragment()).into()),
     )
@@ -377,7 +386,7 @@ fn posting<D: Decimal>(input: Span<'_>) -> IResult<'_, Posting<D>> {
         )),
     ))
     .parse(input)?;
-    let (input, ()) = end_of_line(input)?;
+    let (input, ()) = line_end(input)?;
     let (input, metadata) = metadata::parse(input)?;
     let (amount, cost, price) = match amounts {
         Some((a, l, p)) => (Some(a), l, p),
@@ -426,10 +435,11 @@ fn cost<D: Decimal>(input: Span<'_>) -> IResult<'_, Cost<D>> {
     ))
     .parse(input)?;
     let (input, _) = space0(input)?;
+    // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
     let (input, _) = if total {
-        tag("}}").parse(input)?
+        context("a closing }}", tag("}}")).parse(input)?
     } else {
-        tag("}").parse(input)?
+        context("a closing }", tag("}")).parse(input)?
     };
     Ok((
         input,

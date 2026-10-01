@@ -37,7 +37,7 @@ directive line=7 2026-01-15 txn
     cost unit amount=2 PLN date=2026-01-01
     price total 25.00 EUR
     meta lot string "A"
-error line=12
+error line=12 expected="the end of the line"
 ```
 
 Deliberately, the contract is this text and nothing else. It says nothing
@@ -60,8 +60,14 @@ What the format guarantees:
 - **Every directive ends the same way.** Its tags, then its links, then its
   metadata, whatever kind it is. Beancount allows `#tag` and `^link` on any
   directive, not just a transaction, so the dump renders them uniformly.
-- **Errors stop the parse.** The first error emits `error line=N` and nothing
-  follows.
+- **Errors say what was expected.** An error emits `error line=N
+  expected="…"`, naming what the parser wanted where it got furthest, or
+  bare `error line=N` when no rule had anything specific to say. The phrase
+  is part of the contract: it is what the user reads.
+- **Errors do not stop the parse.** After one, parsing resumes at the next
+  line starting in column 1. The broken entry's own line and every indented
+  or blank line under it are skipped, since they belong to it. A dump can
+  hold any number of errors. → `errors/parsing-resumes-after-an-error`
 
 `without_line_numbers` strips the `line=N` fields, for the properties where
 inserting blank lines legitimately shifts everything down.
@@ -224,16 +230,18 @@ written on the directive itself beats anything pushed.
 
 **Enough location to point at**
 
-The dump contract stops at `error line=N`, but the application needs more than
+The dump contract stops at `error line=N expected="…"`, but the application needs more than
 a line. `crates/core` draws the offending source with the failure underlined,
 and a line number alone cannot say which part of the line to underline, or
 which `include` in a large include graph asked for a file that is not there. Two
 pieces of API carry that, and a rewrite that drops them turns every diagnostic
 back into a sentence:
 
-- `Error::offset()` — the byte the parse stopped at. The loader underlines
-  from there to the end of the line, which is a presentation decision the
-  parser has no answer to.
+- `Error::offset()` — the byte the parse got furthest to: the start of the
+  token no rule could read, not the start of its entry. The loader underlines
+  that token, which is a presentation decision the parser has no answer to.
+- `Error::expected()` — the same phrase the dump prints. The loader puts it in
+  the label under the underline, beside what it found there instead.
 - `Include { path, line_number, offset, length }` on `Entry::Include` — where
   the directive was *written*, not just where it points.
 

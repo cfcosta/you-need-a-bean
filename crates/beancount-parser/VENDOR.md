@@ -149,6 +149,42 @@ picks dependency versions that satisfy the lowest `rust-version` of any
 member, so a plain `cargo update` left dozens of crates behind. miette 5
 also pulled a second copy of `thiserror` (1.x) into the build.
 
+## Errors that say what and where, and do not stop the parse
+
+`src/failure.rs` (new file) is the error type every parser returns, in
+place of `nom::error::Error`, plus a record of the furthest point any rule
+reached before failing. nom's own error keeps only where the last
+alternative gave up, which for a line no rule claims is the start of that
+line, and a failure swallowed on the way (by `opt`, `many0` or `iterator`)
+leaves no trace. The furthest failure is the classic PEG heuristic for
+what the author meant. `context` labels at the points worth naming
+(`"an account"`, `"a currency"`, `"a month from 01 to 12"`, `"the end of
+the line"`, …, in `account.rs`, `amount.rs`, `date.rs`, `transaction.rs`
+and `lib.rs`) say what that rule wanted; the innermost label wins. The
+record is thread-local, because nom threads only the input and the error
+through a parse, and the iterator saves and restores it around each entry.
+
+`src/error.rs`: `Error` gains `expected()`, that label.
+
+`src/iterator.rs`: the iterator drives `entry` itself instead of through
+nom's `iterator`, which stopped for good at the first failure. After an
+error it resumes at the next line starting in column 1, skipping the rest
+of the broken line and every indented or blank line under it, so one run
+reports every error in a file. `BeancountFile::from_str` and `parse` still
+stop at the first, since they collect into a `Result`.
+
+`src/lib.rs`: `keyword_or_flag` rejects a word of two or more characters
+after the date that is no directive keyword, naming it as such. A
+transaction flag is any character but a lowercase one, so `Open` used to
+read as the flag `O` followed by junk. Such a word never parsed, so this
+changes what is reported, not what is accepted. `line_end` is
+`end_of_line` labelled, used where running into something else is the
+error; `empty_line` keeps the bare one.
+
+`src/amount.rs`: division by zero reports `"a divisor other than zero"`
+through `failure::reject`, which pins the error where it is rather than
+where the parse got furthest.
+
 ## Clippy
 
 `src/amount.rs`: `currency` uses `is_none_or` where upstream had
