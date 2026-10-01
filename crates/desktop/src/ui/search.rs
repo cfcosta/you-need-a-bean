@@ -19,6 +19,22 @@ const CH: f32 = 8.4;
 
 /// `text`, with every stretch matching one of `terms` marked.
 pub fn marked(text: &str, terms: &[String], color: Hsla, t: &Theme) -> Div {
+    marked_at(text, terms, color, t, 14., 22.)
+}
+
+/// `marked` for text of `size` on a `line`-tall line.
+pub fn marked_at(
+    text: &str,
+    terms: &[String],
+    color: Hsla,
+    t: &Theme,
+    size: f32,
+    line: f32,
+) -> Div {
+    // JetBrains Mono's content area is 1.32em: ascent 1.02, descent 0.3.
+    // Chromium snaps the box to device pixels (half pixels at 2x).
+    let content = (size * 1.32 * 2.).round() / 2.;
+    let top = ((line - content) / 2. * 2.).floor() / 2.;
     let lower = text.to_lowercase();
     let mut marks = vec![false; text.len()];
     for term in terms.iter().filter(|s| !s.is_empty()) {
@@ -44,7 +60,7 @@ pub fn marked(text: &str, terms: &[String], color: Hsla, t: &Theme) -> Div {
         }
         let piece = SharedString::from(text[start..end].to_owned());
         // `<mark>` paints over the font's content area, not the whole
-        // 22px line: about 18.5px of a 14px JetBrains Mono, centred.
+        // line, centred in it.
         out = out.child(
             div()
                 .relative()
@@ -55,8 +71,8 @@ pub fn marked(text: &str, terms: &[String], color: Hsla, t: &Theme) -> Div {
                             .absolute()
                             .left_0()
                             .right_0()
-                            .top(px(1.75))
-                            .h(px(18.5))
+                            .top(px(top))
+                            .h(px(content))
                             .bg(t.match_),
                     )
                 })

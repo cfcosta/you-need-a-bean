@@ -595,6 +595,38 @@ impl Render for Root {
             .on_key_down(cx.listener(|r, event: &KeyDownEvent, _, cx| {
                 r.type_into_search(event, cx)
             }));
+        if self.data.is_none() {
+            return base;
+        }
+        if width < ui::phone::WIDTH {
+            let base = base
+                .text_size(px(ui::phone::SIZE))
+                .line_height(px(ui::phone::LINE));
+            if let Some((query, selected)) =
+                self.search.as_ref().map(|s| (s.query.clone(), s.selected))
+            {
+                let hits = self.hits();
+                return base
+                    .child(ui::phone::search(&query, selected, &hits, &t, cx));
+            }
+            let today =
+                self.data.as_ref().map(|d| d.today).unwrap_or((1970, 1, 1));
+            let title = ui::phone::title(self);
+            let header = ui::phone::header(&title, &t, today, cx);
+            let page = ui::phone::page(self, &t, cx);
+            let nav = ui::phone::nav(self.page, &t, cx);
+            return base
+                .child(header)
+                .child(
+                    div()
+                        .id("page")
+                        .flex_1()
+                        .min_h(px(0.))
+                        .overflow_y_scroll()
+                        .child(page),
+                )
+                .child(nav);
+        }
         let Some(data) = &self.data else {
             return base;
         };

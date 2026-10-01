@@ -130,3 +130,116 @@ fn search_matches_the_canvas() {
         off * 100.
     );
 }
+
+fn phone(
+    page: Page,
+    height: f32,
+    setup: impl FnOnce(&mut Root) + 'static,
+) -> image::RgbaImage {
+    let mut cx = headless();
+    let ledger = Arc::new(overview_ledger());
+    shoot(&mut cx, frame(390., height), move |_, cx| {
+        let mut root = Root::new(ledger, TODAY, cx);
+        root.page = page;
+        setup(&mut root);
+        root
+    })
+}
+
+/// A phone board is one tall screen; the app scrolls its page between a
+/// fixed header and tab bar. Compare the header and the page above the
+/// tab bar. Phones are held to 4%: at 13px the glyph-advance rounding
+/// drifts dense text by a device pixel more often than at 14.
+fn phone_off(shot: &image::RgbaImage, reference: &str, height: u32) -> f64 {
+    let off = mismatch_in(shot, reference, Some((0, 0, 390, height)));
+    eprintln!("{reference}: {:.3}% off", off * 100.);
+    off
+}
+
+#[test]
+fn phone_overview_matches_the_canvas() {
+    let shot = phone(Page::Overview, 1460., |_| {});
+    assert!(phone_off(&shot, "PlainTextPhone-night", 1400) < 0.04);
+}
+
+#[test]
+fn phone_budget_matches_the_canvas() {
+    let shot = phone(Page::Budget, 1600., |r| {
+        r.month = Some(bean_core::model::MonthKey::new(2026, 8))
+    });
+    assert!(phone_off(&shot, "BudgetPhone-night", 1500) < 0.04);
+}
+
+#[test]
+fn phone_account_matches_the_canvas() {
+    let shot = phone(Page::Account, 920., |r| {
+        r.account = Some("Assets:Bank:Everyday".into());
+        r.month = Some(bean_core::model::MonthKey::new(2026, 9));
+    });
+    assert!(phone_off(&shot, "AccountPhone-night", 860) < 0.04);
+}
+
+#[test]
+fn phone_reports_match_the_canvas() {
+    let shot = phone(Page::Reports, 1180., |_| {});
+    assert!(phone_off(&shot, "ReportsPhone-night", 1100) < 0.04);
+}
+
+#[test]
+fn phone_investments_match_the_canvas() {
+    let shot = phone(Page::Investments, 920., |_| {});
+    assert!(phone_off(&shot, "InvestmentsPhone-night", 860) < 0.04);
+}
+
+#[test]
+fn phone_liabilities_match_the_canvas() {
+    let shot = phone(Page::Liabilities, 900., |_| {});
+    assert!(phone_off(&shot, "LiabilitiesPhone-night", 840) < 0.04);
+}
+
+#[test]
+fn phone_search_matches_the_canvas() {
+    let shot = phone(Page::Overview, 844., |r| {
+        r.search = Some(bean_desktop::root::Search {
+            query: "coffee".into(),
+            ..Default::default()
+        });
+    });
+    assert!(phone_off(&shot, "SearchPhone-night", 600) < 0.04);
+}
+
+/// Every desktop page again in the Day scheme.
+#[test]
+fn day_scheme_matches_the_canvas() {
+    type Board = (Page, &'static str, f32, Option<(u16, u8)>);
+    let boards: [Board; 6] = [
+        (Page::Overview, "Main-day", 1220., None),
+        (Page::Budget, "Budget-day", 1060., Some((2026, 8))),
+        (Page::Account, "Account-day", 820., Some((2026, 9))),
+        (Page::Reports, "Reports-day", 1560., None),
+        (Page::Investments, "Investments-day", 1100., None),
+        (Page::Liabilities, "Liabilities-day", 1160., None),
+    ];
+    let mut worst = 0f64;
+    for (page, reference, height, month) in boards {
+        let mut cx = headless();
+        cx.update(|cx| cx.set_global(bean_desktop::theme::Theme::day()));
+        let ledger = Arc::new(overview_ledger());
+        let shot = shoot(&mut cx, frame(1440., height), move |_, cx| {
+            let mut root = Root::new(ledger, TODAY, cx);
+            root.page = page;
+            root.month =
+                month.map(|(y, m)| bean_core::model::MonthKey::new(y, m));
+            root.account = Some("Assets:Bank:Everyday".into());
+            root
+        });
+        let off = mismatch(&shot, reference);
+        eprintln!("{reference}: {:.3}% off", off * 100.);
+        worst = worst.max(off);
+    }
+    assert!(
+        worst < 0.02,
+        "a Day page is {:.2}% off its board",
+        worst * 100.
+    );
+}

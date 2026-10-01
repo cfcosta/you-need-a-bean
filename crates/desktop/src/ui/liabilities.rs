@@ -480,6 +480,20 @@ fn loan(
         })
 }
 
+/// The payoff slider for one debt's account.
+pub fn slider_for(
+    t: &Theme,
+    k: usize,
+    share: f32,
+    cx: &mut Context<Root>,
+    account: String,
+) -> impl IntoElement {
+    slider(t, k, share, cx, move |root, share, cx| {
+        let steps = (share * (EXTRA_MAX / EXTRA_STEP) as f32).round() as u32;
+        root.set_extra(account.clone(), Decimal::from(steps * EXTRA_STEP), cx);
+    })
+}
+
 /// A range input, drawn the way Chromium draws one in the canvas: a thin
 /// track, filled to the thumb, and a round thumb. Drag or click to set.
 fn slider(
