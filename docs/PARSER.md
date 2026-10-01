@@ -240,6 +240,10 @@ back into a sentence:
 - `Error::offset()` — the byte the parse got furthest to: the start of the
   token no rule could read, not the start of its entry. The loader underlines
   that token, which is a presentation decision the parser has no answer to.
+- `Error::token_len()` — how much of the input from that byte the failing
+  rule read before rejecting it, when it read a whole token: the `13` of a
+  month. The loader underlines exactly that, or guesses up to the next
+  whitespace when it is `None`.
 - `Error::expected()` — the same phrase the dump prints. The loader puts it in
   the label under the underline, beside what it found there instead.
 - `Include { path, line_number, offset, length }` on `Entry::Include` — where

@@ -43,6 +43,9 @@ pub struct Error {
     // Local addition vs upstream 2.6.0: what the parser was looking for at
     // `offset`, when a rule said. See VENDOR.md.
     expected: Option<&'static str>,
+    // Local addition vs upstream 2.6.0: how long the rejected token at
+    // `offset` is, when the rule read one whole. See VENDOR.md.
+    token_len: Option<usize>,
 }
 
 impl Debug for Error {
@@ -77,6 +80,7 @@ impl Error {
             line_number,
             offset,
             expected,
+            token_len: None,
         }
     }
 
@@ -93,7 +97,12 @@ impl Error {
             line_number,
             offset,
             expected,
+            token_len: None,
         }
+    }
+
+    pub(crate) fn with_token_len(self, token_len: Option<usize>) -> Self {
+        Self { token_len, ..self }
     }
 
     /// Line number at which the error was found in the input
@@ -120,6 +129,17 @@ impl Error {
     #[must_use]
     pub fn expected(&self) -> Option<&'static str> {
         self.expected
+    }
+
+    /// Length in bytes of the token at [`Error::offset`] that a rule read and
+    /// rejected, if it read one whole
+    ///
+    /// The `13` of month 13, the `10..0` of a number that is not one. `None`
+    /// when the parser stopped on something no rule could start reading, so
+    /// where the trouble ends is the caller's guess.
+    #[must_use]
+    pub fn token_len(&self) -> Option<usize> {
+        self.token_len
     }
 }
 

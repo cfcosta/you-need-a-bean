@@ -291,16 +291,23 @@ impl<'a> Source<'a> {
     /// A parser error as a diagnostic: the token the parser stopped at,
     /// underlined, labelled with what it wanted there instead.
     ///
-    /// The parser knows where it stopped, not how much is wrong, so the
-    /// underline covers the one token it could not get past. At the end of a
-    /// line or the file there is no token, and the underline is one
-    /// character wide so it still has somewhere to be.
+    /// The underline covers the one token the parser could not get past. At
+    /// the end of a line or the file there is no token, and the underline is
+    /// one character wide so it still has somewhere to be.
     fn syntax(&self, err: &beancount_parser::Error) -> LoadError {
         let len = self.text.len();
         let offset = err.offset().min(len);
         let rest = &self.text[offset..];
-        let token =
-            &rest[..rest.find(char::is_whitespace).unwrap_or(rest.len())];
+        // The rule that failed says how much it read, when it read a token
+        // whole. Otherwise the best guess is up to the next whitespace.
+        let end = err
+            .token_len()
+            .filter(|&n| rest.is_char_boundary(n.min(rest.len())))
+            .unwrap_or_else(|| {
+                rest.find(char::is_whitespace).unwrap_or(rest.len())
+            })
+            .min(rest.len());
+        let token = &rest[..end];
         let found = match rest.chars().next() {
             None => "the end of the file".to_string(),
             Some('\n' | '\r') => "the end of the line".to_string(),

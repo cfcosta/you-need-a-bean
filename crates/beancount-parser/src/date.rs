@@ -1,14 +1,13 @@
 use std::{cmp::Ordering, str::FromStr};
 
 use nom::{
-    bytes::complete::take,
     character::complete::{char, digit1},
-    combinator::{all_consuming, cut, map_res, peek, verify},
+    combinator::{all_consuming, cut, peek},
     error::context,
     Finish, Parser,
 };
 
-use super::{IResult, Span};
+use super::{failure::checked, IResult, Span};
 
 /// A date
 ///
@@ -88,25 +87,35 @@ fn do_parse(input: Span<'_>) -> IResult<'_, Date> {
     Ok((input, Date { year, month, day }))
 }
 
+// Local patch vs upstream 2.6.0: each part reads its whole run of digits and
+// then checks it, rather than taking a fixed width, so a bad part is reported
+// as itself -- `20260`, not `0-01-01`. Every input rejected before is still
+// rejected. See VENDOR.md.
 fn year(input: Span<'_>) -> IResult<'_, u16> {
-    map_res(take(4usize), |s: Span<'_>| s.fragment().parse()).parse(input)
+    context("a four-digit year", checked(digit1, |s| exactly(s, 4)))
+        .parse(input)
+}
+
+/// `digits` as a number, if there are exactly `width` of them.
+fn exactly<N: FromStr>(digits: &str, width: usize) -> Option<N> {
+    (digits.len() == width).then(|| digits.parse().ok()).flatten()
 }
 
 fn month(input: Span<'_>) -> IResult<'_, u8> {
     // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
-    context("a month from 01 to 12", verify(
-        map_res(take(2usize), |s: Span<'_>| s.fragment().parse()),
-        |&n| n > 0 && n < 13,
-    ))
+    context(
+        "a month from 01 to 12",
+        checked(digit1, |s| exactly(s, 2).filter(|n| (1..=12).contains(n))),
+    )
     .parse(input)
 }
 
 fn day(input: Span<'_>) -> IResult<'_, u8> {
     // Local patch vs upstream 2.6.0: labelled for error reports. See VENDOR.md.
-    context("a day from 01 to 31", verify(
-        map_res(take(2usize), |s: Span<'_>| s.fragment().parse()),
-        |&n| n > 0 && n < 32,
-    ))
+    context(
+        "a day from 01 to 31",
+        checked(digit1, |s| exactly(s, 2).filter(|n| (1..=31).contains(n))),
+    )
     .parse(input)
 }
 

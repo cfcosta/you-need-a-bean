@@ -164,7 +164,15 @@ and `lib.rs`) say what that rule wanted; the innermost label wins. The
 record is thread-local, because nom threads only the input and the error
 through a parse, and the iterator saves and restores it around each entry.
 
-`src/error.rs`: `Error` gains `expected()`, that label.
+`src/error.rs`: `Error` gains `expected()`, that label, and
+`token_len()`: how long the token at the offset is, when the rule that
+failed read one whole before rejecting it. `failure::checked` is that
+kind of rule — read a token, then check it — and reports the length.
+`date.rs` reads each date part as a run of digits and checks its width
+and range (upstream: a fixed-width `take` then `verify`), so a bad part is
+reported as itself: `20260`, not `0-01-01`. Everything upstream rejected
+is still rejected. `amount.rs`'s number literal uses it in place of
+`map_res`.
 
 `src/iterator.rs`: the iterator drives `entry` itself instead of through
 nom's `iterator`, which stopped for good at the first failure. After an

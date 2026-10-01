@@ -127,6 +127,8 @@ fn every_syntax_error_is_reported_across_files() {
     let LoadError::Syntax { .. } = err else {
         panic!("expected Syntax error, got {err:?}");
     };
+    // Each underline covers what the rule that failed actually read: the
+    // month, not the rest of the date after it.
     let all: Vec<_> = std::iter::once(&err as &dyn Diagnostic)
         .chain(err.related().into_iter().flatten())
         .map(located)
@@ -150,8 +152,8 @@ fn every_syntax_error_is_reported_across_files() {
             (
                 "other.beancount".to_string(),
                 2,
-                "13-01".to_string(),
-                "expected a month from 01 to 12, found `13-01`".to_string(),
+                "13".to_string(),
+                "expected a month from 01 to 12, found `13`".to_string(),
             ),
         ]
     );
@@ -232,4 +234,29 @@ fn a_file_of_junk_is_counted_not_drawn_line_by_line() {
         "{}",
         err.summary()
     );
+}
+
+#[test]
+fn a_bad_date_part_is_underlined_alone() {
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("bad-dates");
+    std::fs::create_dir_all(&dir).unwrap();
+    let cases = [
+        (
+            "20260-01-01 open Assets:Cash\n",
+            "20260",
+            "a four-digit year",
+        ),
+        ("2026-1-01 open Assets:Cash\n", "1", "a month from 01 to 12"),
+        ("2026-01-32 open Assets:Cash\n", "32", "a day from 01 to 31"),
+    ];
+    for (i, (text, token, expected)) in cases.into_iter().enumerate() {
+        let path = dir.join(format!("{i}.beancount"));
+        std::fs::write(&path, text).unwrap();
+        let err = load(&path).unwrap_err();
+        assert_eq!(underlined(&err), token, "{text}");
+        assert_eq!(
+            label(&err),
+            format!("expected {expected}, found `{token}`")
+        );
+    }
 }

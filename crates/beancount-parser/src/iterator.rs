@@ -122,9 +122,11 @@ impl<'i, D, F> Iter<'i, D, F> {
                 offset: stopped.location_offset(),
                 line: stopped.location_line(),
                 expected: None,
+                len: None,
             });
         self.rest = Some(resume(input, failure.offset));
         Error::at(self.source, failure.offset, failure.line, failure.expected)
+            .with_token_len(failure.len)
     }
 }
 

@@ -10,7 +10,7 @@ use nom::{
     branch::alt,
     bytes::complete::{take_while, take_while1},
     character::complete::{char, one_of, satisfy, space0, space1},
-    combinator::{all_consuming, iterator, map_res, opt, recognize, verify},
+    combinator::{all_consuming, iterator, opt, recognize, verify},
     error::context,
     sequence::{delimited, preceded, terminated},
     Finish, Parser,
@@ -176,18 +176,20 @@ fn negation<D: Decimal>(input: Span<'_>) -> IResult<'_, D> {
     Ok((input, if sign == '-' { -expr } else { expr }))
 }
 
+// Local patch vs upstream 2.6.0: `checked` rather than `map_res`, so a
+// literal that is not a number is reported whole. See VENDOR.md.
 fn literal<D: Decimal>(input: Span<'_>) -> IResult<'_, D> {
-    map_res(
+    crate::failure::checked(
         recognize((
             opt(one_of("-+")),
             space0,
             take_while1(|c: char| c.is_numeric() || c == '.' || c == ','),
         )),
-        |s: Span<'_>| {
-            s.fragment()
-                .replace([',', ' '], "")
+        |s: &str| {
+            s.replace([',', ' '], "")
                 .trim_start_matches('+')
                 .parse()
+                .ok()
         },
     )
     .parse(input)

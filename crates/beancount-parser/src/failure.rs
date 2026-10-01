@@ -21,7 +21,10 @@
 
 use std::cell::Cell;
 
-use nom::error::{ContextError, ErrorKind, FromExternalError, ParseError};
+use nom::{
+    error::{ContextError, ErrorKind, FromExternalError, ParseError},
+    Parser,
+};
 
 use crate::Span;
 
@@ -31,6 +34,9 @@ pub(crate) struct Furthest {
     pub(crate) offset: usize,
     pub(crate) line: u32,
     pub(crate) expected: Option<&'static str>,
+    /// How much input the failing rule read before rejecting it, when it read
+    /// a whole token and then found it wanting: the `13` of a month.
+    pub(crate) len: Option<usize>,
 }
 
 thread_local! {
@@ -42,17 +48,42 @@ pub(crate) fn swap(furthest: Option<Furthest>) -> Option<Furthest> {
     FURTHEST.with(|cell| cell.replace(furthest))
 }
 
-fn reached(input: &Span<'_>) {
+fn reached(input: &Span<'_>, len: Option<usize>) {
     FURTHEST.with(|cell| {
         let offset = input.location_offset();
-        if cell.get().is_none_or(|f| offset > f.offset) {
-            cell.set(Some(Furthest {
+        match cell.get() {
+            Some(f) if offset < f.offset => {}
+            Some(f) if offset == f.offset => {
+                if f.len.is_none() {
+                    cell.set(Some(Furthest { len, ..f }));
+                }
+            }
+            _ => cell.set(Some(Furthest {
                 offset,
                 line: input.location_line(),
                 expected: None,
-            }));
+                len,
+            })),
         }
     });
+}
+
+/// Read a token with `read`, then keep it only if `check` makes something of
+/// it. A rejected token is reported whole, so an error can underline exactly
+/// what was read rather than guess where it ends.
+pub(crate) fn checked<'a, O>(
+    mut read: impl Parser<Span<'a>, Output = Span<'a>, Error = Error<'a>>,
+    check: impl Fn(&str) -> Option<O>,
+) -> impl FnMut(Span<'a>) -> nom::IResult<Span<'a>, O, Error<'a>> {
+    move |input| {
+        let (rest, token) = read.parse(input)?;
+        if let Some(value) = check(token.fragment()) {
+            Ok((rest, value))
+        } else {
+            reached(&input, Some(token.fragment().len()));
+            Err(nom::Err::Error(Error { input }))
+        }
+    }
 }
 
 fn label(input: &Span<'_>, expected: &'static str) {
@@ -77,6 +108,7 @@ pub(crate) fn reject<'a>(input: Span<'a>, expected: &'static str) -> nom::Err<Er
             offset: input.location_offset(),
             line: input.location_line(),
             expected: Some(expected),
+            len: None,
         }));
     });
     nom::Err::Failure(Error { input })
@@ -90,7 +122,7 @@ pub(crate) struct Error<'a> {
 
 impl<'a> ParseError<Span<'a>> for Error<'a> {
     fn from_error_kind(input: Span<'a>, _: ErrorKind) -> Self {
-        reached(&input);
+        reached(&input, None);
         Self { input }
     }
 
