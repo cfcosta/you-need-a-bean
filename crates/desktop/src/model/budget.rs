@@ -174,21 +174,24 @@ impl Budget {
                 }
             });
 
-        let account = |a: &AccountRow| Account {
-            account: a.account.clone(),
-            label: a.label.clone(),
-            value: a.converted.unwrap_or_default(),
-            native: a
-                .balances
-                .iter()
-                .map(|(c, v)| {
-                    format!(
-                        "{} {c}",
-                        crate::fmt::fixed(*v, if *c == cur { 2 } else { 0 })
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join(" "),
+        let account = |a: &AccountRow| {
+            let held: Vec<_> =
+                a.balances.iter().filter(|(_, v)| !v.is_zero()).collect();
+            let value = a.converted.unwrap_or_default();
+            // One holding reads as itself, `420 BEAN`; several read as
+            // what they are worth together.
+            let native = match held.as_slice() {
+                [(c, v)] if c != cur => {
+                    format!("{} {c}", crate::fmt::units(*v))
+                }
+                _ => crate::fmt::money(value),
+            };
+            Account {
+                account: a.account.clone(),
+                label: a.label.clone(),
+                value,
+                native,
+            }
         };
         let accounts: Vec<Account> =
             view.budget_accounts.iter().map(account).collect();

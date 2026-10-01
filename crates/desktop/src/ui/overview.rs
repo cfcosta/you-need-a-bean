@@ -9,8 +9,8 @@ use gpui::{
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 
 use super::kit::{
-    Fill, bar, bold, boxed, col_labels, cols, dash, line, row, run, sum_rule,
-    tracked,
+    Fill, REVIEW_SHOWN, bar, bold, boxed, clip, col_labels, cols, dash, line,
+    row, run, sign_color, sum_rule, tracked,
 };
 use crate::{
     fmt::{fixed, money, percent, signed, whole},
@@ -88,7 +88,7 @@ fn huge(t: &Theme, figure: &str, color: gpui::Hsla) -> gpui::Div {
         .h(px(92.))
         .child(tracked(
             &[
-                ("$", t.mut_, FontWeight::NORMAL),
+                (&super::kit::symbol(), t.mut_, FontWeight::NORMAL),
                 (figure, color, FontWeight::SEMIBOLD),
             ],
             92.,
@@ -100,7 +100,7 @@ fn position(o: &Overview, t: &Theme) -> gpui::Div {
     let mut b = boxed(t, "position")
         .child(row(
             run_text("free after reserves", t.dim),
-            run_text("USD", t.dim),
+            run_text(&super::kit::currency(), t.dim),
         ))
         .child(huge(t, &whole(o.free), t.ink))
         .child(bar(
@@ -207,15 +207,17 @@ fn run_text(text: &str, color: gpui::Hsla) -> gpui::Div {
 }
 
 fn net_worth(o: &Overview, t: &Theme) -> gpui::Div {
-    let values: Vec<Decimal> = o.history.iter().map(|p| p.1).collect();
+    // A year of it: more months than that won't fit a box this size.
+    let history = o.recent_history(12);
+    let values: Vec<Decimal> = history.iter().map(|p| p.1).collect();
     let (min, max) = (
         values.iter().copied().min().unwrap_or_default(),
         values.iter().copied().max().unwrap_or_default(),
     );
     let floor = chart_floor(min, max, 0.1);
     let top = f(max) - floor;
-    let first = o.history.first().map(|p| p.0);
-    let last = o.history.last().map(|p| p.0);
+    let first = history.first().map(|p| p.0);
+    let last = history.last().map(|p| p.0);
     let name = |m: Option<bean_core::model::MonthKey>| {
         m.map(|m| MONTHS[usize::from(m.month) - 1]).unwrap_or("")
     };
@@ -231,14 +233,24 @@ fn net_worth(o: &Overview, t: &Theme) -> gpui::Div {
             div().mt(px(10.)).mb(px(6.)).child(cols(
                 values
                     .iter()
-                    .map(|v| ((f(*v) - floor) / top, Fill::Solid(t.purple)))
+                    .map(|v| {
+                        let share = ((f(*v) - floor) / top.max(1.)).max(0.02);
+                        (
+                            share,
+                            Fill::Solid(if v.is_sign_negative() {
+                                t.red
+                            } else {
+                                t.purple
+                            }),
+                        )
+                    })
                     .collect(),
                 72.,
                 3.,
             )),
         )
         .child(col_labels(
-            o.history.iter().map(|p| {
+            history.iter().map(|p| {
                 SharedString::from(MONTH_INITIALS[usize::from(p.0.month) - 1])
             }),
             t.mut_,
@@ -247,7 +259,7 @@ fn net_worth(o: &Overview, t: &Theme) -> gpui::Div {
         ))
         .child(div().mt(px(10.)).child(row(
             run_text(&format!("since {}", name(first)), t.dim),
-            run_text(&signed(since), t.green),
+            run_text(&signed(since), sign_color(t, since)),
         )))
         .child(
             div()
@@ -266,21 +278,24 @@ fn net_worth(o: &Overview, t: &Theme) -> gpui::Div {
         );
 
     let mut facts = dash(t, 26., 18.).flex().flex_col().gap(px(6.));
-    facts = facts.child(row(
-        run_text("saved / mo", t.dim),
-        line(
-            [run(money(o.saved_month), t.ink)].into_iter().chain(
-                o.savings_rate
-                    .map(|r| run(format!(" {}", percent(r, 0)), t.green)),
-            ),
-        ),
-    ));
+    facts =
+        facts.child(row(
+            run_text("saved / mo", t.dim),
+            line([run(money(o.saved_month), t.ink)].into_iter().chain(
+                o.savings_rate.map(|r| {
+                    run(format!(" {}", percent(r, 0)), sign_color(t, r))
+                }),
+            )),
+        ));
     if let Some(h) = o.holdings.first() {
         facts = facts.child(row(
-            run_text(&format!("{} × {}", h.currency, fixed(h.units, 0)), t.dim),
-            line([run(money(h.value), t.ink)].into_iter().chain(
-                h.ret.map(|r| run(format!(" {}", plus_percent(r)), t.green)),
-            )),
+            run_text(
+                &format!("{} × {}", h.currency, crate::fmt::units(h.units)),
+                t.dim,
+            ),
+            line([run(money(h.value), t.ink)].into_iter().chain(h.ret.map(
+                |r| run(format!(" {}", plus_percent(r)), sign_color(t, r)),
+            ))),
         ));
     }
     if let Some((p, target)) = o.independence {
@@ -462,7 +477,7 @@ fn entry(t: &Theme, e: &Event) -> impl IntoElement {
         .child(div().w(px(201.6)).flex_shrink_1().overflow_hidden().child(
             line([
                 run("\"", t.mut_),
-                run(e.label.clone(), t.ink),
+                run(clip(&e.label, 22), t.ink),
                 run("\"", t.mut_),
             ]),
         ))
@@ -488,7 +503,7 @@ fn entry(t: &Theme, e: &Event) -> impl IntoElement {
                 .w(px(33.6))
                 .flex_none()
                 .text_color(t.purple)
-                .child("USD"),
+                .child(super::kit::currency()),
         )
         .child(
             div()
@@ -559,33 +574,59 @@ fn goals(o: &Overview, t: &Theme) -> gpui::Div {
 
 fn review(o: &Overview, t: &Theme) -> gpui::Div {
     let (current, total) = o.coverage;
-    let dots: String = (0..total)
-        .map(|i| if i < current { '●' } else { '○' })
-        .collect();
+    // One dot an account while they fit on the line.
+    let dots: String = if total <= 12 {
+        (0..total)
+            .map(|i| if i < current { '●' } else { '○' })
+            .collect()
+    } else {
+        String::new()
+    };
+    let more = o.review.len().saturating_sub(REVIEW_SHOWN);
     boxed(t, "review")
-        .child(div().flex().flex_col().children(o.review.iter().map(|r| {
-            div()
-                .flex()
-                .flex_row()
-                .gap(px(12.))
-                .py(px(5.))
-                .px(px(10.))
-                .mx(px(-10.))
-                .hover(|s| s.bg(t.hl))
-                .child(
-                    div()
-                        .w(px(16.8))
-                        .text_color(t.yellow)
-                        .font_weight(FontWeight::BOLD)
-                        .child("!"),
-                )
-                .child(div().flex_1().child(r.label.clone()))
-                .child(div().text_color(t.dim).child(match r.kind {
-                    ReviewKind::Flagged => "payee →",
-                    ReviewKind::Category => "spend →",
-                    ReviewKind::Other => "→",
-                }))
-        })))
+        .child(div().flex().flex_col().children(
+            o.review.iter().take(REVIEW_SHOWN).map(|r| {
+                div()
+                    .flex()
+                    .flex_row()
+                    .gap(px(12.))
+                    .py(px(5.))
+                    .px(px(10.))
+                    .mx(px(-10.))
+                    .hover(|s| s.bg(t.hl))
+                    .child(
+                        div()
+                            .w(px(16.8))
+                            .text_color(t.yellow)
+                            .font_weight(FontWeight::BOLD)
+                            .child("!"),
+                    )
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w(px(0.))
+                            .overflow_hidden()
+                            .child(clip(&r.label, 30)),
+                    )
+                    .child(div().text_color(t.dim).child(match r.kind {
+                        ReviewKind::Flagged => "payee →",
+                        ReviewKind::Category => "spend →",
+                        ReviewKind::Other => "→",
+                    }))
+            }),
+        ))
+        .when(more > 0, |d| {
+            d.child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .gap(px(12.))
+                    .py(px(5.))
+                    .text_color(t.mut_)
+                    .child(div().w(px(16.8)).child("⋮"))
+                    .child(format!("{more} more")),
+            )
+        })
         .child(dash(t, 18., 16.).flex().flex_col().gap(px(6.)).child(row(
             run_text("coverage", t.dim),
             line([

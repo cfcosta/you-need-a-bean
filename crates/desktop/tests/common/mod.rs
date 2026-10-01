@@ -22,3 +22,11 @@ pub fn overview_ledger() -> Ledger {
 pub fn d(s: &str) -> Decimal {
     s.parse().unwrap()
 }
+
+/// The made-up ledger with a real one's rough edges; see
+/// `tests/fixtures/build-rough.py`.
+pub fn rough_ledger() -> Ledger {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/rough.beancount");
+    Ledger::build(load(&path).expect("the rough ledger loads"))
+}

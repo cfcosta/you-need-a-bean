@@ -10,6 +10,54 @@ use gpui::{
 
 use crate::theme::Theme;
 
+thread_local! {
+    /// The currency the open ledger is shown in. Root sets it before each
+    /// frame is built; gpui builds frames on one thread, and threading it
+    /// through every part that writes money would say nothing more.
+    static CURRENCY: std::cell::RefCell<String> = std::cell::RefCell::new("USD".into());
+}
+
+pub fn set_currency(code: &str) {
+    CURRENCY.with(|c| {
+        if *c.borrow() != code {
+            *c.borrow_mut() = code.to_owned();
+        }
+    });
+}
+
+/// The display currency's code: `BRL`.
+pub fn currency() -> String {
+    CURRENCY.with(|c| c.borrow().clone())
+}
+
+/// The display currency's symbol: `R$`.
+pub fn symbol() -> String {
+    crate::fmt::symbol(&currency()).to_owned()
+}
+
+/// Green for a gain, red for a loss: a figure's sign is part of what it
+/// says.
+pub fn sign_color(t: &Theme, v: rust_decimal::Decimal) -> Hsla {
+    if v.is_sign_negative() && !v.is_zero() {
+        t.red
+    } else {
+        t.green
+    }
+}
+
+/// `text` cut to `max` characters, ending in `…` when cut.
+pub fn clip(text: &str, max: usize) -> String {
+    if text.chars().count() <= max {
+        return text.to_owned();
+    }
+    let mut out: String = text.chars().take(max.saturating_sub(1)).collect();
+    out.push('…');
+    out
+}
+
+/// At most this many review items on the overview.
+pub const REVIEW_SHOWN: usize = 6;
+
 /// The body text: 14px on a 22px line.
 pub const SIZE: f32 = 14.;
 pub const LINE: f32 = 22.;

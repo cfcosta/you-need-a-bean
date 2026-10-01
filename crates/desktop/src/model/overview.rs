@@ -72,6 +72,8 @@ pub enum ReviewKind {
 pub struct Review {
     pub label: String,
     pub kind: ReviewKind,
+    /// When a flagged transaction happened; `None` for standing items.
+    pub date: Option<Day>,
 }
 
 #[derive(Clone, Debug)]
@@ -102,6 +104,11 @@ pub struct Overview {
 }
 
 impl Overview {
+    /// The last `n` months of net worth.
+    pub fn recent_history(&self, n: usize) -> &[(MonthKey, Decimal)] {
+        &self.history[self.history.len().saturating_sub(n)..]
+    }
+
     pub fn build(ledger: &Ledger, today: Day, cur: &str) -> Self {
         let home = ledger.home_view(today, cur);
         let reports = ledger.reports_view(today, 6, cur);
@@ -162,12 +169,16 @@ impl Overview {
             })
             .collect();
 
-        let review = home["attention"]
+        let mut review: Vec<Review> = home["attention"]
             .as_array()
             .into_iter()
             .flatten()
             .filter(|a| a["kind"] != "coverage")
             .map(|a| Review {
+                date: a["detail"]
+                    .as_str()
+                    .and_then(|d| d.get(..10))
+                    .and_then(bean_core::home::parse_date),
                 label: text(&a["label"]),
                 kind: match a["kind"].as_str() {
                     Some("flagged") => ReviewKind::Flagged,
@@ -176,6 +187,13 @@ impl Overview {
                 },
             })
             .collect();
+        // Newest first; standing items (no date) after the dated ones.
+        review.sort_by(|a, b| match (a.date, b.date) {
+            (Some(x), Some(y)) => y.cmp(&x),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => std::cmp::Ordering::Equal,
+        });
 
         let fire = &reports.fire;
         let spend = fire.monthly_spend;

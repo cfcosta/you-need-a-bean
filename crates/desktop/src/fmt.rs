@@ -63,6 +63,36 @@ pub fn percent(ratio: Decimal, places: u32) -> String {
     format!("{}%", fixed(ratio * Decimal::ONE_HUNDRED, places))
 }
 
+/// The symbol a currency is written with, or its code when it has none
+/// (the same table as the web app).
+pub fn symbol(cur: &str) -> &str {
+    match cur {
+        "USD" => "$",
+        "BRL" => "R$",
+        "EUR" => "€",
+        "GBP" => "£",
+        "JPY" => "¥",
+        "CAD" => "CA$",
+        "AUD" => "A$",
+        "MXN" => "MX$",
+        "INR" => "₹",
+        "KRW" => "₩",
+        other => other,
+    }
+}
+
+/// A quantity of something that is not money: whole when whole, up to
+/// four places from one up, and up to eight below one — enough for a
+/// satoshi, not the eighteen digits a wallet reports.
+pub fn units(v: Decimal) -> String {
+    let places = if v.abs() >= Decimal::ONE { 4 } else { 8 };
+    let r = v
+        .round_dp_with_strategy(places, RoundingStrategy::MidpointAwayFromZero)
+        .normalize();
+    let scale = r.scale();
+    fixed(r, scale)
+}
+
 /// A ratio as a plain float for drawing, clamped to 0..=`max`.
 pub fn share(ratio: Decimal, max: f32) -> f32 {
     ratio.to_f32().unwrap_or(0.0).clamp(0.0, max)

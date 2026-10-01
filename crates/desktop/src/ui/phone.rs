@@ -96,7 +96,7 @@ fn huge(
         .h(px(size))
         .child(tracked(
             &[
-                ("$", t.mut_, FontWeight::NORMAL),
+                (&super::kit::symbol(), t.mut_, FontWeight::NORMAL),
                 (figure, color, FontWeight::SEMIBOLD),
             ],
             size,
@@ -242,7 +242,10 @@ fn overview(root: &Root, t: &Theme) -> AnyElement {
     let o = &data.overview;
     let mut position =
         pbox(t, "position")
-            .child(row(text("free after reserves", t.dim), text("USD", t.dim)))
+            .child(row(
+                text("free after reserves", t.dim),
+                text(super::kit::currency(), t.dim),
+            ))
             .child(huge(t, &whole(o.free), 60., t.ink, 12., 18., 1.))
             .child(pbar(
                 t,
@@ -276,15 +279,16 @@ fn overview(root: &Root, t: &Theme) -> AnyElement {
         )));
     }
 
-    let values: Vec<Decimal> = o.history.iter().map(|p| p.1).collect();
+    let history = o.recent_history(12);
+    let values: Vec<Decimal> = history.iter().map(|p| p.1).collect();
     let (min, max) = (
         values.iter().copied().min().unwrap_or_default(),
         values.iter().copied().max().unwrap_or_default(),
     );
     let floor = super::overview::chart_floor(min, max, 0.1);
     let top = (f(max) - floor).max(1.);
-    let first = o.history.first().map(|p| short(p.0)).unwrap_or("");
-    let last = o.history.last().map(|p| short(p.0)).unwrap_or("");
+    let first = history.first().map(|p| short(p.0)).unwrap_or("");
+    let last = history.last().map(|p| short(p.0)).unwrap_or("");
     let net = pbox(t, "net worth")
         .child(row(
             text(format!("{first} → {last}"), t.dim),
@@ -312,12 +316,14 @@ fn overview(root: &Root, t: &Theme) -> AnyElement {
         ))
         .child(row(
             text("saved / mo", t.dim),
-            line(
-                [run(money(o.saved_month), t.ink)].into_iter().chain(
-                    o.savings_rate
-                        .map(|r| run(format!(" {}", percent(r, 0)), t.green)),
-                ),
-            ),
+            line([run(money(o.saved_month), t.ink)].into_iter().chain(
+                o.savings_rate.map(|r| {
+                    run(
+                        format!(" {}", percent(r, 0)),
+                        super::kit::sign_color(t, r),
+                    )
+                }),
+            )),
         ));
 
     let fc = &o.forecast[root.horizon.min(o.forecast.len().saturating_sub(1))];
@@ -386,7 +392,10 @@ fn overview(root: &Root, t: &Theme) -> AnyElement {
                                 if e.scheduled { "*" } else { "~" },
                                 if e.scheduled { t.green } else { t.mut_ },
                             ),
-                            run(format!(" {}", e.label), t.ink),
+                            run(
+                                format!(" {}", super::kit::clip(&e.label, 22)),
+                                t.ink,
+                            ),
                         ]),
                         text(
                             signed(e.amount),
@@ -439,14 +448,27 @@ fn overview(root: &Root, t: &Theme) -> AnyElement {
             }),
         ));
 
-    let review = pbox(t, "review").children(o.review.iter().map(|r| {
-        row(
-            line([bold("!", t.yellow), run(format!(" {}", r.label), t.ink)]),
-            text("→", t.dim),
-        )
-        .min_h(px(36.))
-        .items_center()
-    }));
+    let more = o.review.len().saturating_sub(super::kit::REVIEW_SHOWN);
+    let review = pbox(t, "review")
+        .children(o.review.iter().take(super::kit::REVIEW_SHOWN).map(|r| {
+            row(
+                line([
+                    bold("!", t.yellow),
+                    run(format!(" {}", super::kit::clip(&r.label, 30)), t.ink),
+                ]),
+                text("→", t.dim),
+            )
+            .min_h(px(36.))
+            .items_center()
+        }))
+        .when(more > 0, |d| {
+            d.child(
+                text(format!("⋮ {more} more"), t.mut_)
+                    .min_h(px(36.))
+                    .flex()
+                    .items_center(),
+            )
+        });
 
     body(28., 36.)
         .child(position)
@@ -788,12 +810,7 @@ fn reports(root: &mut Root, t: &Theme) -> AnyElement {
             },
         )));
 
-    let m = r.moved();
-    let top = m
-        .months
-        .iter()
-        .map(|(_, s, k)| f(*s + *k))
-        .fold(1., f32::max);
+    let m = r.moved_recent(12);
     let first = r.view.growth.window.map(|w| short(w.0)).unwrap_or("");
     let last = m.months.last().map(|p| short(p.0)).unwrap_or("");
     let moved = pbox(t, "net worth moved")
@@ -816,32 +833,7 @@ fn reports(root: &mut Root, t: &Theme) -> AnyElement {
         .child(
             div()
                 .mt(px(16.))
-                .flex()
-                .flex_row()
-                .items_end()
-                .gap(px(6.))
-                .h(px(90.))
-                .children(m.months.iter().map(|(_, saved, market)| {
-                    div()
-                        .flex_1()
-                        .h_full()
-                        .flex()
-                        .flex_col()
-                        .justify_end()
-                        .gap(px(2.))
-                        .child(
-                            div()
-                                .w_full()
-                                .h(relative(f(*market) / top))
-                                .bg(t.purple),
-                        )
-                        .child(
-                            div()
-                                .w_full()
-                                .h(relative(f(*saved) / top))
-                                .bg(t.blue),
-                        )
-                })),
+                .child(super::reports::diverging(t, &m.months, 90., 6.)),
         )
         .child(
             div().mt(px(4.)).child(col_labels(
@@ -933,10 +925,11 @@ fn investments(
         );
 
     let p = &i.performance;
-    let values: Vec<Decimal> =
-        p.points.iter().filter_map(|x| x.value).collect();
-    let min = values.iter().copied().min().unwrap_or_default();
-    let max = values.iter().copied().max().unwrap_or_default();
+    // Every point keeps its place, priced or not.
+    let values: Vec<Option<Decimal>> =
+        p.points.iter().map(|x| x.value).collect();
+    let min = values.iter().flatten().copied().min().unwrap_or_default();
+    let max = values.iter().flatten().copied().max().unwrap_or_default();
     let floor = f(min) * 0.9;
     let top = (f(max) - floor).max(1.);
     let last = values.len().saturating_sub(1);
@@ -974,24 +967,38 @@ fn investments(
             values
                 .iter()
                 .enumerate()
-                .map(|(k, v)| {
-                    (
-                        (f(*v) - floor) / top,
+                .map(|(k, v)| match v {
+                    Some(v) => (
+                        ((f(*v) - floor) / top).max(0.01),
                         Fill::Solid(if k == last { t.purple } else { t.line2 }),
-                    )
+                    ),
+                    None => (0., Fill::Solid(t.line2)),
                 })
                 .collect(),
             90.,
             6.,
         ))
         .child(div().mt(px(4.)).child(col_labels(
-            p.points.iter().enumerate().map(|(k, x)| {
-                if k == last {
-                    SharedString::from("·")
-                } else {
-                    SharedString::from(&MONTHS[usize::from(x.date.1) - 1][..1])
-                }
-            }),
+            {
+                let days: Vec<_> = p.points.iter().map(|x| x.date).collect();
+                crate::model::investments::month_labels(&days)
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(k, l)| {
+                        // The phone has room for an initial, and a dot
+                        // for today.
+                        if k == last {
+                            SharedString::from("·")
+                        } else {
+                            SharedString::from(
+                                l.chars()
+                                    .next()
+                                    .map(String::from)
+                                    .unwrap_or_default(),
+                            )
+                        }
+                    })
+            },
             t.mut_,
             11.,
             6.,
@@ -1069,8 +1076,13 @@ fn liabilities(
     let Some(l) = root.liabilities() else {
         return div().into_any_element();
     };
-    let paid: Decimal = l.view.debts.iter().map(|d| d.principal_paid).sum();
-    let peak: Decimal = l.view.debts.iter().map(|d| d.peak).sum();
+    let (on_loans, on_cards) = l.owed_parts();
+    let paid: Decimal = l
+        .open_debts()
+        .iter()
+        .filter(|d| d.kind == bean_core::reports::DebtKind::Installment)
+        .map(|d| d.principal_paid.min(d.peak))
+        .sum();
     let owed = pbox(t, "owed")
         .child(huge(t, &whole(l.view.owed), 56., t.red, 4., 16., 1.05))
         .child(pbar(
@@ -1084,8 +1096,8 @@ fn liabilities(
         .child(
             div()
                 .mt(px(14.))
-                .child(row(text("  peak", t.dim), money(peak)))
-                .child(row(text("− paid", t.dim), text(money(-paid), t.blue)))
+                .child(row(text("  on loans", t.dim), money(on_loans)))
+                .child(row(text("+ on cards", t.dim), money(on_cards)))
                 .child(sum_rule(t).child(row(
                     "= owed",
                     line([bold(money(l.view.owed), t.red)]),
@@ -1103,12 +1115,17 @@ fn liabilities(
         }));
 
     let mut out = body(24., 32.).child(owed);
-    for (k, d) in l.view.debts.iter().enumerate() {
+    for (k, d) in l.open_debts().into_iter().enumerate() {
         let extra = root.extra.get(&d.account).copied().unwrap_or_default();
         let projection = l.projection(d, extra);
-        let top = f(d.peak).max(1.);
-        let items: Vec<(f32, Fill)> = d
-            .history
+        let recent = l.history(d, 24);
+        let top = recent
+            .iter()
+            .filter_map(|p| p.owed)
+            .chain([d.owed])
+            .map(f)
+            .fold(1., f32::max);
+        let items: Vec<(f32, Fill)> = recent
             .iter()
             .map(|p| (f(p.owed.unwrap_or_default()) / top, Fill::Solid(t.red)))
             .chain(projection.iter().map(|v| {
@@ -1116,8 +1133,7 @@ fn liabilities(
             }))
             .collect();
         let payoff = l.payoff(d, extra);
-        let first = d
-            .history
+        let first = recent
             .first()
             .map(|p| format!("{:02}-{:02}", p.month.month, p.month.year % 100));
         let label = d

@@ -595,9 +595,11 @@ impl Render for Root {
             .on_key_down(cx.listener(|r, event: &KeyDownEvent, _, cx| {
                 r.type_into_search(event, cx)
             }));
-        if self.data.is_none() {
+        let Some(currency) = self.data.as_ref().map(|d| d.currency.clone())
+        else {
             return base;
-        }
+        };
+        kit::set_currency(&currency);
         if width < ui::phone::WIDTH {
             let base = base
                 .text_size(px(ui::phone::SIZE))

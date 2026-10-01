@@ -106,3 +106,31 @@ impl Investments {
         out
     }
 }
+
+/// Names each month once, at its first point; the last point carries
+/// its day when it is not a month end (`10-01`).
+pub fn month_labels(days: &[Day]) -> Vec<String> {
+    const MONTHS: [&str; 12] = [
+        "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct",
+        "nov", "dec",
+    ];
+    let last = days.len().saturating_sub(1);
+    let mut seen = None;
+    days.iter()
+        .enumerate()
+        .map(|(k, d)| {
+            let month = (d.0, d.1);
+            if k == last
+                && k > 0
+                && d.2 != MonthKey::new(d.0, d.1).days_in_month()
+            {
+                return format!("{:02}-{:02}", d.1, d.2);
+            }
+            if seen == Some(month) {
+                return String::new();
+            }
+            seen = Some(month);
+            MONTHS[usize::from(d.1) - 1].to_owned()
+        })
+        .collect()
+}

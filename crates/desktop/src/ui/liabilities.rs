@@ -63,7 +63,7 @@ pub fn page(
         .items_start()
         .child(owed(&l, t).col_span(if wide { 7 } else { 12 }))
         .child(cover(&l, t).col_span(if wide { 5 } else { 12 }));
-    for (k, debt) in l.view.debts.iter().enumerate() {
+    for (k, debt) in l.open_debts().into_iter().enumerate() {
         let extra = root.extra.get(&debt.account).copied().unwrap_or_default();
         grid = grid.child(loan(k, &l, debt, extra, t, cx).col_span(12));
     }
@@ -71,15 +71,28 @@ pub fn page(
 }
 
 fn owed(l: &Liabilities, t: &Theme) -> Div {
-    let loans = l
-        .view
-        .debts
+    let open = l.open_debts();
+    let loans = open
         .iter()
         .filter(|d| d.kind == DebtKind::Installment)
         .count();
-    let cards = l.view.debts.len() - loans;
-    let peak: Decimal = l.view.debts.iter().map(|d| d.peak).sum();
-    let paid: Decimal = l.view.debts.iter().map(|d| d.principal_paid).sum();
+    let cards = open.len() - loans;
+    let (on_loans, on_cards) = l.owed_parts();
+    // One loan reads as its own arithmetic, peak less what was paid; more
+    // than one, or a card, reads as the loans plus the cards.
+    let single = match open.as_slice() {
+        [d] if d.kind == DebtKind::Installment
+            && d.peak - d.principal_paid == d.owed =>
+        {
+            Some(*d)
+        }
+        _ => None,
+    };
+    let paid: Decimal = open
+        .iter()
+        .filter(|d| d.kind == DebtKind::Installment)
+        .map(|d| d.principal_paid.min(d.peak))
+        .sum();
     let mut b = boxed(t, "owed")
         .child(row(
             text(
@@ -90,11 +103,11 @@ fn owed(l: &Liabilities, t: &Theme) -> Div {
                 ),
                 t.dim,
             ),
-            text("USD", t.dim),
+            text(super::kit::currency(), t.dim),
         ))
         .child(div().mt(px(14.)).mb(px(22.)).h(px(92.)).child(tracked(
             &[
-                ("$", t.mut_, FontWeight::NORMAL),
+                (&super::kit::symbol(), t.mut_, FontWeight::NORMAL),
                 (&whole(l.view.owed), t.red, FontWeight::SEMIBOLD),
             ],
             92.,
@@ -108,33 +121,49 @@ fn owed(l: &Liabilities, t: &Theme) -> Div {
             ],
         ))
         .child(
-            div()
-                .mt(px(18.))
-                .child(row(text("  peak", t.dim), money(peak)))
-                .child(row(
-                    line([run("−", t.blue), run(" principal paid", t.dim)]),
-                    text(money(-paid), t.blue),
-                ))
-                .child(sum_rule(t).child(row(
+            match single {
+                Some(d) => div()
+                    .mt(px(18.))
+                    .child(row(text("  peak", t.dim), money(d.peak)))
+                    .child(row(
+                        line([run("−", t.blue), run(" principal paid", t.dim)]),
+                        text(money(-d.principal_paid), t.blue),
+                    )),
+                None => div()
+                    .mt(px(18.))
+                    .child(row(text("  on loans", t.dim), money(on_loans)))
+                    .child(row(
+                        line([run("+", t.red), run(" on cards", t.dim)]),
+                        money(on_cards),
+                    )),
+            }
+            .child(
+                sum_rule(t).child(row(
                     "= owed",
                     line([bold(money(l.view.owed), t.red)]),
-                ))),
+                )),
+            ),
         );
     let mut facts = dash(t, 22., 16.).flex().flex_col().gap(px(6.));
     facts = facts.child(row(
         text("costs / mo", t.dim),
-        line([run(money(l.cost_month()), t.ink)].into_iter().chain(
-            l.view.blended_rate.map(|r| {
-                run(
-                    format!(
-                        " {}/yr @ {}",
-                        money(l.view.cost_year),
-                        percent(r, 2)
-                    ),
-                    t.mut_,
-                )
-            }),
-        )),
+        line(
+            [run(money(l.cost_month()), t.ink)].into_iter().chain(
+                l.view
+                    .blended_rate
+                    .filter(|_| !l.view.cost_year.is_zero())
+                    .map(|r| {
+                        run(
+                            format!(
+                                " {}/yr @ {}",
+                                money(l.view.cost_year),
+                                percent(r, 2)
+                            ),
+                            t.mut_,
+                        )
+                    }),
+            ),
+        ),
     ));
     if let Some(free) = l.view.debt_free {
         let months = (i32::from(free.year) - i32::from(l.current.year)) * 12
@@ -246,12 +275,17 @@ fn loan(
     cx: &mut Context<Root>,
 ) -> Div {
     let projection = l.projection(d, extra);
-    let history: Vec<Decimal> = d
-        .history
+    // Two years back is the story of a balance; a card's fifteen years
+    // of cycles would be noise at this size.
+    let recent = l.history(d, 24);
+    let history: Vec<Decimal> =
+        recent.iter().map(|p| p.owed.unwrap_or_default()).collect();
+    let top = history
         .iter()
-        .map(|p| p.owed.unwrap_or_default())
-        .collect();
-    let top = f(d.peak).max(1.);
+        .copied()
+        .chain([d.owed])
+        .map(f)
+        .fold(1., f32::max);
     let items: Vec<(f32, Fill)> =
         history
             .iter()
@@ -262,7 +296,8 @@ fn loan(
             .collect();
     let total = items.len().max(1) as f32;
     let today_at = history.len() as f32 / total;
-    let first = d.history.first().map(|p| p.month);
+    let first = recent.first().map(|p| p.month);
+    let opening = history.first().copied().unwrap_or_default();
     let next_year = MonthKey::new(l.current.year + 2, 1);
     let year_at = |m: MonthKey| {
         let i = (i32::from(m.year) - i32::from(l.current.year)) * 12
@@ -282,30 +317,41 @@ fn loan(
             div()
                 .absolute()
                 .left_0()
-                .child(format!("{m}  {}", whole(d.peak)))
+                .child(format!("{m}  {}", whole(opening)))
         }))
-        .child(
-            div()
-                .absolute()
-                .left(relative(today_at))
-                .text_color(t.blue)
-                .child(format!("{:02}-01  {}", l.current.month, money(d.owed))),
-        )
-        .when(year_at(next_year) < 0.9, |m| {
-            m.child(
-                div()
-                    .absolute()
-                    .left(relative(year_at(next_year)))
-                    .child(next_year.year.to_string()),
-            )
+        .child({
+            // Past halfway the label hangs left of the mark, so it never
+            // runs off the box.
+            let today = div().absolute().text_color(t.blue);
+            let today = if today_at > 0.55 {
+                today.right(relative(1. - today_at)).mr(px(6.))
+            } else {
+                today.left(relative(today_at))
+            };
+            today.child(format!("{:02}-01  {}", l.current.month, money(d.owed)))
         })
-        .children(payoff.map(|(when, _)| {
-            div()
-                .absolute()
-                .right_0()
-                .text_color(t.cyan)
-                .child(format!("{when}  0"))
-        }));
+        .when(
+            year_at(next_year) > today_at + 0.2 && year_at(next_year) < 0.8,
+            |m| {
+                m.child(
+                    div()
+                        .absolute()
+                        .left(relative(year_at(next_year)))
+                        .child(next_year.year.to_string()),
+                )
+            },
+        )
+        .children(
+            payoff
+                .filter(|_| !projection.is_empty() && today_at < 0.55)
+                .map(|(when, _)| {
+                    div()
+                        .absolute()
+                        .right_0()
+                        .text_color(t.cyan)
+                        .child(format!("{when}  0"))
+                }),
+        );
 
     // The canvas lines these 14px pills up with the 22px name on their
     // baselines, which drops them three pixels and the row with them.

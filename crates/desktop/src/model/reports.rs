@@ -88,10 +88,13 @@ impl Reports {
 
     pub fn moved(&self) -> Moved {
         let g = &self.view.growth;
+        // Every month after the window's first (which carries the opening
+        // balance), up to the one under way.
         let months = g
             .points
             .iter()
-            .filter(|p| p.equity.is_zero() && p.month < self.current)
+            .skip(1)
+            .filter(|p| p.month < self.current)
             .map(|p| (p.month, p.saved, p.market))
             .collect();
         let so_far = g
@@ -123,6 +126,19 @@ impl Reports {
                     .then(|| (c.income - c.expenses) / c.income),
             })
             .collect()
+    }
+
+    /// The last `n` months of cashflow, ending this month.
+    pub fn cashflow_recent(&self, n: usize) -> Vec<Cashflow> {
+        let rows = self.cashflow();
+        rows[rows.len().saturating_sub(n)..].to_vec()
+    }
+
+    /// `moved`, charted over its last `n` months.
+    pub fn moved_recent(&self, n: usize) -> Moved {
+        let mut m = self.moved();
+        m.months = m.months[m.months.len().saturating_sub(n)..].to_vec();
+        m
     }
 
     /// What the figures rest on: flagged spending, and spending with no

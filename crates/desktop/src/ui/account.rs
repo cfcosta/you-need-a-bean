@@ -92,7 +92,7 @@ fn balance(r: &Register, t: &Theme) -> Div {
         ))
         .child(div().mt(px(14.)).mb(px(22.)).h(px(76.)).child(tracked(
             &[
-                ("$", t.mut_, FontWeight::NORMAL),
+                (&super::kit::symbol(), t.mut_, FontWeight::NORMAL),
                 (&money(r.balance), t.ink, FontWeight::SEMIBOLD),
             ],
             76.,

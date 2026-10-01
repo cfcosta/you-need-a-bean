@@ -12,7 +12,7 @@ use super::{
     budget::{CH, MONTHS, wrap},
     kit::{
         Fill, bar, bold, boxed, boxed_right, col_labels, dash, line, row, run,
-        slim, split, sum_rule, tracked,
+        sign_color, slim, split, sum_rule, tracked,
     },
 };
 use crate::{
@@ -151,7 +151,7 @@ fn independence(r: &Reports, t: &Theme, wide: bool) -> Div {
         ))
         .child(div().h(px(76.)).child(tracked(
             &[
-                ("$", t.mut_, FontWeight::NORMAL),
+                (&super::kit::symbol(), t.mut_, FontWeight::NORMAL),
                 (&whole(fire.fire_number), t.ink, FontWeight::SEMIBOLD),
             ],
             76.,
@@ -168,7 +168,10 @@ fn independence(r: &Reports, t: &Theme, wide: bool) -> Div {
         .child(row(text("spend / mo", t.dim), money(fire.monthly_spend)))
         .child(row(
             text("saved / mo", t.dim),
-            text(money(fire.monthly_savings), t.green),
+            text(
+                money(fire.monthly_savings),
+                sign_color(t, fire.monthly_savings),
+            ),
         ))
         .child(row(
             text("4% pays today", t.dim),
@@ -308,31 +311,8 @@ fn independence(r: &Reports, t: &Theme, wide: bool) -> Div {
 }
 
 fn moved(r: &Reports, t: &Theme) -> Div {
-    let m = r.moved();
-    let top = m
-        .months
-        .iter()
-        .map(|(_, s, k)| f(*s + *k))
-        .fold(1., f32::max);
-    let stacks = div()
-        .flex()
-        .flex_row()
-        .items_end()
-        .gap(px(6.))
-        .h(px(150.))
-        .children(m.months.iter().map(|(_, saved, market)| {
-            div()
-                .flex_1()
-                .h_full()
-                .flex()
-                .flex_col()
-                .justify_end()
-                .gap(px(2.))
-                .child(
-                    div().w_full().h(relative(f(*market) / top)).bg(t.purple),
-                )
-                .child(div().w_full().h(relative(f(*saved) / top)).bg(t.blue))
-        }));
+    let m = r.moved_recent(12);
+    let stacks = diverging(t, &m.months, 150., 6.);
     let first = r.view.growth.window.map(|w| short(w.0)).unwrap_or("");
     let last = m.months.last().map(|p| short(p.0)).unwrap_or("");
     boxed(t, "net worth moved")
@@ -359,7 +339,7 @@ fn moved(r: &Reports, t: &Theme) -> Div {
                 .children(m.implied_return.map(|ret| {
                     row(
                         text("return on the pot", t.dim),
-                        text(percent(ret, 1), t.green),
+                        text(percent(ret, 1), sign_color(t, ret)),
                     )
                     .mt(px(6.))
                 })),
@@ -395,12 +375,9 @@ fn moved(r: &Reports, t: &Theme) -> Div {
 }
 
 fn cashflow(r: &Reports, t: &Theme) -> Div {
-    let rows = r.cashflow();
+    let rows = r.cashflow_recent(12);
     let window = match (rows.first(), rows.last()) {
-        (Some(a), Some(b)) => span((
-            r.view.cashflow.first().map_or(a.month, |c| c.month),
-            b.month,
-        )),
+        (Some(a), Some(b)) => span((a.month, b.month)),
         _ => String::new(),
     };
     let w = |ch: f32| {
@@ -428,6 +405,10 @@ fn cashflow(r: &Reports, t: &Theme) -> Div {
     let wr = w(CH);
     let body = rows.iter().map(|c| {
         let (bar_parts, pct, pct_color) = match c.rate {
+            // More went out than came in: the bar is all overspend.
+            Some(rate) if rate.is_sign_negative() => {
+                (vec![(1., Fill::Hatch(t.red))], "over".to_string(), t.red)
+            }
             Some(rate) => {
                 let p = f(rate).clamp(0., 1.);
                 (
@@ -466,7 +447,7 @@ fn cashflow(r: &Reports, t: &Theme) -> Div {
         .children(body)
         .child(
             dash(t, 22., 16.)
-                .children(income.sources.iter().map(|s| {
+                .children(income.sources.iter().take(LISTED).map(|s| {
                     row(
                         text(format!("Income:{}", s.name), t.dim),
                         line([
@@ -475,6 +456,21 @@ fn cashflow(r: &Reports, t: &Theme) -> Div {
                         ]),
                     )
                 }))
+                .when(income.sources.len() > LISTED, |d| {
+                    let rest: Decimal = income
+                        .sources
+                        .iter()
+                        .skip(LISTED)
+                        .map(|s| s.total)
+                        .sum();
+                    d.child(row(
+                        text(
+                            format!("⋮ {} more", income.sources.len() - LISTED),
+                            t.mut_,
+                        ),
+                        text(money(rest), t.mut_),
+                    ))
+                })
                 .child(row(
                     text("passive", t.dim),
                     text(money(income.passive), t.mut_),
@@ -494,7 +490,7 @@ fn payees(r: &Reports, t: &Theme) -> Div {
                     false,
                     line([
                         run("\"", t.mut_),
-                        run(i.name.clone(), t.ink),
+                        run(super::kit::clip(&i.name, 16), t.ink),
                         run("\"", t.mut_),
                     ])
                     .into_any_element(),
@@ -634,8 +630,19 @@ fn projects(r: &Reports, t: &Theme) -> Div {
             text("#tags · ^links over one txn", t.dim),
             p.items.len().to_string(),
         ))
-        .children(p.items.iter().map(|i| row(i.name.clone(), money(i.spent))))
+        .children(
+            p.items
+                .iter()
+                .take(LISTED)
+                .map(|i| row(super::kit::clip(&i.name, 40), money(i.spent))),
+        )
+        .when(p.items.len() > LISTED, |d| {
+            d.child(text(format!("⋮ {} more", p.items.len() - LISTED), t.mut_))
+        })
 }
+
+/// The longest a list runs inside a box before the rest is counted.
+const LISTED: usize = 6;
 
 fn rests(r: &Reports, t: &Theme) -> Div {
     let (flagged, uncategorized) = r.doubt();
@@ -680,4 +687,58 @@ fn rests(r: &Reports, t: &Theme) -> Div {
                 line([bold(money(flagged + uncategorized), t.yellow)]),
             ))),
     )
+}
+
+/// Each month's saving and market move as stacked columns, gains above
+/// a baseline and losses below it, both on one scale.
+pub fn diverging(
+    t: &Theme,
+    months: &[(MonthKey, Decimal, Decimal)],
+    height: f32,
+    gap: f32,
+) -> Div {
+    let up = |v: Decimal| f(v).max(0.);
+    let down = |v: Decimal| (-f(v)).max(0.);
+    let rise = months
+        .iter()
+        .map(|(_, s, k)| up(*s) + up(*k))
+        .fold(0., f32::max);
+    let fall = months
+        .iter()
+        .map(|(_, s, k)| down(*s) + down(*k))
+        .fold(0., f32::max);
+    let span = (rise + fall).max(1.);
+    let above = height * rise / span;
+    let below = height - above;
+    let column = |s: Decimal, k: Decimal| {
+        let piece =
+            |v: f32, color| div().w_full().h(px(v / span * height)).bg(color);
+        div()
+            .flex_1()
+            .flex()
+            .flex_col()
+            .child(
+                div()
+                    .h(px(above))
+                    .flex()
+                    .flex_col()
+                    .justify_end()
+                    .child(piece(up(k), t.purple))
+                    .child(piece(up(s), t.blue)),
+            )
+            .child(
+                div()
+                    .h(px(below))
+                    .flex()
+                    .flex_col()
+                    .child(piece(down(s), t.red))
+                    .child(piece(down(k), t.purple.opacity(0.5))),
+            )
+    };
+    div()
+        .flex()
+        .flex_row()
+        .gap(px(gap))
+        .h(px(height))
+        .children(months.iter().map(|(_, s, k)| column(*s, *k)))
 }

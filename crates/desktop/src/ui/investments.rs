@@ -8,14 +8,15 @@ use gpui::{
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 
 use super::{
-    budget::{CH, MONTHS, wrap},
+    budget::{CH, wrap},
+    kit::sign_color,
     kit::{
         Fill, bar, boxed, col_labels, cols, dash, line, row, run, slim,
         sum_rule, tracked,
     },
 };
 use crate::{
-    fmt::{fixed, money, percent, signed, whole},
+    fmt::{money, percent, signed, whole},
     model::investments::{Investments, Range, Sort},
     root::{Field, Root},
     theme::Theme,
@@ -37,12 +38,7 @@ fn class_colors(t: &Theme) -> [Hsla; 5] {
 
 /// A position's units as the ledger would write them: whole when whole.
 pub fn units(v: Decimal) -> String {
-    let n = v.normalize();
-    if n.fract().is_zero() {
-        fixed(n, 0)
-    } else {
-        n.to_string()
-    }
+    crate::fmt::units(v)
 }
 
 pub fn page(
@@ -124,11 +120,11 @@ fn portfolio(i: &Investments, today: bean_core::model::Day, t: &Theme) -> Div {
                 format!("market value · as of {:02}-{:02}", today.1, today.2),
                 t.dim,
             ),
-            text("USD", t.dim),
+            text(super::kit::currency(), t.dim),
         ))
         .child(div().mt(px(14.)).mb(px(22.)).h(px(92.)).child(tracked(
             &[
-                ("$", t.mut_, FontWeight::NORMAL),
+                (&super::kit::symbol(), t.mut_, FontWeight::NORMAL),
                 (&whole(i.value), t.purple, FontWeight::SEMIBOLD),
             ],
             92.,
@@ -192,22 +188,55 @@ fn allocation(i: &Investments, t: &Theme) -> Div {
             ),
             text(money(i.value), t.mut_),
         ))
-        .child(dash(t, 22., 16.).flex().flex_col().gap(px(4.)).children(
-            i.positions.iter().flat_map(|p| {
-                p.locations.iter().flat_map(move |l| {
-                    [
-                        row(text(l.account.clone(), t.dim), ""),
-                        row(
-                            text(format!("  {}", l.label), t.ink),
-                            text(
-                                format!("{} {}", units(l.units), p.currency),
-                                t.purple,
-                            ),
-                        ),
-                    ]
-                })
-            }),
-        ))
+        .child(
+            dash(t, 22., 16.).flex().flex_col().gap(px(4.)).children(
+                // Each account once, with what it holds under it.
+                by_account(i)
+                    .into_iter()
+                    .flat_map(|(account, label, held)| {
+                        std::iter::once(row(text(account, t.dim), ""))
+                            .chain(std::iter::once(row(
+                                text(format!("  {label}"), t.ink),
+                                "",
+                            )))
+                            .chain(held.into_iter().map(
+                                move |(amount, currency)| {
+                                    row(
+                                        "",
+                                        text(
+                                            format!(
+                                                "{} {currency}",
+                                                units(amount)
+                                            ),
+                                            t.purple,
+                                        ),
+                                    )
+                                },
+                            ))
+                    }),
+            ),
+        )
+}
+
+/// An account, its name, and the amounts of each commodity it holds.
+type Placed = (String, String, Vec<(Decimal, String)>);
+
+/// The holdings grouped by the account they sit in, in first-seen order.
+fn by_account(i: &Investments) -> Vec<Placed> {
+    let mut out: Vec<Placed> = Vec::new();
+    for p in &i.positions {
+        for l in &p.locations {
+            match out.iter_mut().find(|(a, _, _)| *a == l.account) {
+                Some((_, _, held)) => held.push((l.units, p.currency.clone())),
+                None => out.push((
+                    l.account.clone(),
+                    l.label.clone(),
+                    vec![(l.units, p.currency.clone())],
+                )),
+            }
+        }
+    }
+    out
 }
 
 fn share_whole(r: Decimal) -> String {
@@ -216,10 +245,13 @@ fn share_whole(r: Decimal) -> String {
 
 fn performance(i: &Investments, t: &Theme, cx: &mut Context<Root>) -> Div {
     let p = &i.performance;
-    let values: Vec<Decimal> =
-        p.points.iter().filter_map(|x| x.value).collect();
-    let min = values.iter().copied().min().unwrap_or_default();
-    let max = values.iter().copied().max().unwrap_or_default();
+    // Every point keeps its place, priced or not, so bars and labels
+    // stay in step.
+    let values: Vec<Option<Decimal>> =
+        p.points.iter().map(|x| x.value).collect();
+    let priced = values.iter().flatten().copied();
+    let min = priced.clone().min().unwrap_or_default();
+    let max = priced.max().unwrap_or_default();
     // The canvas stands these bars on 90% of the lowest value.
     let floor = f(min) * 0.9;
     let top = (f(max) - floor).max(1.);
@@ -227,22 +259,20 @@ fn performance(i: &Investments, t: &Theme, cx: &mut Context<Root>) -> Div {
     let bars = values
         .iter()
         .enumerate()
-        .map(|(k, v)| {
-            (
-                (f(*v) - floor) / top,
+        .map(|(k, v)| match v {
+            Some(v) => (
+                ((f(*v) - floor) / top).max(0.01),
                 Fill::Solid(if k == last { t.purple } else { t.line2 }),
-            )
+            ),
+            None => (0., Fill::Solid(t.line2)),
         })
         .collect();
-    let labels = p.points.iter().enumerate().map(|(k, x)| {
-        let (_, m, d) = x.date;
-        if k == last && d != month_end(x.date) {
-            SharedString::from(format!("{m:02}-{d:02}"))
-        } else {
-            SharedString::from(MONTHS[usize::from(m) - 1])
-        }
-    });
+    let days: Vec<_> = p.points.iter().map(|x| x.date).collect();
+    let labels = crate::model::investments::month_labels(&days)
+        .into_iter()
+        .map(SharedString::from);
     let gain = p.gain.unwrap_or_default();
+    let known = p.gain.is_some();
     let ranges = div()
         .flex()
         .flex_row()
@@ -298,7 +328,7 @@ fn performance(i: &Investments, t: &Theme, cx: &mut Context<Root>) -> Div {
                         } else {
                             t.green
                         })
-                        .child(signed(gain)),
+                        .child(if known { signed(gain) } else { "—".into() }),
                 )
                 .children(p.ret.map(|r| text(plus(percent(r, 0), r), t.green)))
                 .child(div().flex_1())
@@ -313,17 +343,22 @@ fn performance(i: &Investments, t: &Theme, cx: &mut Context<Root>) -> Div {
                 .gap_x(px(16.))
                 .child(fact(
                     format!("opening {}", day(p.start)),
-                    p.opening.map(money).unwrap_or_default(),
+                    p.opening.map(money).unwrap_or_else(|| "—".into()),
                     t.ink,
                     false,
                 ))
                 .child(fact(
                     "+ net flows".into(),
-                    p.net_flows.map(money).unwrap_or_default(),
+                    p.net_flows.map(money).unwrap_or_else(|| "—".into()),
                     t.ink,
                     false,
                 ))
-                .child(fact("+ price gain".into(), money(gain), t.green, false))
+                .child(fact(
+                    "+ price gain".into(),
+                    if known { money(gain) } else { "—".into() },
+                    sign_color(t, gain),
+                    false,
+                ))
                 .child(fact(
                     format!("= closing {}", day(p.end)),
                     p.closing.map(money).unwrap_or_default(),
@@ -331,11 +366,6 @@ fn performance(i: &Investments, t: &Theme, cx: &mut Context<Root>) -> Div {
                     true,
                 )),
         )
-}
-
-/// The last day of `d`'s month.
-fn month_end(d: bean_core::model::Day) -> u8 {
-    bean_core::model::MonthKey::new(d.0, d.1).days_in_month()
 }
 
 fn hold_cols(ch: f32, cells: [AnyElement; 6]) -> Div {
