@@ -19,7 +19,8 @@ pub struct Status<'a> {
     pub crumb: Option<SharedString>,
     pub ledger: SharedString,
     pub today: SharedString,
-    pub narrow: bool,
+    /// The window's width: the status line sheds what it can't fit.
+    pub width: f32,
     pub extra: Option<gpui::AnyElement>,
     pub t: &'a Theme,
 }
@@ -27,7 +28,17 @@ pub struct Status<'a> {
 impl Status<'_> {
     pub fn render(self, cx: &mut Context<Root>) -> gpui::AnyElement {
         let t = self.t;
-        let mut tabs = div().flex().flex_row().items_stretch();
+        // The canvas drops the file name below 1060px; below 900px the
+        // pages not open keep only their number.
+        let show_ledger = self.width >= 1060.;
+        let compact = self.width < 900.;
+        let mut tabs = div()
+            .flex()
+            .flex_row()
+            .items_stretch()
+            .flex_shrink_1()
+            .min_w(px(0.))
+            .overflow_hidden();
         for (i, page) in Page::TABS.iter().enumerate() {
             let on = *page == self.page;
             let target = *page;
@@ -51,7 +62,9 @@ impl Status<'_> {
                             .text_color(if on { t.blue } else { t.mut_ })
                             .child(format!("{}", i + 1)),
                     )
-                    .child(format!(" {}", page.name())),
+                    .when(on || !compact, |d| {
+                        d.child(format!(" {}", page.name()))
+                    }),
             );
             if on && let Some(crumb) = self.crumb.clone() {
                 tabs = tabs.child(
@@ -90,10 +103,10 @@ impl Status<'_> {
                     }))
                     .child("◆ bean"),
             )
-            .when(!self.narrow, |d| d.child(tabs))
+            .child(tabs)
             .child(div().flex_1())
             .children(self.extra)
-            .when(!self.narrow, |d| {
+            .when(show_ledger, |d| {
                 d.child(
                     div()
                         .flex()

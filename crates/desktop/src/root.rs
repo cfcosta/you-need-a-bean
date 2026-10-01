@@ -640,7 +640,7 @@ impl Render for Root {
             crumb,
             ledger: data.ledger_name(),
             today: bean_core::home::date(data.today).into(),
-            narrow: width < 640.,
+            width,
             extra: matches!(self.page, Page::Reports | Page::Liabilities)
                 .then(|| ui::status::basis(&t, self.basis, cx)),
             t: &t,
