@@ -3,6 +3,7 @@
 
 pub mod account;
 pub mod budget;
+pub mod investments;
 pub mod overview;
 pub mod reports;
 

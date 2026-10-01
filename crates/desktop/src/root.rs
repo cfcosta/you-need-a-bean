@@ -12,7 +12,11 @@ use gpui::{
 
 use crate::{
     model::{
-        account::Register, budget::Budget, overview::Overview, reports::Reports,
+        account::Register,
+        budget::Budget,
+        investments::{Investments, Range, Sort},
+        overview::Overview,
+        reports::Reports,
     },
     theme::{MONO, Scheme, Theme, theme},
     ui::{self, kit, status::Status},
@@ -37,7 +41,7 @@ const CONTEXT: &str = "Bean";
 /// The keys, vim-flavoured: digits open pages, `t` flips the scheme,
 /// `/` searches. None of them fire while the search prompt has the keys.
 pub fn bind_keys(cx: &mut App) {
-    let pages = Some("Bean && !Search");
+    let pages = Some("Bean && !Search && !Typing");
     cx.bind_keys([
         KeyBinding::new("1", OpenOverview, pages),
         KeyBinding::new("2", OpenBudget, pages),
@@ -49,11 +53,18 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("ctrl-k", OpenSearch, Some(CONTEXT)),
         KeyBinding::new("secondary-k", OpenSearch, Some(CONTEXT)),
         KeyBinding::new("escape", CloseSearch, Some("Search")),
+        KeyBinding::new("escape", CloseSearch, Some("Typing")),
     ]);
 }
 
 /// What a cached budget was built for: month, basis, chosen category.
 type BudgetKey = (MonthKey, u32, Option<String>);
+
+/// A text field on a page that is taking the keys.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Field {
+    HoldingFilter,
+}
 
 /// What the search prompt holds.
 #[derive(Clone, Debug, Default)]
@@ -155,6 +166,13 @@ pub struct Root {
     pub account: Option<String>,
     budget: Option<(BudgetKey, Budget)>,
     reports: Option<(u32, Reports)>,
+    /// How far back the investments page measures performance.
+    pub range: Range,
+    pub holding_filter: String,
+    pub holding_sort: Sort,
+    /// The page field taking the keys, if any.
+    pub typing: Option<Field>,
+    investments: Option<(Range, Investments)>,
     /// Why the last reread of the ledger failed; the last good reading
     /// stays on screen meanwhile.
     pub reload_error: Option<String>,
@@ -174,6 +192,11 @@ impl Root {
             account: None,
             budget: None,
             reports: None,
+            range: Range::Ytd,
+            holding_filter: String::new(),
+            holding_sort: Sort::Value,
+            typing: None,
+            investments: None,
             reload_error: None,
             focus: cx.focus_handle(),
         }
@@ -216,6 +239,7 @@ impl Root {
         self.data = Some(Data::new(ledger, today));
         self.budget = None;
         self.reports = None;
+        self.investments = None;
         self.reload_error = None;
         cx.notify();
     }
@@ -292,6 +316,38 @@ impl Root {
         Some(r)
     }
 
+    pub fn investments(&mut self) -> Option<Investments> {
+        let data = self.data.as_ref()?;
+        if let Some((range, i)) = &self.investments
+            && *range == self.range
+        {
+            return Some(i.clone());
+        }
+        let i = Investments::build(
+            &data.ledger,
+            data.today,
+            &data.currency,
+            self.range,
+        );
+        self.investments = Some((self.range, i.clone()));
+        Some(i)
+    }
+
+    pub fn set_range(&mut self, range: Range, cx: &mut Context<Self>) {
+        self.range = range;
+        cx.notify();
+    }
+
+    pub fn set_sort(&mut self, sort: Sort, cx: &mut Context<Self>) {
+        self.holding_sort = sort;
+        cx.notify();
+    }
+
+    pub fn start_typing(&mut self, field: Field, cx: &mut Context<Self>) {
+        self.typing = Some(field);
+        cx.notify();
+    }
+
     /// The register of the open account, for the chosen month.
     pub fn register(&self) -> Option<Register> {
         let data = self.data.as_ref()?;
@@ -331,6 +387,7 @@ impl Root {
 
     pub fn close_search(&mut self, cx: &mut Context<Self>) {
         self.search = None;
+        self.typing = None;
         cx.notify();
     }
 
@@ -340,23 +397,41 @@ impl Root {
         event: &KeyDownEvent,
         cx: &mut Context<Self>,
     ) {
-        let Some(search) = &mut self.search else {
+        let text: &mut String;
+        let mut selected = None;
+        if let Some(search) = &mut self.search {
+            text = &mut search.query;
+            selected = Some(&mut search.selected);
+        } else if self.typing == Some(Field::HoldingFilter) {
+            text = &mut self.holding_filter;
+        } else {
             return;
-        };
+        }
         let k = &event.keystroke;
         if k.modifiers.control || k.modifiers.alt || k.modifiers.platform {
             return;
         }
         match k.key.as_str() {
             "backspace" => {
-                search.query.pop();
+                text.pop();
             }
-            "up" => search.selected = search.selected.saturating_sub(1),
-            "down" => search.selected += 1,
+            "enter" if selected.is_none() => self.typing = None,
+            "up" => {
+                if let Some(s) = selected {
+                    *s = s.saturating_sub(1);
+                }
+            }
+            "down" => {
+                if let Some(s) = selected {
+                    *s += 1;
+                }
+            }
             _ => match &k.key_char {
-                Some(text) if !text.chars().any(char::is_control) => {
-                    search.query.push_str(text);
-                    search.selected = 0;
+                Some(typed) if !typed.chars().any(char::is_control) => {
+                    text.push_str(typed);
+                    if let Some(s) = selected {
+                        *s = 0;
+                    }
                 }
                 _ => return,
             },
@@ -387,6 +462,9 @@ impl Root {
         context.add(CONTEXT);
         if self.search.is_some() {
             context.add("Search");
+        }
+        if self.typing.is_some() {
+            context.add("Typing");
         }
         context
     }
@@ -470,6 +548,7 @@ impl Render for Root {
             Page::Budget => ui::budget::page(self, &t, width, cx),
             Page::Account => ui::account::page(self, &t, width, cx),
             Page::Reports => ui::reports::page(self, &t, width, cx),
+            Page::Investments => ui::investments::page(self, &t, width, cx),
             _ => kit::any(div()),
         };
         base.child(status).child(

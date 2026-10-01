@@ -58,3 +58,21 @@ fn slash_opens_search_and_escape_closes_it(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("ctrl-k");
     assert!(root.read_with(cx, |r, _| r.search.is_some()));
 }
+
+#[gpui::test]
+fn a_page_field_takes_the_keys_until_escape(cx: &mut TestAppContext) {
+    let (root, cx) = open(cx);
+    cx.simulate_keystrokes("4");
+    root.update(cx, |r, cx| {
+        r.start_typing(bean_desktop::root::Field::HoldingFilter, cx)
+    });
+    cx.simulate_keystrokes("b 2 backspace e");
+    assert_eq!(root.read_with(cx, |r, _| r.holding_filter.clone()), "be");
+    assert_eq!(
+        root.read_with(cx, |r, _| r.page),
+        Page::Investments,
+        "digits typed, not followed"
+    );
+    cx.simulate_keystrokes("escape 1");
+    assert_eq!(root.read_with(cx, |r, _| r.page), Page::Overview);
+}

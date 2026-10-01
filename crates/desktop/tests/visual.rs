@@ -82,3 +82,15 @@ fn reports_match_the_canvas() {
         off * 100.
     );
 }
+
+#[test]
+fn investments_match_the_canvas() {
+    let shot = page(Page::Investments, 1440., 1100.);
+    let off = mismatch(&shot, "Investments-night");
+    eprintln!("investments: {:.3}% off", off * 100.);
+    assert!(
+        off < 0.02,
+        "{:.2}% of investments is off the canvas",
+        off * 100.
+    );
+}

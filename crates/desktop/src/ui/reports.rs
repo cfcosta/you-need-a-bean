@@ -3,8 +3,8 @@
 use bean_core::model::MonthKey;
 use gpui::{
     AnyElement, Context, Div, FontWeight, Hsla, InteractiveElement,
-    IntoElement, ParentElement, SharedString, StatefulInteractiveElement,
-    Styled, div, prelude::*, px, relative,
+    IntoElement, ParentElement, SharedString, Styled, div, prelude::*, px,
+    relative,
 };
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 
