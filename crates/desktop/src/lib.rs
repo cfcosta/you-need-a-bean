@@ -4,7 +4,9 @@
 
 use gpui::App;
 
+pub mod cli;
 pub mod fmt;
+pub mod follow;
 pub mod model;
 pub mod root;
 pub mod theme;
@@ -16,4 +18,5 @@ pub use root::{Page, Root};
 pub fn init(cx: &mut App) {
     theme::load_fonts(cx);
     cx.set_global(theme::Theme::night());
+    root::bind_keys(cx);
 }

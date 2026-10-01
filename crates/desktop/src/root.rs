@@ -6,8 +6,8 @@ use std::sync::Arc;
 use bean_core::model::{Day, Ledger};
 use gpui::{
     App, Context, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    ParentElement, Render, SharedString, StatefulInteractiveElement, Styled,
-    Window, div, px,
+    KeyBinding, KeyContext, KeyDownEvent, ParentElement, Render, SharedString,
+    StatefulInteractiveElement, Styled, Window, actions, div, px,
 };
 
 use crate::{
@@ -15,6 +15,47 @@ use crate::{
     theme::{MONO, Scheme, Theme, theme},
     ui::{self, kit, status::Status},
 };
+
+actions!(
+    bean,
+    [
+        OpenOverview,
+        OpenBudget,
+        OpenReports,
+        OpenInvestments,
+        OpenLiabilities,
+        ToggleScheme,
+        OpenSearch,
+        CloseSearch,
+    ]
+);
+
+const CONTEXT: &str = "Bean";
+
+/// The keys, vim-flavoured: digits open pages, `t` flips the scheme,
+/// `/` searches. None of them fire while the search prompt has the keys.
+pub fn bind_keys(cx: &mut App) {
+    let pages = Some("Bean && !Search");
+    cx.bind_keys([
+        KeyBinding::new("1", OpenOverview, pages),
+        KeyBinding::new("2", OpenBudget, pages),
+        KeyBinding::new("3", OpenReports, pages),
+        KeyBinding::new("4", OpenInvestments, pages),
+        KeyBinding::new("5", OpenLiabilities, pages),
+        KeyBinding::new("t", ToggleScheme, pages),
+        KeyBinding::new("/", OpenSearch, pages),
+        KeyBinding::new("ctrl-k", OpenSearch, Some(CONTEXT)),
+        KeyBinding::new("secondary-k", OpenSearch, Some(CONTEXT)),
+        KeyBinding::new("escape", CloseSearch, Some("Search")),
+    ]);
+}
+
+/// What the search prompt holds.
+#[derive(Clone, Debug, Default)]
+pub struct Search {
+    pub query: String,
+    pub selected: usize,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Page {
@@ -87,6 +128,10 @@ pub struct Root {
     pub page: Page,
     /// 30, 60 or 90 days: which forecast the overview draws.
     pub horizon: usize,
+    pub search: Option<Search>,
+    /// Why the last reread of the ledger failed; the last good reading
+    /// stays on screen meanwhile.
+    pub reload_error: Option<String>,
     focus: FocusHandle,
 }
 
@@ -96,6 +141,8 @@ impl Root {
             data: None,
             page: Page::Overview,
             horizon: 0,
+            search: None,
+            reload_error: None,
             focus: cx.focus_handle(),
         }
     }
@@ -121,6 +168,62 @@ impl Root {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.search.is_none() {
+            self.search = Some(Search::default());
+        }
+        cx.notify();
+    }
+
+    /// A fresh reading of the ledger, or a new day.
+    pub fn replace(
+        &mut self,
+        ledger: Arc<Ledger>,
+        today: Day,
+        cx: &mut Context<Self>,
+    ) {
+        self.data = Some(Data::new(ledger, today));
+        self.reload_error = None;
+        cx.notify();
+    }
+
+    pub fn reload_failed(&mut self, error: String, cx: &mut Context<Self>) {
+        self.reload_error = Some(error);
+        cx.notify();
+    }
+
+    pub fn close_search(&mut self, cx: &mut Context<Self>) {
+        self.search = None;
+        cx.notify();
+    }
+
+    /// Typing while the prompt is open edits the query.
+    fn type_into_search(
+        &mut self,
+        event: &KeyDownEvent,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(search) = &mut self.search else {
+            return;
+        };
+        let k = &event.keystroke;
+        if k.modifiers.control || k.modifiers.alt || k.modifiers.platform {
+            return;
+        }
+        match k.key.as_str() {
+            "backspace" => {
+                search.query.pop();
+            }
+            "up" => search.selected = search.selected.saturating_sub(1),
+            "down" => search.selected += 1,
+            _ => match &k.key_char {
+                Some(text) if !text.chars().any(char::is_control) => {
+                    search.query.push_str(text);
+                    search.selected = 0;
+                }
+                _ => return,
+            },
+        }
+        cx.stop_propagation();
         cx.notify();
     }
 
@@ -137,6 +240,17 @@ impl Root {
 
     pub fn scheme(cx: &App) -> Scheme {
         theme(cx).scheme
+    }
+}
+
+impl Root {
+    fn key_context(&self) -> KeyContext {
+        let mut context = KeyContext::new_with_defaults();
+        context.add(CONTEXT);
+        if self.search.is_some() {
+            context.add("Search");
+        }
+        context
     }
 }
 
@@ -163,7 +277,37 @@ impl Render for Root {
             .font_family(MONO)
             .text_size(px(kit::SIZE))
             .line_height(px(kit::LINE))
-            .track_focus(&self.focus);
+            .track_focus(&self.focus)
+            .key_context(self.key_context())
+            .on_action(cx.listener(|r, _: &OpenOverview, _, cx| {
+                r.open(Page::Overview, cx)
+            }))
+            .on_action(
+                cx.listener(|r, _: &OpenBudget, _, cx| {
+                    r.open(Page::Budget, cx)
+                }),
+            )
+            .on_action(cx.listener(|r, _: &OpenReports, _, cx| {
+                r.open(Page::Reports, cx)
+            }))
+            .on_action(cx.listener(|r, _: &OpenInvestments, _, cx| {
+                r.open(Page::Investments, cx)
+            }))
+            .on_action(cx.listener(|r, _: &OpenLiabilities, _, cx| {
+                r.open(Page::Liabilities, cx)
+            }))
+            .on_action(
+                cx.listener(|r, _: &ToggleScheme, _, cx| r.toggle_scheme(cx)),
+            )
+            .on_action(cx.listener(|r, _: &OpenSearch, window, cx| {
+                r.open_search(window, cx)
+            }))
+            .on_action(
+                cx.listener(|r, _: &CloseSearch, _, cx| r.close_search(cx)),
+            )
+            .on_key_down(cx.listener(|r, event: &KeyDownEvent, _, cx| {
+                r.type_into_search(event, cx)
+            }));
         let Some(data) = &self.data else {
             return base;
         };
