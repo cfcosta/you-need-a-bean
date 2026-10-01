@@ -356,10 +356,12 @@ fn overview(root: &Root, t: &Theme) -> AnyElement {
         })
         .collect();
     let end = crate::model::add_days(o.today, i64::from(fc.days));
-    let shown: Vec<_> = o.events.iter().take(4).collect();
+    let ahead = o.upcoming(fc.days);
+    let shown: Vec<_> = ahead.iter().take(super::kit::EVENTS_SHOWN).collect();
+    let more = ahead.len() - shown.len();
     let count = shown.len();
     let next = pbox(t, format!("next {} days", fc.days))
-        .child(cols(bars, 44., 2.))
+        .child(cols(bars, 88., 2.))
         .child(
             row(
                 format!("{:02}-{:02}", o.today.1, o.today.2),
@@ -412,55 +414,7 @@ fn overview(root: &Root, t: &Theme) -> AnyElement {
                             .text_color(t.mut_),
                     )
             }),
-        ));
-
-    let goals =
-        pbox(t, "goals").child(div().flex().flex_col().gap(px(16.)).children(
-            o.goals.iter().map(|g| {
-                let ratio = g.ratio();
-                let color = if ratio >= Decimal::new(75, 2) {
-                    t.green
-                } else {
-                    t.yellow
-                };
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap(px(6.))
-                    .child(row(
-                        g.label.to_lowercase(),
-                        line([
-                            bold(percent(ratio, 0), color),
-                            run(
-                                format!(" {:02}-{:02}", g.date.1, g.date.2),
-                                t.cyan,
-                            ),
-                        ]),
-                    ))
-                    .child(pbar(
-                        t,
-                        vec![
-                            (f(ratio), Fill::Solid(color)),
-                            ((1. - f(ratio)).max(0.), Fill::Hatch(t.line2)),
-                        ],
-                        16.,
-                    ))
-            }),
-        ));
-
-    let more = o.review.len().saturating_sub(super::kit::REVIEW_SHOWN);
-    let review = pbox(t, "review")
-        .children(o.review.iter().take(super::kit::REVIEW_SHOWN).map(|r| {
-            row(
-                line([
-                    bold("!", t.yellow),
-                    run(format!(" {}", super::kit::clip(&r.label, 30)), t.ink),
-                ]),
-                text("→", t.dim),
-            )
-            .min_h(px(36.))
-            .items_center()
-        }))
+        ))
         .when(more > 0, |d| {
             d.child(
                 text(format!("⋮ {more} more"), t.mut_)
@@ -474,8 +428,6 @@ fn overview(root: &Root, t: &Theme) -> AnyElement {
         .child(position)
         .child(net)
         .child(next)
-        .child(goals)
-        .child(review)
         .into_any_element()
 }
 

@@ -55,8 +55,8 @@ pub fn clip(text: &str, max: usize) -> String {
     out
 }
 
-/// At most this many review items on the overview.
-pub const REVIEW_SHOWN: usize = 6;
+/// At most this many upcoming entries under the overview's chart.
+pub const EVENTS_SHOWN: usize = 12;
 
 /// The body text: 14px on a 22px line.
 pub const SIZE: f32 = 14.;

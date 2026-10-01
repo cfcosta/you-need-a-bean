@@ -41,18 +41,11 @@ fn units_keep_a_readable_number_of_decimals() {
 }
 
 #[test]
-fn the_overview_charts_a_year_and_lists_review_newest_first() {
+fn the_overview_charts_a_year() {
     let o = Overview::build(&rough_ledger(), TODAY, "BRL");
     let year = o.recent_history(12);
     assert_eq!(year.len(), 12);
     assert_eq!(year.last().map(|p| p.0), Some(MonthKey::new(2026, 10)));
-    let first = &o.review[0];
-    assert_eq!(first.date, Some((2026, 7, 14)), "newest flagged first");
-    assert!(
-        o.review
-            .windows(2)
-            .all(|w| w[0].date >= w[1].date || w[1].date.is_none())
-    );
 }
 
 #[test]

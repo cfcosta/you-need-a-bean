@@ -4,7 +4,7 @@
 mod common;
 
 use bean_core::model::MonthKey;
-use bean_desktop::model::overview::{Overview, ReviewKind};
+use bean_desktop::model::overview::Overview;
 use common::{TODAY, d, overview_ledger};
 
 fn overview() -> Overview {
@@ -87,26 +87,11 @@ fn events_carry_the_balance_they_leave() {
 }
 
 #[test]
-fn goals_review_and_coverage() {
+fn upcoming_keeps_the_events_inside_the_horizon() {
     let o = overview();
-    assert_eq!(o.goals.len(), 2);
-    assert_eq!(o.goals[0].label, "A little breathing room");
-    assert_eq!(
-        (o.goals[0].funded, o.goals[0].target),
-        (d("21200"), d("24000"))
-    );
-    assert_eq!(o.goals[0].date, (2027, 6, 1));
-    let review: Vec<_> = o
-        .review
-        .iter()
-        .map(|r| (r.label.as_str(), r.kind))
-        .collect();
-    assert_eq!(
-        review,
-        [
-            ("Corner Market", ReviewKind::Flagged),
-            ("Uncategorized spending", ReviewKind::Category)
-        ]
-    );
-    assert_eq!(o.coverage, (0, 6));
+    let dates =
+        |days| -> Vec<_> { o.upcoming(days).iter().map(|e| e.date).collect() };
+    assert_eq!(dates(30), [(2026, 10, 5), (2026, 10, 20), (2026, 10, 22)]);
+    assert_eq!(o.upcoming(90).len(), 11);
+    assert!(o.upcoming(60).len() > 3);
 }

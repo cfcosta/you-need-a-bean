@@ -44,39 +44,6 @@ pub struct Event {
 }
 
 #[derive(Clone, Debug)]
-pub struct Goal {
-    pub label: String,
-    pub funded: Decimal,
-    pub target: Decimal,
-    pub date: Day,
-}
-
-impl Goal {
-    pub fn ratio(&self) -> Decimal {
-        if self.target.is_zero() {
-            Decimal::ZERO
-        } else {
-            self.funded / self.target
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ReviewKind {
-    Flagged,
-    Category,
-    Other,
-}
-
-#[derive(Clone, Debug)]
-pub struct Review {
-    pub label: String,
-    pub kind: ReviewKind,
-    /// When a flagged transaction happened; `None` for standing items.
-    pub date: Option<Day>,
-}
-
-#[derive(Clone, Debug)]
 pub struct Overview {
     pub today: Day,
     pub held: Decimal,
@@ -97,16 +64,19 @@ pub struct Overview {
     pub forecast: Vec<Forecast>,
     pub events: Vec<Event>,
     pub recurring: usize,
-    pub goals: Vec<Goal>,
-    pub review: Vec<Review>,
-    /// Accounts with fresh source coverage, of how many.
-    pub coverage: (u64, u64),
 }
 
 impl Overview {
     /// The last `n` months of net worth.
     pub fn recent_history(&self, n: usize) -> &[(MonthKey, Decimal)] {
         &self.history[self.history.len().saturating_sub(n)..]
+    }
+
+    /// The events landing within `days` of today.
+    pub fn upcoming(&self, days: u32) -> &[Event] {
+        let end = add_days(self.today, i64::from(days));
+        let n = self.events.iter().take_while(|e| e.date <= end).count();
+        &self.events[..n]
     }
 
     pub fn build(ledger: &Ledger, today: Day, cur: &str) -> Self {
@@ -138,7 +108,7 @@ impl Overview {
             .collect();
 
         let points = &home["forecast"]["90"]["points"];
-        let events = home["events"]
+        let mut events: Vec<Event> = home["events"]
             .as_array()
             .into_iter()
             .flatten()
@@ -154,46 +124,7 @@ impl Overview {
                 })
             })
             .collect();
-
-        let goals = home["goals"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter_map(|g| {
-                Some(Goal {
-                    label: text(&g["label"]),
-                    funded: dec(&g["funded"]),
-                    target: dec(&g["target"]),
-                    date: day(&g["date"])?,
-                })
-            })
-            .collect();
-
-        let mut review: Vec<Review> = home["attention"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter(|a| a["kind"] != "coverage")
-            .map(|a| Review {
-                date: a["detail"]
-                    .as_str()
-                    .and_then(|d| d.get(..10))
-                    .and_then(bean_core::home::parse_date),
-                label: text(&a["label"]),
-                kind: match a["kind"].as_str() {
-                    Some("flagged") => ReviewKind::Flagged,
-                    Some("category") => ReviewKind::Category,
-                    _ => ReviewKind::Other,
-                },
-            })
-            .collect();
-        // Newest first; standing items (no date) after the dated ones.
-        review.sort_by(|a, b| match (a.date, b.date) {
-            (Some(x), Some(y)) => y.cmp(&x),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            (None, None) => std::cmp::Ordering::Equal,
-        });
+        events.sort_by_key(|e| e.date);
 
         let fire = &reports.fire;
         let spend = fire.monthly_spend;
@@ -229,12 +160,6 @@ impl Overview {
             forecast,
             events,
             recurring: home["recurring"].as_array().map_or(0, Vec::len),
-            goals,
-            review,
-            coverage: (
-                home["coverage"]["current"].as_u64().unwrap_or(0),
-                home["coverage"]["total"].as_u64().unwrap_or(0),
-            ),
         }
     }
 }

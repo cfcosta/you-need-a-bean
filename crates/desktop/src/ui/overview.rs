@@ -1,5 +1,4 @@
-//! Page 1, `Main.dc.html`: position, net worth, the next 30 days, goals
-//! and the review queue.
+//! Page 1, `Main.dc.html`: position, net worth and the days ahead.
 
 use gpui::{
     AnyElement, Context, FontWeight, InteractiveElement, IntoElement,
@@ -9,12 +8,12 @@ use gpui::{
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 
 use super::kit::{
-    Fill, REVIEW_SHOWN, bar, bold, boxed, clip, col_labels, cols, dash, line,
+    EVENTS_SHOWN, Fill, bar, bold, boxed, clip, col_labels, cols, dash, line,
     row, run, sign_color, sum_rule, tracked,
 };
 use crate::{
     fmt::{fixed, money, percent, signed, whole},
-    model::overview::{Event, Overview, ReviewKind},
+    model::overview::{Event, Overview},
     root::Root,
     theme::Theme,
 };
@@ -25,6 +24,8 @@ const MONTHS: [&str; 12] = [
     "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct",
     "nov", "dec",
 ];
+
+const CHART_HEIGHT: f32 = 120.;
 
 fn f(v: Decimal) -> f32 {
     v.to_f32().unwrap_or(0.)
@@ -59,9 +60,7 @@ pub fn page(
         .gap_y(px(44.))
         .child(position(o, t).col_span(span(7)))
         .child(net_worth(o, t).col_span(span(5)))
-        .child(next_days(root, o, t, cx).col_span(12))
-        .child(goals(o, t).col_span(span(7)))
-        .child(review(o, t).col_span(span(5)));
+        .child(next_days(root, o, t, cx).col_span(12));
 
     div()
         .w_full()
@@ -380,9 +379,9 @@ fn next_days(
                 .child(*h)
         }));
 
-    let horizon_events: Vec<&Event> = o.events.iter().collect();
-    let shown = horizon_events.iter().take(4);
-    let more = o.events.len().saturating_sub(4);
+    let ahead = o.upcoming(fc.days);
+    let shown = ahead.iter().take(EVENTS_SHOWN);
+    let more = ahead.len().saturating_sub(EVENTS_SHOWN);
 
     boxed(t, format!("next {} days", fc.days))
         .child(
@@ -399,7 +398,7 @@ fn next_days(
                         .flex()
                         .flex_col()
                         .gap(px(6.))
-                        .child(cols(bars, 56., 2.))
+                        .child(cols(bars, CHART_HEIGHT, 2.))
                         .child(
                             row(
                                 run_text(
@@ -440,10 +439,11 @@ fn next_days(
                         .text_color(t.mut_)
                         .child(div().w(px(92.4)).child("⋮"))
                         .child(div().w(px(16.8)))
-                        .child(format!(
-                            "{more} more · {} recurring",
-                            o.recurring
-                        )),
+                        .child(if more > 0 {
+                            format!("{more} more · {} recurring", o.recurring)
+                        } else {
+                            format!("{} recurring", o.recurring)
+                        }),
                 ),
         )
 }
@@ -514,127 +514,4 @@ fn entry(t: &Theme, e: &Event) -> impl IntoElement {
                 .text_color(t.mut_)
                 .child(whole(e.balance)),
         )
-}
-
-fn goals(o: &Overview, t: &Theme) -> gpui::Div {
-    boxed(t, "goals").child(
-        div()
-            .flex()
-            .flex_col()
-            .gap(px(18.))
-            .children(o.goals.iter().map(|g| {
-                let ratio = g.ratio();
-                let color = if ratio >= Decimal::new(75, 2) {
-                    t.green
-                } else {
-                    t.yellow
-                };
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap(px(4.))
-                    .child(row(
-                        g.label.to_lowercase(),
-                        line([
-                            bold(percent(ratio, 0), color),
-                            run(" by ", t.mut_),
-                            run(
-                                format!("{:02}-{:02}", g.date.1, g.date.2),
-                                t.cyan,
-                            ),
-                        ]),
-                    ))
-                    .child(bar(
-                        t,
-                        vec![
-                            (f(ratio), Fill::Solid(color)),
-                            ((1. - f(ratio)).max(0.), Fill::Hatch(t.line2)),
-                        ],
-                    ))
-                    .child(
-                        row(money(g.funded), money(g.target))
-                            .text_size(px(12.))
-                            .text_color(t.dim),
-                    )
-            }))
-            .child(
-                div().flex().child(
-                    div()
-                        .py(px(6.))
-                        .px(px(12.))
-                        .border_1()
-                        .border_dashed()
-                        .border_color(t.line2)
-                        .text_color(t.dim)
-                        .child("+ goal"),
-                ),
-            ),
-    )
-}
-
-fn review(o: &Overview, t: &Theme) -> gpui::Div {
-    let (current, total) = o.coverage;
-    // One dot an account while they fit on the line.
-    let dots: String = if total <= 12 {
-        (0..total)
-            .map(|i| if i < current { '●' } else { '○' })
-            .collect()
-    } else {
-        String::new()
-    };
-    let more = o.review.len().saturating_sub(REVIEW_SHOWN);
-    boxed(t, "review")
-        .child(div().flex().flex_col().children(
-            o.review.iter().take(REVIEW_SHOWN).map(|r| {
-                div()
-                    .flex()
-                    .flex_row()
-                    .gap(px(12.))
-                    .py(px(5.))
-                    .px(px(10.))
-                    .mx(px(-10.))
-                    .hover(|s| s.bg(t.hl))
-                    .child(
-                        div()
-                            .w(px(16.8))
-                            .text_color(t.yellow)
-                            .font_weight(FontWeight::BOLD)
-                            .child("!"),
-                    )
-                    .child(
-                        div()
-                            .flex_1()
-                            .min_w(px(0.))
-                            .overflow_hidden()
-                            .child(clip(&r.label, 30)),
-                    )
-                    .child(div().text_color(t.dim).child(match r.kind {
-                        ReviewKind::Flagged => "payee →",
-                        ReviewKind::Category => "spend →",
-                        ReviewKind::Other => "→",
-                    }))
-            }),
-        ))
-        .when(more > 0, |d| {
-            d.child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .gap(px(12.))
-                    .py(px(5.))
-                    .text_color(t.mut_)
-                    .child(div().w(px(16.8)).child("⋮"))
-                    .child(format!("{more} more")),
-            )
-        })
-        .child(dash(t, 18., 16.).flex().flex_col().gap(px(6.)).child(row(
-            run_text("coverage", t.dim),
-            line([
-                run(dots, if current == 0 { t.line2 } else { t.green }),
-                run(
-                    format!(" {current}/{total}"),
-                    if current < total { t.yellow } else { t.green },
-                ),
-            ]),
-        )))
 }
