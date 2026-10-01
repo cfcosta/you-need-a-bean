@@ -137,3 +137,14 @@ ledger can be hundreds of includes deep, and `cannot read /some/abs/path`
 says nothing about which of them asked for it. The include emitted by the
 file-following reader reports the *resolved* path; where it was written
 stays as written. `BeancountFile::includes` is still a `Vec<PathBuf>`.
+
+## Edition and dependencies
+
+`Cargo.toml`: edition 2024 and `rust-version = "1.85"` (upstream: 2021
+and 1.68), `miette` 7 (upstream: 5) and `rstest` 0.27 (upstream: 0.26).
+`cargo fix --edition` needed no source changes.
+
+Upstream's 1.68 floor held the whole workspace back: Cargo's resolver
+picks dependency versions that satisfy the lowest `rust-version` of any
+member, so a plain `cargo update` left dozens of crates behind. miette 5
+also pulled a second copy of `thiserror` (1.x) into the build.
