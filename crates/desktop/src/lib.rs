@@ -5,10 +5,12 @@
 use gpui::App;
 
 pub mod fmt;
-mod root;
+pub mod model;
+pub mod root;
 pub mod theme;
+pub mod ui;
 
-pub use root::Root;
+pub use root::{Page, Root};
 
 /// Everything a window needs before it opens: the fonts and the scheme.
 pub fn init(cx: &mut App) {
