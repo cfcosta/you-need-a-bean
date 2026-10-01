@@ -379,3 +379,33 @@ pub fn any(e: impl IntoElement) -> AnyElement {
 }
 
 use gpui::prelude::FluentBuilder as _;
+
+/// `grid-template-columns: minmax(0, a fr) minmax(0, b fr)` with a gap:
+/// two columns sharing what the gap leaves in proportion `a : b`.
+pub fn split(
+    a: f32,
+    b: f32,
+    gap: f32,
+    left: impl IntoElement,
+    right: impl IntoElement,
+) -> Div {
+    let total = a + b;
+    div()
+        .flex()
+        .flex_row()
+        .gap(px(gap))
+        .child(
+            div()
+                .flex_basis(relative(a / total))
+                .flex_shrink_1()
+                .min_w(px(0.))
+                .child(left),
+        )
+        .child(
+            div()
+                .flex_basis(relative(b / total))
+                .flex_shrink_1()
+                .min_w(px(0.))
+                .child(right),
+        )
+}

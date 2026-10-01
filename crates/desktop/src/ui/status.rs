@@ -133,3 +133,34 @@ impl Status<'_> {
             .into_any_element()
     }
 }
+
+/// The 3/6/12-month basis, sat in the status line on the pages whose
+/// figures it changes.
+pub fn basis(
+    t: &Theme,
+    basis: u32,
+    cx: &mut Context<Root>,
+) -> gpui::AnyElement {
+    div()
+        .flex()
+        .flex_row()
+        .items_stretch()
+        .border_l_1()
+        .border_r_1()
+        .border_color(t.line2)
+        .children([3u32, 6, 12].into_iter().enumerate().map(|(i, b)| {
+            let on = b == basis;
+            div()
+                .id(SharedString::from(format!("status-basis-{b}")))
+                .flex()
+                .items_center()
+                .px(px(12.))
+                .when(i > 0, |d| d.border_l_1().border_color(t.line2))
+                .when(on, |d| d.bg(t.sel))
+                .text_color(if on { t.ink } else { t.dim })
+                .cursor_pointer()
+                .on_click(cx.listener(move |r, _, _, cx| r.set_basis(b, cx)))
+                .child(b.to_string())
+        }))
+        .into_any_element()
+}

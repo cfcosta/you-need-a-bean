@@ -4,6 +4,7 @@
 pub mod account;
 pub mod budget;
 pub mod overview;
+pub mod reports;
 
 use bean_core::model::{Day, MonthKey};
 use rust_decimal::Decimal;

@@ -4,4 +4,5 @@ pub mod account;
 pub mod budget;
 pub mod kit;
 pub mod overview;
+pub mod reports;
 pub mod status;

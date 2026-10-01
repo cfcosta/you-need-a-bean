@@ -70,3 +70,15 @@ fn account_register_matches_the_canvas() {
         off * 100.
     );
 }
+
+#[test]
+fn reports_match_the_canvas() {
+    let shot = page(Page::Reports, 1440., 1560.);
+    let off = mismatch(&shot, "Reports-night");
+    eprintln!("reports: {:.3}% off", off * 100.);
+    assert!(
+        off < 0.02,
+        "{:.2}% of the reports are off the canvas",
+        off * 100.
+    );
+}

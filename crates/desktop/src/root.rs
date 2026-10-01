@@ -11,7 +11,9 @@ use gpui::{
 };
 
 use crate::{
-    model::{account::Register, budget::Budget, overview::Overview},
+    model::{
+        account::Register, budget::Budget, overview::Overview, reports::Reports,
+    },
     theme::{MONO, Scheme, Theme, theme},
     ui::{self, kit, status::Status},
 };
@@ -152,6 +154,7 @@ pub struct Root {
     /// The account whose register is open.
     pub account: Option<String>,
     budget: Option<(BudgetKey, Budget)>,
+    reports: Option<(u32, Reports)>,
     /// Why the last reread of the ledger failed; the last good reading
     /// stays on screen meanwhile.
     pub reload_error: Option<String>,
@@ -170,6 +173,7 @@ impl Root {
             category: None,
             account: None,
             budget: None,
+            reports: None,
             reload_error: None,
             focus: cx.focus_handle(),
         }
@@ -211,6 +215,7 @@ impl Root {
     ) {
         self.data = Some(Data::new(ledger, today));
         self.budget = None;
+        self.reports = None;
         self.reload_error = None;
         cx.notify();
     }
@@ -266,6 +271,25 @@ impl Root {
         };
         self.budget = Some((key, built.clone()));
         Some(built)
+    }
+
+    /// The reports for the chosen basis, rebuilt when it (or the ledger)
+    /// changes.
+    pub fn reports(&mut self) -> Option<Reports> {
+        let data = self.data.as_ref()?;
+        if let Some((basis, r)) = &self.reports
+            && *basis == self.basis
+        {
+            return Some(r.clone());
+        }
+        let r = Reports::build(
+            &data.ledger,
+            data.today,
+            self.basis,
+            &data.currency,
+        );
+        self.reports = Some((self.basis, r.clone()));
+        Some(r)
     }
 
     /// The register of the open account, for the chosen month.
@@ -432,11 +456,12 @@ impl Render for Root {
             .flatten();
         let status = Status {
             page: self.page.tab(),
-            crumb: crumb,
+            crumb,
             ledger: data.ledger_name(),
             today: bean_core::home::date(data.today).into(),
             narrow: width < 640.,
-            extra: None,
+            extra: matches!(self.page, Page::Reports | Page::Liabilities)
+                .then(|| ui::status::basis(&t, self.basis, cx)),
             t: &t,
         }
         .render(cx);
@@ -444,6 +469,7 @@ impl Render for Root {
             Page::Overview => ui::overview::page(self, &t, width, cx),
             Page::Budget => ui::budget::page(self, &t, width, cx),
             Page::Account => ui::account::page(self, &t, width, cx),
+            Page::Reports => ui::reports::page(self, &t, width, cx),
             _ => kit::any(div()),
         };
         base.child(status).child(
