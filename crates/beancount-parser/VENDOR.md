@@ -189,6 +189,13 @@ changes what is reported, not what is accepted. `line_end` is
 `end_of_line` labelled, used where running into something else is the
 error; `empty_line` keeps the bare one.
 
+`src/lib.rs`: `string` notes a string that ran over a line break, and the
+iterator hands it to an error in the same entry or the one just before, as
+`Error::multiline_string()`. Beancount allows strings to span lines, so a
+missing closing quote is no error where it is missing: the string runs on
+to the next `"`, and the parse fails lines later. The note is how a caller
+points back at the quote that started it. Nothing parses differently.
+
 `src/amount.rs`: division by zero reports `"a divisor other than zero"`
 through `failure::reject`, which pins the error where it is rather than
 where the parse got furthest.

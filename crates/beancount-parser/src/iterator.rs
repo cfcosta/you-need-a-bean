@@ -21,6 +21,10 @@ pub(crate) struct Iter<'i, D, F> {
     // and when that line then fails as an entry of its own, the attempt that
     // got furthest into it is the one that says why.
     furthest: Option<Furthest>,
+    // The last multi-line string in the entry before this one. A string
+    // missing its closing quote can end cleanly at the next one, so the entry
+    // holding it parses and the one after fails instead.
+    multiline: Option<(usize, usize)>,
     tag_stack: HashSet<Tag>,
     // Local addition vs upstream 2.6.0, mirroring `tag_stack`: `pushmeta` and
     // `popmeta` nest, so each key holds a stack and the innermost push wins.
@@ -34,6 +38,7 @@ impl<'i, D, F> Iter<'i, D, F> {
             rest: Some(Span::new(source)),
             entry,
             furthest: None,
+            multiline: None,
             tag_stack: HashSet::new(),
             meta_stack: HashMap::new(),
         }
@@ -54,8 +59,14 @@ where
             }
             let start = input.location_offset();
             let outer = failure::swap(self.furthest.filter(|f| f.offset > start));
+            let outer_multiline = failure::swap_multiline(None);
             let result = (self.entry)(input);
             self.furthest = failure::swap(outer);
+            let multiline = failure::swap_multiline(outer_multiline);
+            let before = std::mem::replace(&mut self.multiline, multiline);
+            if result.is_err() {
+                self.multiline = multiline.or(before);
+            }
             let entry = match result {
                 Ok((rest, entry)) if rest.location_offset() > start => {
                     self.rest = Some(rest);
@@ -127,6 +138,7 @@ impl<'i, D, F> Iter<'i, D, F> {
         self.rest = Some(resume(input, failure.offset));
         Error::at(self.source, failure.offset, failure.line, failure.expected)
             .with_token_len(failure.len)
+            .with_multiline_string(self.multiline.take())
     }
 }
 

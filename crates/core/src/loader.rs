@@ -12,7 +12,7 @@ use std::sync::{Arc, OnceLock};
 use beancount_parser::{
     Directive, DirectiveContent, Entry, Include, parse_iter,
 };
-use miette::{Diagnostic, NamedSource, SourceSpan};
+use miette::{Diagnostic, LabeledSpan, NamedSource, SourceSpan};
 use rust_decimal::Decimal;
 use thiserror::Error;
 
@@ -145,10 +145,12 @@ pub enum LoadError {
     Syntax {
         #[source_code]
         src: Arc<NamedSource<String>>,
-        #[label("{label}")]
-        span: SourceSpan,
-        /// What the parser wanted where it stopped, and what it found.
-        label: String,
+        /// What the parser wanted where it stopped and what it found there,
+        /// first; then, when a string ran over a line break just before,
+        /// where that string opened, since a missing closing quote fails
+        /// lines away from where it is missing.
+        #[label(collection)]
+        labels: Vec<LabeledSpan>,
         #[help]
         help: Option<String>,
         #[related]
@@ -206,14 +208,16 @@ impl LoadError {
             None => format!("{}: {self}", self.path()),
         };
         if let LoadError::Syntax {
-            label,
+            labels,
             others,
             omitted,
             ..
         } = self
         {
-            summary.push_str(": ");
-            summary.push_str(label);
+            if let Some(label) = labels.first().and_then(LabeledSpan::label) {
+                summary.push_str(": ");
+                summary.push_str(label);
+            }
             match others.len() + omitted {
                 0 => {}
                 1 => summary.push_str(" (and 1 more syntax error)"),
@@ -333,10 +337,23 @@ impl<'a> Source<'a> {
              error; comments begin with `;`"
                 .to_string()
         });
+        let mut labels =
+            vec![LabeledSpan::new_primary_with_span(Some(label), span)];
+        if let Some((open, len)) = err.multiline_string() {
+            let close = self.text[..(open + len).min(self.text.len())]
+                .lines()
+                .count();
+            labels.push(LabeledSpan::new_with_span(
+                Some(format!(
+                    "this string runs on to line {close}; is its closing \
+                     quote missing?"
+                )),
+                (open, 1),
+            ));
+        }
         LoadError::Syntax {
             src: self.named(),
-            span,
-            label,
+            labels,
             help,
             others: Vec::new(),
             omitted: 0,

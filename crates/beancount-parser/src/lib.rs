@@ -829,6 +829,7 @@ fn empty_line(input: Span<'_>) -> IResult<'_, ()> {
 // two in a row, so a string opening with an escape, two adjacent escapes, or a
 // string holding nothing but one escape were all syntax errors. See VENDOR.md.
 fn string(input: Span<'_>) -> IResult<'_, String> {
+    let open = input;
     let (input, _) = context("a quoted string", char('"')).parse(input)?;
     let mut string = String::new();
     let mut take_data = take_while(|c: char| c != '"' && c != '\\');
@@ -844,5 +845,7 @@ fn string(input: Span<'_>) -> IResult<'_, String> {
         part = new_part;
     }
     let (input, _) = context("a closing quote", char('"')).parse(input)?;
+    // Local addition vs upstream 2.6.0. See VENDOR.md.
+    failure::string_read(&open, &input);
     Ok((input, string))
 }

@@ -41,11 +41,31 @@ pub(crate) struct Furthest {
 
 thread_local! {
     static FURTHEST: Cell<Option<Furthest>> = const { Cell::new(None) };
+    static MULTILINE: Cell<Option<(usize, usize)>> = const { Cell::new(None) };
 }
 
 /// Replace the record, returning what it held.
 pub(crate) fn swap(furthest: Option<Furthest>) -> Option<Furthest> {
     FURTHEST.with(|cell| cell.replace(furthest))
+}
+
+/// Replace the last multi-line string seen, returning it, as (offset of its
+/// opening quote, length up to and including its closing one).
+///
+/// Strings may run over several lines, so a missing closing quote is not an
+/// error where it is missing: the string runs on to the next `"`, and the
+/// parse fails somewhere past it. Kept beside the furthest failure so the
+/// error can point back at where the trouble began.
+pub(crate) fn swap_multiline(string: Option<(usize, usize)>) -> Option<(usize, usize)> {
+    MULTILINE.with(|cell| cell.replace(string))
+}
+
+/// Note a string read from `open` to `close` if it ran over a line break.
+pub(crate) fn string_read(open: &Span<'_>, close: &Span<'_>) {
+    if close.location_line() > open.location_line() {
+        let offset = open.location_offset();
+        MULTILINE.with(|cell| cell.set(Some((offset, close.location_offset() - offset))));
+    }
 }
 
 fn reached(input: &Span<'_>, len: Option<usize>) {

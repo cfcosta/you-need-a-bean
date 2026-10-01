@@ -46,6 +46,10 @@ pub struct Error {
     // Local addition vs upstream 2.6.0: how long the rejected token at
     // `offset` is, when the rule read one whole. See VENDOR.md.
     token_len: Option<usize>,
+    // Local addition vs upstream 2.6.0: a string that ran over a line break
+    // just before the error, as (offset, length). Boxed because it is rare
+    // and the error travels by value. See VENDOR.md.
+    multiline_string: Option<Box<(usize, usize)>>,
 }
 
 impl Debug for Error {
@@ -81,6 +85,7 @@ impl Error {
             offset,
             expected,
             token_len: None,
+            multiline_string: None,
         }
     }
 
@@ -98,6 +103,14 @@ impl Error {
             offset,
             expected,
             token_len: None,
+            multiline_string: None,
+        }
+    }
+
+    pub(crate) fn with_multiline_string(self, multiline_string: Option<(usize, usize)>) -> Self {
+        Self {
+            multiline_string: multiline_string.map(Box::new),
+            ..self
         }
     }
 
@@ -140,6 +153,18 @@ impl Error {
     #[must_use]
     pub fn token_len(&self) -> Option<usize> {
         self.token_len
+    }
+
+    /// A string that ran over a line break in the entry that failed, or the
+    /// one just before it, as the byte offset of its opening quote and its
+    /// length up to and including the closing one
+    ///
+    /// Beancount strings may span lines, so a missing closing quote is not
+    /// an error where it is missing: the string runs on to the next `"`, and
+    /// the parse fails somewhere past it. This is where to point back to.
+    #[must_use]
+    pub fn multiline_string(&self) -> Option<(usize, usize)> {
+        self.multiline_string.as_deref().copied()
     }
 }
 

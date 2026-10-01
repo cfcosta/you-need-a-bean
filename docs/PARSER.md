@@ -244,6 +244,10 @@ back into a sentence:
   rule read before rejecting it, when it read a whole token: the `13` of a
   month. The loader underlines exactly that, or guesses up to the next
   whitespace when it is `None`.
+- `Error::multiline_string()` — a string that ran over a line break in the
+  failing entry or the one before it. Strings may span lines, so a missing
+  closing quote fails wherever the next `"` leaves the parse, lines away;
+  the loader adds a second label at the opening quote.
 - `Error::expected()` — the same phrase the dump prints. The loader puts it in
   the label under the underline, beside what it found there instead.
 - `Include { path, line_number, offset, length }` on `Entry::Include` — where

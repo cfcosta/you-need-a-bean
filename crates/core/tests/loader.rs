@@ -260,3 +260,21 @@ fn a_bad_date_part_is_underlined_alone() {
         );
     }
 }
+
+#[test]
+fn a_missing_closing_quote_is_pointed_back_to() {
+    // The string opened on line 3 runs on to the quote that opens line 7's
+    // narration, so the parse fails on line 7, four lines from the mistake.
+    // A second label takes the reader back to it.
+    let err = load(&fixture("unclosed/main.beancount")).unwrap_err();
+    let labels: Vec<_> = err.labels().expect("labelled").collect();
+    assert_eq!(labels.len(), 2, "{labels:?}");
+    let src = err.source_code().unwrap();
+    let opening = src.read_span(labels[1].inner(), 0, 0).unwrap();
+    assert_eq!(opening.line() + 1, 3);
+    assert_eq!(std::str::from_utf8(opening.data()).unwrap(), "\"");
+    assert_eq!(
+        labels[1].label(),
+        Some("this string runs on to line 7; is its closing quote missing?")
+    );
+}

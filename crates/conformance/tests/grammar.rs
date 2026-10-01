@@ -448,3 +448,35 @@ fn errors_report_a_line_number() {
         "an error with an empty message is useless in the CLI",
     );
 }
+
+/// Beancount strings may run over several lines, so a missing closing quote
+/// is not an error where it is missing: the string runs on to the next `"`,
+/// and the parse fails somewhere after it. The error carries where that
+/// string was, so it can be pointed back to.
+#[test]
+fn an_error_after_a_multi_line_string_points_back_at_it() {
+    let input = "2026-01-01 * \"groceries\n\
+                 \x20 Expenses:Food  10 USD\n\
+                 \x20 Assets:Cash\n\
+                 2026-01-02 * \"rent\"\n\
+                 \x20 Expenses:Rent  5 USD\n";
+    let err = parse::<Decimal>(input).expect_err("the string swallowed a line");
+    assert_eq!(err.line_number(), 4);
+    let (offset, len) = err.multiline_string().expect("a multi-line string");
+    assert_eq!(
+        &input[offset..offset + len],
+        "\"groceries\n  Expenses:Food  10 USD\n  Assets:Cash\n2026-01-02 * \""
+    );
+
+    // One that stays on its line is not worth pointing back to.
+    let err = parse::<Decimal>("2026-01-01 * \"a\" junk\n").expect_err("junk");
+    assert_eq!(err.multiline_string(), None);
+
+    // Nor is one from an entry that parsed and was followed by others.
+    let err = parse::<Decimal>(
+        "2026-01-01 * \"two\nlines\"\n  Assets:Cash  1 USD\n\
+         2026-01-02 open Assets:Bank\n2026-13-01 open Assets:X\n",
+    )
+    .expect_err("month 13");
+    assert_eq!(err.multiline_string(), None);
+}
