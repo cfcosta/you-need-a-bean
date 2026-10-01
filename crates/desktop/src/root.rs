@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use bean_core::model::{Day, Ledger};
+use bean_core::model::{Day, Ledger, MonthKey};
 use gpui::{
     App, Context, FocusHandle, Focusable, InteractiveElement, IntoElement,
     KeyBinding, KeyContext, KeyDownEvent, ParentElement, Render, SharedString,
@@ -11,7 +11,7 @@ use gpui::{
 };
 
 use crate::{
-    model::overview::Overview,
+    model::{budget::Budget, overview::Overview},
     theme::{MONO, Scheme, Theme, theme},
     ui::{self, kit, status::Status},
 };
@@ -49,6 +49,9 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("escape", CloseSearch, Some("Search")),
     ]);
 }
+
+/// What a cached budget was built for: month, basis, chosen category.
+type BudgetKey = (MonthKey, u32, Option<String>);
 
 /// What the search prompt holds.
 #[derive(Clone, Debug, Default)]
@@ -129,6 +132,13 @@ pub struct Root {
     /// 30, 60 or 90 days: which forecast the overview draws.
     pub horizon: usize,
     pub search: Option<Search>,
+    /// The budget page's month; `None` follows the ledger's default.
+    pub month: Option<MonthKey>,
+    /// Months a "typical" is averaged over: 3, 6 or 12.
+    pub basis: u32,
+    /// The category the budget inspector shows; `None` picks one.
+    pub category: Option<String>,
+    budget: Option<(BudgetKey, Budget)>,
     /// Why the last reread of the ledger failed; the last good reading
     /// stays on screen meanwhile.
     pub reload_error: Option<String>,
@@ -142,6 +152,10 @@ impl Root {
             page: Page::Overview,
             horizon: 0,
             search: None,
+            month: None,
+            basis: 6,
+            category: None,
+            budget: None,
             reload_error: None,
             focus: cx.focus_handle(),
         }
@@ -182,12 +196,76 @@ impl Root {
         cx: &mut Context<Self>,
     ) {
         self.data = Some(Data::new(ledger, today));
+        self.budget = None;
         self.reload_error = None;
         cx.notify();
     }
 
     pub fn reload_failed(&mut self, error: String, cx: &mut Context<Self>) {
         self.reload_error = Some(error);
+        cx.notify();
+    }
+
+    /// The budget for the chosen month, basis and category, rebuilt only
+    /// when one of them (or the ledger) changed.
+    pub fn budget(&mut self) -> Option<Budget> {
+        let data = self.data.as_ref()?;
+        let month = self
+            .month
+            .unwrap_or_else(|| data.ledger.default_month(data.today));
+        let key = (month, self.basis, self.category.clone());
+        if let Some((k, b)) = &self.budget
+            && *k == key
+        {
+            return Some(b.clone());
+        }
+        let probe = Budget::build(
+            &data.ledger,
+            data.today,
+            month,
+            self.basis,
+            &data.currency,
+            self.category.as_deref(),
+        );
+        let built = if self.category.is_none() {
+            // Nothing chosen yet: show the first category that ran over,
+            // else the first one there is.
+            let pick = probe
+                .lines
+                .iter()
+                .find(|l| {
+                    l.account.is_some()
+                        && l.status == Some(bean_core::query::Status::Over)
+                })
+                .or_else(|| probe.lines.iter().find(|l| l.account.is_some()))
+                .and_then(|l| l.account.clone());
+            Budget::build(
+                &data.ledger,
+                data.today,
+                month,
+                self.basis,
+                &data.currency,
+                pick.as_deref(),
+            )
+        } else {
+            probe
+        };
+        self.budget = Some((key, built.clone()));
+        Some(built)
+    }
+
+    pub fn set_month(&mut self, month: MonthKey, cx: &mut Context<Self>) {
+        self.month = Some(month);
+        cx.notify();
+    }
+
+    pub fn set_basis(&mut self, basis: u32, cx: &mut Context<Self>) {
+        self.basis = basis;
+        cx.notify();
+    }
+
+    pub fn select_category(&mut self, account: String, cx: &mut Context<Self>) {
+        self.category = Some(account);
         cx.notify();
     }
 
@@ -323,6 +401,7 @@ impl Render for Root {
         .render(cx);
         let page = match self.page {
             Page::Overview => ui::overview::page(self, &t, width, cx),
+            Page::Budget => ui::budget::page(self, &t, width, cx),
             _ => kit::any(div()),
         };
         base.child(status).child(

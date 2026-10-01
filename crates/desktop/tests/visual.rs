@@ -31,3 +31,22 @@ fn overview_matches_the_canvas() {
         off * 100.
     );
 }
+
+#[test]
+fn budget_matches_the_canvas() {
+    let mut cx = headless();
+    let ledger = Arc::new(overview_ledger());
+    let shot = shoot(&mut cx, frame(1440., 1060.), move |_, cx| {
+        let mut root = Root::new(ledger, TODAY, cx);
+        root.page = Page::Budget;
+        root.month = Some(bean_core::model::MonthKey::new(2026, 8));
+        root
+    });
+    let off = mismatch(&shot, "Budget-night");
+    eprintln!("budget: {:.3}% off", off * 100.);
+    assert!(
+        off < 0.02,
+        "{:.2}% of the budget is off the canvas",
+        off * 100.
+    );
+}

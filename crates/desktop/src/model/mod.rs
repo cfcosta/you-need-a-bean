@@ -1,6 +1,7 @@
 //! What each page shows, read out of the core crate into plain Rust:
 //! no gpui here, so every figure can be tested without a window.
 
+pub mod budget;
 pub mod overview;
 
 use bean_core::model::{Day, MonthKey};
