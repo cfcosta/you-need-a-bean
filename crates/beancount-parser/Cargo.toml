@@ -4,7 +4,7 @@
 
 [package]
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.98"
 name = "beancount-parser"
 version = "2.6.0"
 authors = ["Jonathan Cornaz", "Cainã Costa <me@cfcosta.com>"]

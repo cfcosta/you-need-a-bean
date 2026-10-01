@@ -140,7 +140,7 @@ stays as written. `BeancountFile::includes` is still a `Vec<PathBuf>`.
 
 ## Edition and dependencies
 
-`Cargo.toml`: edition 2024 and `rust-version = "1.85"` (upstream: 2021
+`Cargo.toml`: edition 2024 and `rust-version = "1.98"`, the stable toolchain the repo builds with, (upstream: 2021
 and 1.68), `miette` 7 (upstream: 5) and `rstest` 0.27 (upstream: 0.26).
 `cargo fix --edition` needed no source changes.
 
