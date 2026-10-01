@@ -1,0 +1,36 @@
+[package]
+name = "you-need-a-bean-desktop"
+description = "The ledger, as a native window: the Plain Text design in GPUI."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+name = "bean_desktop"
+
+[[bin]]
+name = "you-need-a-bean-desktop"
+path = "src/main.rs"
+
+[dependencies]
+bean_core = { package = "you-need-a-bean-core", path = "../core" }
+gpui = { package = "gpui-pre", version = "=0.3.7" }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.7", features = [
+  "wayland",
+  "x11",
+  "font-kit",
+] }
+rust_decimal = "1.42.1"
+serde_json = "1.0.151"
+
+[dev-dependencies]
+gpui = { package = "gpui-pre", version = "=0.3.7", features = ["test-support"] }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.7", features = [
+  "wayland",
+  "x11",
+  "font-kit",
+  "test-support",
+] }
+gpui_wgpu = { package = "gpui-pre-wgpu", version = "=0.3.7" }
+image = { version = "0.25.1", default-features = false, features = ["png"] }

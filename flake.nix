@@ -44,6 +44,24 @@
 
               rust = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
 
+              # The desktop app (GPUI) links xcb and xkbcommon, and loads
+              # Vulkan, Wayland and X11 at runtime.
+              guiLibs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux (
+                with pkgs;
+                [
+                  fontconfig
+                  freetype
+                  libx11
+                  libxcb
+                  libxcursor
+                  libxi
+                  libxkbcommon
+                  libxrandr
+                  vulkan-loader
+                  wayland
+                ]
+              );
+
               rustPlatform = pkgs.makeRustPlatform {
                 rustc = rust;
                 cargo = rust;
@@ -103,6 +121,7 @@
             {
               inherit
                 formatter
+                guiLibs
                 pkgs
                 preCommitCheck
                 you-need-a-bean
@@ -133,6 +152,7 @@
       devShells = forEachSupportedSystem (
         {
           formatter,
+          guiLibs,
           pkgs,
           rust,
           ...
@@ -148,6 +168,9 @@
               cargo-watch
               formatter
             ];
+            buildInputs = guiLibs;
+            nativeBuildInputs = [ pkgs.pkg-config ];
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath guiLibs;
           };
         }
       );
