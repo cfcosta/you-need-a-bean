@@ -1,4 +1,4 @@
-//! `you-need-a-bean-desktop <LEDGER> [--today YYYY-MM-DD]`
+//! `you-need-a-bean <LEDGER> [--today YYYY-MM-DD]`
 
 use std::path::PathBuf;
 
@@ -13,7 +13,7 @@ pub struct Options {
 }
 
 pub const USAGE: &str =
-    "usage: you-need-a-bean-desktop <LEDGER> [--today YYYY-MM-DD]";
+    "usage: you-need-a-bean <LEDGER> [--today YYYY-MM-DD]";
 
 pub fn parse(
     args: impl IntoIterator<Item = String>,
@@ -78,5 +78,13 @@ mod tests {
         assert!(parse(args(&["x.beancount", "--today", "October"])).is_err());
         assert!(parse(args(&["x.beancount", "--port", "1"])).is_err());
         assert!(parse(args(&["a.beancount", "b.beancount"])).is_err());
+    }
+
+    #[test]
+    fn help_names_the_binary() {
+        assert_eq!(
+            parse(args(&["--help"])),
+            Err("usage: you-need-a-bean <LEDGER> [--today YYYY-MM-DD]".into())
+        );
     }
 }

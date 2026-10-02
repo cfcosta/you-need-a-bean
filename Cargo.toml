@@ -1,7 +1,6 @@
 [workspace]
 members = [
   "crates/beancount-parser",
-  "crates/cli",
   "crates/conformance",
   "crates/core",
   "crates/desktop",

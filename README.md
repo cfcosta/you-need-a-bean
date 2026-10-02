@@ -7,7 +7,6 @@ investments, and debts, or search the full ledger with Cmd/Ctrl+K.
 
 ```sh
 you-need-a-bean path/to/main.beancount
-# → you need a bean · serving http://127.0.0.1:2326
 ```
 
 Beancount stays the source of truth: this tool never writes to your ledger.
@@ -31,22 +30,21 @@ Beancount stays the source of truth: this tool never writes to your ledger.
 - Friendly account names via `name: "…"` metadata on `open` directives.
 - Follows `include` directives (relative paths and globs), scales to
   ledgers with hundreds of thousands of directives.
-- Single self-contained binary — the UI is embedded.
+- A native desktop app (GPUI), laid out for a phone below 640px wide.
 
 ## Usage
 
 ```
-you-need-a-bean <LEDGER> [--port 2326] [--host 127.0.0.1] [--ui-dir ui/dist]
+you-need-a-bean <LEDGER> [--today YYYY-MM-DD]
 ```
 
 ## Development
 
-Rust workspace (`crates/core`, `crates/cli`) plus a Bun + React + Tailwind
-UI in `ui/`. `cargo build` embeds a fresh UI build automatically.
+Rust workspace: `crates/core` reads the ledger, `crates/desktop` draws it.
+Run everything inside `nix develop`, which provides the GUI libraries.
 
 ```sh
 cargo nextest run          # rust tests
-bun test --cwd ui          # ui unit tests
 treefmt                    # formatting (nix flake formatter)
 cargo run -- examples/realistic/main.beancount
 ```

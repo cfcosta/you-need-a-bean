@@ -10,7 +10,7 @@ license.workspace = true
 name = "bean_desktop"
 
 [[bin]]
-name = "you-need-a-bean-desktop"
+name = "you-need-a-bean"
 path = "src/main.rs"
 
 [dependencies]

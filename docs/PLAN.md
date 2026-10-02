@@ -19,24 +19,20 @@ as described under UI below.
 ## Architecture
 
 ```
-crates/core   you-need-a-bean-core   pure library: load → model → queries
-crates/cli    you-need-a-bean-cli    binary "you-need-a-bean": args, axum server, embedded UI
-ui/           Bun + React + Tailwind SPA, built to ui/dist, embedded via rust-embed
+crates/core     you-need-a-bean-core     pure library: load → model → queries
+crates/desktop  you-need-a-bean-desktop  binary "you-need-a-bean": the GPUI app
 ```
 
 Data flow: parse all files once at startup into an immutable `Ledger`
-(indexed aggregates), share it behind an `Arc`, answer every API request
-from the in-memory model. No database, no re-parsing per request (a file
-watcher can come later).
+(indexed aggregates), share it behind an `Arc`, answer every view
+from the in-memory model. No database; the app polls the ledger's files and
+rebuilds the model in the background when they change.
 
 - **Parser crate**: `beancount-parser` (nom-based, fast, metadata/tags/links
   support, generic over the decimal type). We use `rust_decimal::Decimal`
   internally; amounts serialize as JSON numbers at the API boundary.
-- **HTTP**: axum + tokio. **Embedding**: rust-embed over `ui/dist`;
-  `--ui-dir` flag overrides with a filesystem path for UI development.
-- **Build**: `crates/cli/build.rs` runs `bun install` + `bun run build` in
-  `ui/` when `ui/dist` is stale, so `cargo build` always produces a
-  self-contained binary (matches the flake's `you-need-a-bean-cli` package).
+- **UI**: gpui-pre, drawn from the Plain Text design canvas; a headless
+  visual test diffs every page against the canvas boards.
 
 ## Ingestion rules
 

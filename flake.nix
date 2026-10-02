@@ -104,16 +104,22 @@
                 cargoLock.lockFile = ./Cargo.lock;
                 cargoBuildFlags = [
                   "-p"
-                  "you-need-a-bean-cli"
+                  "you-need-a-bean-desktop"
                   "--bin"
                   "you-need-a-bean"
                 ];
                 cargoInstallFlags = [
                   "-p"
-                  "you-need-a-bean-cli"
+                  "you-need-a-bean-desktop"
                   "--bin"
                   "you-need-a-bean"
                 ];
+                nativeBuildInputs = [ pkgs.pkg-config ];
+                buildInputs = guiLibs;
+                # Vulkan, Wayland and X11 are opened at runtime, not linked.
+                postFixup = pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
+                  patchelf --add-rpath ${pkgs.lib.makeLibraryPath guiLibs} $out/bin/you-need-a-bean
+                '';
                 doCheck = false;
                 meta.mainProgram = "you-need-a-bean";
               };
