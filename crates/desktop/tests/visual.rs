@@ -243,3 +243,46 @@ fn day_scheme_matches_the_canvas() {
         worst * 100.
     );
 }
+
+/// The console once its first query has answered, with the clock its
+/// board was drawn at.
+fn console(width: f32, height: f32, day: bool) -> image::RgbaImage {
+    let mut cx = headless();
+    if day {
+        cx.update(|cx| cx.set_global(bean_desktop::theme::Theme::day()));
+    }
+    let ledger = Arc::new(overview_ledger());
+    support::shoot_when(
+        &mut cx,
+        frame(width, height),
+        move |_, cx| {
+            let mut root = Root::new(ledger, TODAY, cx);
+            root.clock = Some("14:02".into());
+            root.open(Page::Query, cx);
+            root
+        },
+        |r: &Root| !r.console.running && r.console.result.is_some(),
+    )
+}
+
+#[test]
+fn console_matches_the_canvas() {
+    let shot = console(1440., 1560., false);
+    let off = mismatch(&shot, "Query-night");
+    eprintln!("console: {:.3}% off", off * 100.);
+    assert!(
+        off < 0.02,
+        "{:.2}% of the console is off the canvas",
+        off * 100.
+    );
+    let shot = console(1440., 1560., true);
+    let off = mismatch(&shot, "Query-day");
+    eprintln!("console (day): {:.3}% off", off * 100.);
+    assert!(off < 0.02, "{:.2}% of the day console is off", off * 100.);
+}
+
+#[test]
+fn phone_console_matches_the_canvas() {
+    let shot = console(390., 844., false);
+    assert!(phone_off(&shot, "QueryPhone-night", 770) < 0.04);
+}

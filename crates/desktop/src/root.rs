@@ -182,8 +182,10 @@ struct Sql {
 pub const ROW_CAP: usize = 1000;
 
 /// The time of day a run finished: `14:02`.
-fn clock() -> String {
-    jiff::Zoned::now().strftime("%H:%M").to_string()
+fn clock(pinned: &Option<String>) -> String {
+    pinned
+        .clone()
+        .unwrap_or_else(|| jiff::Zoned::now().strftime("%H:%M").to_string())
 }
 
 pub struct Root {
@@ -224,6 +226,9 @@ pub struct Root {
     /// Where the editor's text starts on screen, as last painted, so a
     /// click can be turned into a line and a column.
     pub code_origin: std::rc::Rc<std::cell::Cell<(f32, f32)>>,
+    /// The time of day runs are stamped with, when it must not move
+    /// (pictures in tests); the wall clock otherwise.
+    pub clock: Option<String>,
     focus: FocusHandle,
 }
 
@@ -253,6 +258,7 @@ impl Root {
             sql_loading: false,
             pending_run: false,
             code_origin: Default::default(),
+            clock: None,
             focus: cx.focus_handle(),
         }
     }
@@ -338,7 +344,7 @@ impl Root {
                     Err(failure) => {
                         r.pending_run = false;
                         let sql = r.console.editor.text();
-                        r.console.finish(clock(), sql, Err(failure));
+                        r.console.finish(clock(&r.clock), sql, Err(failure));
                     }
                 }
                 cx.notify();
@@ -375,7 +381,7 @@ impl Root {
                 })
                 .await;
             this.update(cx, |r, cx| {
-                r.console.finish(clock(), sql, out);
+                r.console.finish(clock(&r.clock), sql, out);
                 cx.notify();
             })
             .ok();
