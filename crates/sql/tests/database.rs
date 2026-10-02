@@ -267,3 +267,16 @@ fn an_interrupt_stops_a_long_query() {
         "the database still answers afterwards"
     );
 }
+
+#[test]
+fn a_timestamp_at_midnight_reads_as_its_day() {
+    let db = small();
+    assert_eq!(
+        one(&db, "SELECT date_trunc('month', DATE '2026-06-15')"),
+        Cell::Date((2026, 6, 1))
+    );
+    assert_eq!(
+        one(&db, "SELECT TIMESTAMP '2026-06-15 14:02:09'"),
+        Cell::Other("2026-06-15 14:02:09".into())
+    );
+}

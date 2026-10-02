@@ -438,3 +438,25 @@ option "operating_currency" "USD"
   Expenses:Travel  680 USD
   Assets:Bank:Everyday  -680 USD
 
+2025-12-01 query "food-by-month" "SELECT date_trunc('month', date) AS month,
+       account,
+       sum(value) AS spent
+FROM converted
+WHERE account LIKE 'Expenses:Food:%'
+  AND date BETWEEN DATE '2026-06-01' AND DATE '2026-09-07'
+GROUP BY ALL
+ORDER BY month, spent DESC;"
+2025-12-01 query "top-payees" "SELECT payee,
+       count(*) AS txns,
+       sum(value) AS spent
+FROM converted
+WHERE kind = 'Expenses'
+  AND date BETWEEN DATE '2026-01-01' AND DATE '2026-09-07'
+GROUP BY payee
+ORDER BY spent DESC
+LIMIT 6;"
+2025-12-01 query "everyday-september" "SELECT date, payee, amount, balance
+FROM balances
+WHERE account = 'Assets:Bank:Everyday'
+  AND date BETWEEN DATE '2026-09-01' AND DATE '2026-09-07'
+ORDER BY date, txn_id;"

@@ -3,6 +3,7 @@
 
 pub mod account;
 pub mod budget;
+pub mod console;
 pub mod investments;
 pub mod liabilities;
 pub mod overview;

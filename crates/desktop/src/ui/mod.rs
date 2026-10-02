@@ -2,6 +2,7 @@
 
 pub mod account;
 pub mod budget;
+pub mod console;
 pub mod investments;
 pub mod kit;
 pub mod liabilities;

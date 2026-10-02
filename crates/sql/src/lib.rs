@@ -12,11 +12,13 @@ use std::{
 
 use bean_core::model::{Day, Ledger};
 use duckdb::{
-    Connection, InterruptHandle, ToSql,
+    Connection, ToSql,
     arrow::datatypes::DataType,
     types::{Value, ValueRef},
 };
 use rust_decimal::Decimal;
+
+pub use duckdb::InterruptHandle;
 
 /// Every amount is stored at one fixed scale: eighteen places is what
 /// a token like ETH is written to, and leaves twenty digits of whole
@@ -453,6 +455,22 @@ impl Database {
     }
 }
 
+/// A timestamp at midnight is a day; any other is written out whole.
+fn timestamp(micros: i64) -> Cell {
+    const DAY: i64 = 86_400_000_000;
+    let days = micros.div_euclid(DAY);
+    let rest = micros.rem_euclid(DAY) / 1_000_000;
+    let day = civil(days as i32);
+    if rest == 0 {
+        return Cell::Date(day);
+    }
+    let (h, m, s) = (rest / 3600, rest / 60 % 60, rest % 60);
+    Cell::Other(format!(
+        "{:04}-{:02}-{:02} {h:02}:{m:02}:{s:02}",
+        day.0, day.1, day.2
+    ))
+}
+
 fn text_of(c: &Cell) -> String {
     match c {
         Cell::Text(s) | Cell::Other(s) => s.clone(),
@@ -486,6 +504,7 @@ fn cell(v: ValueRef<'_>) -> Cell {
             Cell::Text(String::from_utf8_lossy(bytes).into_owned())
         }
         ValueRef::Date32(days) => Cell::Date(civil(days)),
+        ValueRef::Timestamp(unit, t) => timestamp(unit.to_micros(t)),
         other => match Value::from(other) {
             Value::Text(s) => Cell::Other(s),
             v => Cell::Other(format!("{v:?}")),

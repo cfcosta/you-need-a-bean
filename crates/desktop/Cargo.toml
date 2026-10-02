@@ -15,6 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 bean_core = { package = "you-need-a-bean-core", path = "../core" }
+bean_sql = { package = "you-need-a-bean-sql", path = "../sql" }
 gpui = { package = "gpui-pre", version = "=0.3.7" }
 gpui_platform = { package = "gpui-pre-platform", version = "=0.3.7", features = [
   "wayland",

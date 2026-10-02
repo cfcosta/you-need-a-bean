@@ -1,19 +1,21 @@
 //! The window's one view: which page is open, the ledger it reads, and
 //! the per-page choices (month, basis, horizon) a reader has made.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use bean_core::model::{Day, Ledger, MonthKey};
+use bean_sql::{Database, InterruptHandle};
 use gpui::{
-    App, Context, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    KeyBinding, KeyContext, KeyDownEvent, ParentElement, Render, SharedString,
-    StatefulInteractiveElement, Styled, Window, actions, div, px,
+    App, AppContext as _, Context, FocusHandle, Focusable, InteractiveElement,
+    IntoElement, KeyBinding, KeyContext, KeyDownEvent, ParentElement, Render,
+    SharedString, StatefulInteractiveElement, Styled, Window, actions, div, px,
 };
 
 use crate::{
     model::{
         account::Register,
         budget::Budget,
+        console::{Console, suggestion},
         investments::{Investments, Range, Sort},
         liabilities::Liabilities,
         overview::Overview,
@@ -32,6 +34,9 @@ actions!(
         OpenReports,
         OpenInvestments,
         OpenLiabilities,
+        OpenQuery,
+        RunQuery,
+        PasteQuery,
         ToggleScheme,
         OpenSearch,
         CloseSearch,
@@ -50,6 +55,11 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("3", OpenReports, pages),
         KeyBinding::new("4", OpenInvestments, pages),
         KeyBinding::new("5", OpenLiabilities, pages),
+        KeyBinding::new("6", OpenQuery, pages),
+        KeyBinding::new("ctrl-enter", RunQuery, Some("Bean")),
+        KeyBinding::new("secondary-enter", RunQuery, Some("Bean")),
+        KeyBinding::new("ctrl-v", PasteQuery, Some("Sql")),
+        KeyBinding::new("secondary-v", PasteQuery, Some("Sql")),
         KeyBinding::new("t", ToggleScheme, pages),
         KeyBinding::new("/", OpenSearch, pages),
         KeyBinding::new("ctrl-k", OpenSearch, Some(CONTEXT)),
@@ -66,6 +76,8 @@ type BudgetKey = (MonthKey, u32, Option<String>);
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Field {
     HoldingFilter,
+    /// The SQL console's editor.
+    Sql,
 }
 
 /// What the search prompt holds.
@@ -84,17 +96,20 @@ pub enum Page {
     Reports,
     Investments,
     Liabilities,
+    /// The SQL console.
+    Query,
     /// One account's register; it lives under the budget tab.
     Account,
 }
 
 impl Page {
-    pub const TABS: [Page; 5] = [
+    pub const TABS: [Page; 6] = [
         Page::Overview,
         Page::Budget,
         Page::Reports,
         Page::Investments,
         Page::Liabilities,
+        Page::Query,
     ];
 
     pub fn name(self) -> &'static str {
@@ -104,6 +119,7 @@ impl Page {
             Page::Reports => "reports",
             Page::Investments => "invest",
             Page::Liabilities => "debts",
+            Page::Query => "sql",
             Page::Account => "budget",
         }
     }
@@ -154,6 +170,22 @@ impl Data {
     }
 }
 
+/// The database the console asks, and the reading of the ledger it
+/// was loaded from.
+struct Sql {
+    ledger: Arc<Ledger>,
+    db: Arc<Mutex<Database>>,
+    interrupt: Arc<InterruptHandle>,
+}
+
+/// How many rows of an answer the console keeps to draw.
+pub const ROW_CAP: usize = 1000;
+
+/// The time of day a run finished: `14:02`.
+fn clock() -> String {
+    jiff::Zoned::now().strftime("%H:%M").to_string()
+}
+
 pub struct Root {
     pub data: Option<Data>,
     pub page: Page,
@@ -183,6 +215,15 @@ pub struct Root {
     /// Why the last reread of the ledger failed; the last good reading
     /// stays on screen meanwhile.
     pub reload_error: Option<String>,
+    pub console: Console,
+    sql: Option<Sql>,
+    /// A database is being loaded in the background.
+    sql_loading: bool,
+    /// A run was asked for before the database was up.
+    pending_run: bool,
+    /// Where the editor's text starts on screen, as last painted, so a
+    /// click can be turned into a line and a column.
+    pub code_origin: std::rc::Rc<std::cell::Cell<(f32, f32)>>,
     focus: FocusHandle,
 }
 
@@ -207,6 +248,11 @@ impl Root {
             liabilities: None,
             extra: Default::default(),
             reload_error: None,
+            console: Console::default(),
+            sql: None,
+            sql_loading: false,
+            pending_run: false,
+            code_origin: Default::default(),
             focus: cx.focus_handle(),
         }
     }
@@ -216,15 +262,244 @@ impl Root {
         today: Day,
         cx: &mut Context<Self>,
     ) -> Self {
+        let saved: Vec<(String, String)> = ledger
+            .queries
+            .iter()
+            .map(|q| (q.name.clone(), q.sql.clone()))
+            .collect();
         Self {
             data: Some(Data::new(ledger, today)),
+            console: Console::new(&saved),
             ..Self::empty(cx)
         }
     }
 
     pub fn open(&mut self, page: Page, cx: &mut Context<Self>) {
         self.page = page;
+        if page == Page::Query {
+            self.typing = Some(Field::Sql);
+            self.ensure_sql(cx);
+            // The first visit answers the query it opens on.
+            if self.console.result.is_none() && !self.console.running {
+                self.run_query(cx);
+            }
+        } else if self.typing == Some(Field::Sql) {
+            self.typing = None;
+        }
         cx.notify();
+    }
+
+    /// Load the database for the current reading of the ledger, in the
+    /// background, unless it is already up or on its way.
+    pub fn ensure_sql(&mut self, cx: &mut Context<Self>) {
+        let Some(ledger) = self.data.as_ref().map(|d| d.ledger.clone()) else {
+            return;
+        };
+        let current = self
+            .sql
+            .as_ref()
+            .is_some_and(|s| Arc::ptr_eq(&s.ledger, &ledger));
+        if current || self.sql_loading {
+            return;
+        }
+        self.sql_loading = true;
+        cx.spawn(async move |this, cx| {
+            let l = ledger.clone();
+            let loaded = cx
+                .background_spawn(async move {
+                    let db = Database::load(&l)?;
+                    let schema = db.schema()?;
+                    Ok::<_, bean_sql::Failure>((db, schema))
+                })
+                .await;
+            this.update(cx, |r, cx| {
+                r.sql_loading = false;
+                let stale = r
+                    .data
+                    .as_ref()
+                    .is_none_or(|d| !Arc::ptr_eq(&d.ledger, &ledger));
+                if stale {
+                    r.ensure_sql(cx);
+                    return;
+                }
+                match loaded {
+                    Ok((db, schema)) => {
+                        r.sql = Some(Sql {
+                            ledger,
+                            interrupt: db.interrupt_handle(),
+                            db: Arc::new(Mutex::new(db)),
+                        });
+                        r.console.schema = schema;
+                        if std::mem::take(&mut r.pending_run) {
+                            r.console.running = false;
+                            r.run_query(cx);
+                        }
+                    }
+                    Err(failure) => {
+                        r.pending_run = false;
+                        let sql = r.console.editor.text();
+                        r.console.finish(clock(), sql, Err(failure));
+                    }
+                }
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    /// Run what the editor holds, once the database is up.
+    pub fn run_query(&mut self, cx: &mut Context<Self>) {
+        if self.console.running {
+            return;
+        }
+        self.console.running = true;
+        let ready = self.sql.as_ref().filter(|s| {
+            self.data
+                .as_ref()
+                .is_some_and(|d| Arc::ptr_eq(&s.ledger, &d.ledger))
+        });
+        let Some(db) = ready.map(|s| s.db.clone()) else {
+            self.pending_run = true;
+            self.ensure_sql(cx);
+            cx.notify();
+            return;
+        };
+        let sql = self.console.editor.text();
+        cx.spawn(async move |this, cx| {
+            let text = sql.clone();
+            let out = cx
+                .background_spawn(async move {
+                    let db = db.lock().unwrap_or_else(|e| e.into_inner());
+                    db.run(&text, ROW_CAP)
+                })
+                .await;
+            this.update(cx, |r, cx| {
+                r.console.finish(clock(), sql, out);
+                cx.notify();
+            })
+            .ok();
+        })
+        .detach();
+        cx.notify();
+    }
+
+    /// Stop the query that is running, if one is.
+    pub fn cancel_query(&mut self) {
+        if self.console.running
+            && let Some(sql) = &self.sql
+        {
+            sql.interrupt.interrupt();
+        }
+    }
+
+    /// Replace the editor's text with `sql`, as a scratch query.
+    pub fn load_sql(&mut self, sql: &str, cx: &mut Context<Self>) {
+        self.console.scratch(sql);
+        cx.notify();
+    }
+
+    /// Load the `k`th saved query into the editor.
+    pub fn open_saved(&mut self, k: usize, cx: &mut Context<Self>) {
+        let Some(q) = self.data.as_ref().and_then(|d| d.ledger.queries.get(k))
+        else {
+            return;
+        };
+        let (name, sql) = (q.name.clone(), q.sql.clone());
+        self.console.load(&name, &sql);
+        self.typing = Some(Field::Sql);
+        cx.notify();
+    }
+
+    /// Bring back a run from the history.
+    pub fn open_run(&mut self, k: usize, cx: &mut Context<Self>) {
+        let Some(run) = self.console.history.get(k).cloned() else {
+            return;
+        };
+        let saved = self.data.as_ref().and_then(|d| {
+            d.ledger
+                .queries
+                .iter()
+                .find(|q| q.name == run.name && q.sql == run.sql)
+        });
+        match saved {
+            Some(q) => self.console.load(&q.name.clone(), &run.sql),
+            None => self.console.scratch(&run.sql),
+        }
+        self.typing = Some(Field::Sql);
+        cx.notify();
+    }
+
+    /// Take DuckDB's "did you mean" and run the query again.
+    pub fn apply_suggestion(&mut self, cx: &mut Context<Self>) {
+        let Some(Err(failure)) = &self.console.result else {
+            return;
+        };
+        let Some((wrong, right)) = suggestion(failure) else {
+            return;
+        };
+        if self.console.editor.replace_word(&wrong, &right) {
+            self.console.touch();
+            self.run_query(cx);
+        }
+    }
+
+    /// A click in the editor: put the cursor there and take the keys.
+    pub fn click_code(
+        &mut self,
+        row: usize,
+        col: usize,
+        cx: &mut Context<Self>,
+    ) {
+        self.console.editor.move_to(row, col);
+        self.typing = Some(Field::Sql);
+        cx.notify();
+    }
+
+    /// Put a table or column name in at the cursor.
+    pub fn insert_name(&mut self, name: &str, cx: &mut Context<Self>) {
+        self.console.editor.insert(name);
+        self.console.touch();
+        self.typing = Some(Field::Sql);
+        cx.notify();
+    }
+
+    /// Show a table's columns in the schema list, or fold them away.
+    pub fn toggle_table(&mut self, name: &str, cx: &mut Context<Self>) {
+        let open = self.console.open_table.as_deref() == Some(name);
+        self.console.open_table = (!open).then(|| name.to_owned());
+        cx.notify();
+    }
+
+    fn paste_query(&mut self, cx: &mut Context<Self>) {
+        if let Some(text) = cx.read_from_clipboard().and_then(|c| c.text()) {
+            self.console.editor.insert(&text.replace("\r\n", "\n"));
+            self.console.touch();
+            cx.notify();
+        }
+    }
+
+    /// Copy the answer as tab-separated text, header first.
+    pub fn copy_answer(&mut self, cx: &mut Context<Self>) {
+        let Some(Ok(answer)) = &self.console.result else {
+            return;
+        };
+        let mut out = answer
+            .columns
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect::<Vec<_>>()
+            .join("\t");
+        for row in &answer.rows {
+            out.push('\n');
+            out.push_str(
+                &row.iter()
+                    .map(crate::model::console::write_cell)
+                    .collect::<Vec<_>>()
+                    .join("\t"),
+            );
+        }
+        cx.write_to_clipboard(gpui::ClipboardItem::new_string(out));
     }
 
     pub fn open_search(
@@ -251,6 +526,9 @@ impl Root {
         self.investments = None;
         self.liabilities = None;
         self.reload_error = None;
+        if self.page == Page::Query {
+            self.ensure_sql(cx);
+        }
         cx.notify();
     }
 
@@ -451,6 +729,10 @@ impl Root {
     }
 
     pub fn close_search(&mut self, cx: &mut Context<Self>) {
+        if self.typing == Some(Field::Sql) && self.console.running {
+            self.cancel_query();
+            return;
+        }
         self.search = None;
         self.typing = None;
         cx.notify();
@@ -462,6 +744,10 @@ impl Root {
         event: &KeyDownEvent,
         cx: &mut Context<Self>,
     ) {
+        if self.search.is_none() && self.typing == Some(Field::Sql) {
+            self.type_into_editor(event, cx);
+            return;
+        }
         let text: &mut String;
         let mut selected = None;
         if let Some(search) = &mut self.search {
@@ -511,6 +797,73 @@ impl Root {
         cx.notify();
     }
 
+    /// Keys while the console's editor has them.
+    fn type_into_editor(
+        &mut self,
+        event: &KeyDownEvent,
+        cx: &mut Context<Self>,
+    ) {
+        let k = &event.keystroke;
+        if k.modifiers.control || k.modifiers.alt || k.modifiers.platform {
+            return;
+        }
+        let e = &mut self.console.editor;
+        let edits = match k.key.as_str() {
+            "backspace" => {
+                e.backspace();
+                true
+            }
+            "delete" => {
+                e.delete();
+                true
+            }
+            "enter" => {
+                e.newline();
+                true
+            }
+            "tab" => {
+                e.insert("  ");
+                true
+            }
+            "left" => {
+                e.left();
+                false
+            }
+            "right" => {
+                e.right();
+                false
+            }
+            "up" => {
+                e.up();
+                false
+            }
+            "down" => {
+                e.down();
+                false
+            }
+            "home" => {
+                e.home();
+                false
+            }
+            "end" => {
+                e.end();
+                false
+            }
+            _ => match &k.key_char {
+                Some(typed) if !typed.chars().any(char::is_control) => {
+                    e.insert(typed);
+                    true
+                }
+                _ => return,
+            },
+        };
+        if edits {
+            self.console.touch();
+        }
+        cx.stop_propagation();
+        cx.notify();
+    }
+
     pub fn set_horizon(&mut self, horizon: usize, cx: &mut Context<Self>) {
         self.horizon = horizon;
         cx.notify();
@@ -536,6 +889,9 @@ impl Root {
         }
         if self.typing.is_some() {
             context.add("Typing");
+        }
+        if self.typing == Some(Field::Sql) {
+            context.add("Sql");
         }
         context
     }
@@ -583,6 +939,17 @@ impl Render for Root {
             .on_action(cx.listener(|r, _: &OpenLiabilities, _, cx| {
                 r.open(Page::Liabilities, cx)
             }))
+            .on_action(
+                cx.listener(|r, _: &OpenQuery, _, cx| r.open(Page::Query, cx)),
+            )
+            .on_action(cx.listener(|r, _: &RunQuery, _, cx| {
+                if r.page == Page::Query {
+                    r.run_query(cx)
+                }
+            }))
+            .on_action(
+                cx.listener(|r, _: &PasteQuery, _, cx| r.paste_query(cx)),
+            )
             .on_action(
                 cx.listener(|r, _: &ToggleScheme, _, cx| r.toggle_scheme(cx)),
             )
@@ -655,6 +1022,7 @@ impl Render for Root {
             Page::Reports => ui::reports::page(self, &t, width, cx),
             Page::Investments => ui::investments::page(self, &t, width, cx),
             Page::Liabilities => ui::liabilities::page(self, &t, width, cx),
+            Page::Query => ui::console::page(self, &t, width, cx),
         };
         let overlay = self
             .search

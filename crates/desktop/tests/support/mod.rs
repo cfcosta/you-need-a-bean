@@ -113,3 +113,30 @@ pub fn mismatch_in(
     };
     off as f64 / counted.max(1) as f64 + size_penalty
 }
+
+/// `shoot`, once `settled` says the view has finished the work it set
+/// off in the background (a query answering, say).
+pub fn shoot_when<V: Render + 'static>(
+    cx: &mut HeadlessAppContext,
+    size: Size<gpui::Pixels>,
+    view: impl FnOnce(&mut Window, &mut gpui::Context<V>) -> V + 'static,
+    settled: impl Fn(&V) -> bool,
+) -> RgbaImage {
+    let window = cx
+        .open_window(size, |window, cx| cx.new(|cx| view(window, cx)))
+        .expect("a headless window");
+    let entity = cx
+        .update_window(window.into(), |root, _, _| root.downcast::<V>())
+        .expect("the window")
+        .expect("the view");
+    for _ in 0..500 {
+        cx.run_until_parked();
+        if cx.update(|cx| settled(entity.read(cx))) {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    cx.run_until_parked();
+    let handle: AnyWindowHandle = window.into();
+    cx.capture_screenshot(handle).expect("a screenshot")
+}

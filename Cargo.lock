@@ -7980,6 +7980,7 @@ dependencies = [
  "rust_decimal",
  "serde_json",
  "you-need-a-bean-core",
+ "you-need-a-bean-sql",
 ]
 
 [[package]]

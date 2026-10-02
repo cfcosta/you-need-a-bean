@@ -37,6 +37,7 @@ for account, label, currency, meta in accounts:
         lines += [f'  updated: "{today}"']
 lines += [f'{start} commodity BEAN', '  name: "Broad Market Example Fund"', '  asset-class: "Global equities"', f'{start} price BEAN 100 USD', '']
 
+
 def txn(day, payee, desc, postings, flag="*", tag=""):
     lines.extend([f'{day} {flag} "{payee}" "{desc}"{tag}'] + [f'  {a}  {v} {c}' for a, v, c in postings] + [''])
 
@@ -85,5 +86,36 @@ for offset in range(0, 4):
     if today < rent <= today + timedelta(days=90): cash(rent, "Willow House", "Expenses:Home:Rent", 1450)
 cash(today + timedelta(days=24), "Coastline Rail", "Expenses:Travel", 680)
 path = root / "overview.beancount"
+# Saved queries for the SQL console; beancount strings may span lines.
+back = today.year * 12 + today.month - 1 - 3
+since = date(back // 12, back % 12 + 1, 1)
+month_start = today.replace(day=1)
+queries = [
+    ("food-by-month", f"""SELECT date_trunc('month', date) AS month,
+       account,
+       sum(value) AS spent
+FROM converted
+WHERE account LIKE 'Expenses:Food:%'
+  AND date BETWEEN DATE '{since}' AND DATE '{today}'
+GROUP BY ALL
+ORDER BY month, spent DESC;"""),
+    ("top-payees", f"""SELECT payee,
+       count(*) AS txns,
+       sum(value) AS spent
+FROM converted
+WHERE kind = 'Expenses'
+  AND date BETWEEN DATE '{today.year}-01-01' AND DATE '{today}'
+GROUP BY payee
+ORDER BY spent DESC
+LIMIT 6;"""),
+    (f"everyday-{today:%B}".lower(), f"""SELECT date, payee, amount, balance
+FROM balances
+WHERE account = 'Assets:Bank:Everyday'
+  AND date BETWEEN DATE '{month_start}' AND DATE '{today}'
+ORDER BY date, txn_id;"""),
+]
+for name, sql in queries:
+    lines += [f'{start} query "{name}" "{sql}"']
+
 path.write_text("\n".join(lines) + "\n")
 print(path)

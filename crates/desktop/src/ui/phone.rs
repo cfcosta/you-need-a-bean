@@ -45,7 +45,7 @@ fn short(m: MonthKey) -> &'static str {
 }
 
 /// The phone box: the legend sits 12px in, padded 6.
-fn pbox(t: &Theme, label: impl Into<SharedString>) -> Div {
+pub(super) fn pbox(t: &Theme, label: impl Into<SharedString>) -> Div {
     div()
         .relative()
         .min_w(px(0.))
@@ -171,7 +171,7 @@ pub fn header(
 pub fn nav(page: Page, t: &Theme, cx: &mut Context<Root>) -> AnyElement {
     div()
         .grid()
-        .grid_cols(5)
+        .grid_cols(Page::TABS.len() as u16)
         .flex_none()
         .bg(t.bar)
         .border_t_1()
@@ -219,6 +219,7 @@ pub fn page(root: &mut Root, t: &Theme, cx: &mut Context<Root>) -> AnyElement {
         Page::Reports => reports(root, t),
         Page::Investments => investments(root, t, cx),
         Page::Liabilities => liabilities(root, t, cx),
+        Page::Query => super::console::phone(root, t, cx),
     }
 }
 
