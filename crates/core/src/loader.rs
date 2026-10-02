@@ -35,7 +35,7 @@ pub struct Document {
     pub path: PathBuf,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct SourceLocation {
     pub path: PathBuf,
     pub line: u32,

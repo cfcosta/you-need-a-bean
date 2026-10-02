@@ -4,6 +4,7 @@ members = [
   "crates/conformance",
   "crates/core",
   "crates/desktop",
+  "crates/sql",
 ]
 resolver = "3"
 

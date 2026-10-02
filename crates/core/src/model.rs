@@ -248,6 +248,15 @@ pub struct Txn {
 
 type CurrencySums = Vec<(String, Decimal)>;
 
+/// A `query` directive: SQL the ledger's author saved under a name.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SavedQuery {
+    pub date: Day,
+    pub name: String,
+    pub sql: String,
+    pub source: Option<crate::loader::SourceLocation>,
+}
+
 /// The fully indexed ledger. Built once at startup, then read-only.
 #[derive(Debug, Clone)]
 pub struct Ledger {
@@ -261,6 +270,8 @@ pub struct Ledger {
     pub first_txn_month: Option<MonthKey>,
     pub last_txn_month: Option<MonthKey>,
     pub txns: Vec<Txn>,
+    /// Every `query` directive, in the order the files declared them.
+    pub queries: Vec<SavedQuery>,
     accounts: BTreeMap<String, AccountInfo>,
     /// account → month → (currency, posting sum)
     monthly: HashMap<String, BTreeMap<MonthKey, CurrencySums>>,
@@ -489,6 +500,18 @@ impl Ledger {
         self.commodities.get(currency)
     }
 
+    /// Every price directive as (day, base, quote, rate), ordered by
+    /// pair and then by day.
+    pub fn prices(&self) -> impl Iterator<Item = (Day, &str, &str, Decimal)> {
+        let mut pairs: Vec<_> = self.prices.iter().collect();
+        pairs.sort_by(|a, b| a.0.cmp(b.0));
+        pairs.into_iter().flat_map(|((from, to), series)| {
+            series.iter().map(move |(day, rate)| {
+                (*day, from.as_str(), to.as_str(), *rate)
+            })
+        })
+    }
+
     /// Every declared commodity, by ticker.
     pub fn commodities(&self) -> impl Iterator<Item = &Commodity> {
         self.commodities.values()
@@ -547,6 +570,7 @@ struct Builder {
     /// account → the day it was closed.
     closes: HashMap<String, Day>,
     txns: Vec<Txn>,
+    queries: Vec<SavedQuery>,
     monthly: HashMap<String, BTreeMap<MonthKey, CurrencySums>>,
     txn_index: HashMap<String, BTreeMap<MonthKey, Vec<usize>>>,
     prices: HashMap<(String, String), PriceSeries>,
@@ -648,6 +672,14 @@ impl Builder {
                 DirectiveContent::Close(close) => {
                     self.closes.insert(close.account.to_string(), date);
                 }
+                DirectiveContent::Query(query) => {
+                    self.queries.push(SavedQuery {
+                        date,
+                        name: query.name.clone(),
+                        sql: query.query.clone(),
+                        source: loaded.origins.get(index).cloned(),
+                    });
+                }
                 _ => {}
             }
         }
@@ -684,6 +716,7 @@ impl Builder {
             first_txn_month: self.first_month,
             last_txn_month: self.last_month,
             txns: self.txns,
+            queries: self.queries,
             accounts,
             monthly: self.monthly,
             txn_index: self.txn_index,

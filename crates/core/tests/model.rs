@@ -339,3 +339,37 @@ fn postings_carry_the_total_cost_their_lot_named() {
         .is_none()
     );
 }
+
+fn queries_ledger() -> Ledger {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/queries/main.beancount");
+    Ledger::build(load(&path).unwrap())
+}
+
+#[test]
+fn keeps_query_directives_in_file_order_with_their_line() {
+    let ledger = queries_ledger();
+    let names: Vec<_> =
+        ledger.queries.iter().map(|q| q.name.as_str()).collect();
+    assert_eq!(names, ["food", "everything"]);
+    let food = &ledger.queries[0];
+    assert_eq!(
+        food.sql,
+        "SELECT sum(amount) FROM postings WHERE account = 'Expenses:Food'"
+    );
+    assert_eq!(food.date, (2026, 1, 2));
+    assert_eq!(food.source.as_ref().map(|s| s.line), Some(6));
+}
+
+#[test]
+fn lists_every_price_as_a_dated_quote() {
+    let ledger = queries_ledger();
+    let quotes: Vec<_> = ledger.prices().collect();
+    assert_eq!(
+        quotes,
+        [
+            ((2026, 1, 3), "EUR", "USD", dec("1.10")),
+            ((2026, 2, 1), "EUR", "USD", dec("1.20")),
+        ]
+    );
+}

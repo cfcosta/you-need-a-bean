@@ -1,0 +1,28 @@
+option "operating_currency" "USD"
+
+2026-01-01 open Assets:Bank USD
+2026-01-01 open Assets:Euro EUR
+2026-01-01 open Expenses:Food
+2026-01-01 open Income:Salary USD
+2026-01-01 commodity EUR
+  name: "Euro"
+2026-01-01 price EUR 1.10 USD
+
+2026-01-05 * "Payroll" "January" #work ^pay-1
+  source: "bank"
+  Income:Salary  -1000.00 USD
+  Assets:Bank
+
+2026-01-10 * "Market" ""
+  Expenses:Food  20.00 EUR
+  Assets:Euro
+
+2026-02-01 price EUR 1.20 USD
+
+2026-02-03 * "Market" ""
+  Expenses:Food  10.00 EUR
+  Assets:Euro
+
+2026-02-04 ! "Bakery" ""
+  Expenses:Food  4.50 USD
+  Assets:Bank

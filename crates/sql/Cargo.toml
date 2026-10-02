@@ -1,0 +1,13 @@
+[package]
+name = "you-need-a-bean-sql"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[lib]
+name = "bean_sql"
+
+[dependencies]
+bean_core = { package = "you-need-a-bean-core", path = "../core" }
+duckdb = { version = "1.10506.0", features = ["bundled", "parquet"] }
+rust_decimal = "1.42.1"

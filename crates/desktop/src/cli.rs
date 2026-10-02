@@ -12,8 +12,7 @@ pub struct Options {
     pub today: Option<Day>,
 }
 
-pub const USAGE: &str =
-    "usage: you-need-a-bean <LEDGER> [--today YYYY-MM-DD]";
+pub const USAGE: &str = "usage: you-need-a-bean <LEDGER> [--today YYYY-MM-DD]";
 
 pub fn parse(
     args: impl IntoIterator<Item = String>,
