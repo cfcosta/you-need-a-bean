@@ -38,6 +38,14 @@ actions!(
         RunQuery,
         PasteQuery,
         ToggleScheme,
+        PrevTab,
+        NextTab,
+        ScrollDown,
+        ScrollUp,
+        HalfPageDown,
+        HalfPageUp,
+        ScrollToEnd,
+        ScrollToTop,
         OpenSearch,
         CloseSearch,
     ]
@@ -45,8 +53,9 @@ actions!(
 
 const CONTEXT: &str = "Bean";
 
-/// The keys, vim-flavoured: digits open pages, `t` flips the scheme,
-/// `/` searches. None of them fire while the search prompt has the keys.
+/// The keys, vim-flavoured: digits open pages, `h`/`l` step through
+/// them, `j`/`k`/`d`/`u`/`G`/`gg` scroll, `t` flips the scheme, `/`
+/// searches. None of them fire while a prompt or field has the keys.
 pub fn bind_keys(cx: &mut App) {
     let pages = Some("Bean && !Search && !Typing");
     cx.bind_keys([
@@ -61,6 +70,14 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("ctrl-v", PasteQuery, Some("Sql")),
         KeyBinding::new("secondary-v", PasteQuery, Some("Sql")),
         KeyBinding::new("t", ToggleScheme, pages),
+        KeyBinding::new("h", PrevTab, pages),
+        KeyBinding::new("l", NextTab, pages),
+        KeyBinding::new("j", ScrollDown, pages),
+        KeyBinding::new("k", ScrollUp, pages),
+        KeyBinding::new("d", HalfPageDown, pages),
+        KeyBinding::new("u", HalfPageUp, pages),
+        KeyBinding::new("shift-g", ScrollToEnd, pages),
+        KeyBinding::new("g g", ScrollToTop, pages),
         KeyBinding::new("/", OpenSearch, pages),
         KeyBinding::new("ctrl-k", OpenSearch, Some(CONTEXT)),
         KeyBinding::new("secondary-k", OpenSearch, Some(CONTEXT)),
@@ -229,6 +246,8 @@ pub struct Root {
     /// The time of day runs are stamped with, when it must not move
     /// (pictures in tests); the wall clock otherwise.
     pub clock: Option<String>,
+    /// Where the page is scrolled to.
+    pub scroll: gpui::ScrollHandle,
     focus: FocusHandle,
 }
 
@@ -259,6 +278,7 @@ impl Root {
             pending_run: false,
             code_origin: Default::default(),
             clock: None,
+            scroll: gpui::ScrollHandle::new(),
             focus: cx.focus_handle(),
         }
     }
@@ -281,6 +301,9 @@ impl Root {
     }
 
     pub fn open(&mut self, page: Page, cx: &mut Context<Self>) {
+        if page != self.page {
+            self.scroll.set_offset(gpui::point(px(0.), px(0.)));
+        }
         self.page = page;
         if page == Page::Query {
             self.typing = Some(Field::Sql);
@@ -689,6 +712,9 @@ impl Root {
     }
 
     pub fn open_account(&mut self, account: String, cx: &mut Context<Self>) {
+        if self.page != Page::Account {
+            self.scroll.set_offset(gpui::point(px(0.), px(0.)));
+        }
         self.account = Some(account);
         self.page = Page::Account;
         cx.notify();
@@ -871,6 +897,35 @@ impl Root {
         cx.notify();
     }
 
+    /// The tab `step` places along from the open one, wrapping round.
+    pub fn step_tab(&mut self, step: isize, cx: &mut Context<Self>) {
+        let tabs = Page::TABS.len() as isize;
+        let at = Page::TABS
+            .iter()
+            .position(|p| *p == self.page.tab())
+            .unwrap_or(0) as isize;
+        let next = (at + step).rem_euclid(tabs) as usize;
+        self.open(Page::TABS[next], cx);
+    }
+
+    /// Scroll the page `dy` pixels down (up when negative), never past
+    /// either end.
+    pub fn scroll_by(&mut self, dy: f32, cx: &mut Context<Self>) {
+        let max = f32::from(self.scroll.max_offset().y);
+        let at = -f32::from(self.scroll.offset().y);
+        self.scroll_to((at + dy).clamp(0., max.max(0.)), cx);
+    }
+
+    fn scroll_to(&mut self, y: f32, cx: &mut Context<Self>) {
+        let x = self.scroll.offset().x;
+        self.scroll.set_offset(gpui::point(x, px(-y)));
+        cx.notify();
+    }
+
+    fn half_page(&self) -> f32 {
+        f32::from(self.scroll.bounds().size.height) / 2.
+    }
+
     pub fn set_horizon(&mut self, horizon: usize, cx: &mut Context<Self>) {
         self.horizon = horizon;
         cx.notify();
@@ -960,6 +1015,29 @@ impl Render for Root {
             .on_action(
                 cx.listener(|r, _: &ToggleScheme, _, cx| r.toggle_scheme(cx)),
             )
+            .on_action(cx.listener(|r, _: &PrevTab, _, cx| r.step_tab(-1, cx)))
+            .on_action(cx.listener(|r, _: &NextTab, _, cx| r.step_tab(1, cx)))
+            .on_action(cx.listener(|r, _: &ScrollDown, _, cx| {
+                r.scroll_by(3. * kit::LINE, cx)
+            }))
+            .on_action(cx.listener(|r, _: &ScrollUp, _, cx| {
+                r.scroll_by(-3. * kit::LINE, cx)
+            }))
+            .on_action(cx.listener(|r, _: &HalfPageDown, _, cx| {
+                let half = r.half_page();
+                r.scroll_by(half, cx)
+            }))
+            .on_action(cx.listener(|r, _: &HalfPageUp, _, cx| {
+                let half = r.half_page();
+                r.scroll_by(-half, cx)
+            }))
+            .on_action(cx.listener(|r, _: &ScrollToEnd, _, cx| {
+                let max = f32::from(r.scroll.max_offset().y);
+                r.scroll_to(max.max(0.), cx)
+            }))
+            .on_action(
+                cx.listener(|r, _: &ScrollToTop, _, cx| r.scroll_to(0., cx)),
+            )
             .on_action(cx.listener(|r, _: &OpenSearch, window, cx| {
                 r.open_search(window, cx)
             }))
@@ -996,6 +1074,7 @@ impl Render for Root {
                 .child(
                     div()
                         .id("page")
+                        .track_scroll(&self.scroll)
                         .flex_1()
                         .min_h(px(0.))
                         .overflow_y_scroll()
@@ -1054,6 +1133,7 @@ impl Render for Root {
                 .child(
                     div()
                         .id("page")
+                        .track_scroll(&self.scroll)
                         .size_full()
                         .overflow_y_scroll()
                         .child(page),
