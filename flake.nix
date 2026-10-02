@@ -89,7 +89,7 @@
                 src = ./.;
                 hooks = {
                   deadnix.enable = true;
-                  nixfmt-rfc-style.enable = true;
+                  nixfmt.enable = true;
                   treefmt = {
                     enable = true;
                     package = formatter;
