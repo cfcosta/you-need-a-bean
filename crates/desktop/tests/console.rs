@@ -130,3 +130,30 @@ fn opening_the_console_answers_its_first_query(cx: &mut TestAppContext) {
     let rows = result.expect("an answer").expect("no failure").rows;
     assert_eq!(rows[0][1], Cell::Text("Expenses:Food:Groceries".into()));
 }
+
+#[gpui::test]
+fn without_saved_queries_nothing_runs_until_there_is_sql(
+    cx: &mut TestAppContext,
+) {
+    cx.update(bean_desktop::init);
+    let ledger = Arc::new(common::rough_ledger());
+    assert!(ledger.queries.is_empty());
+    let (root, cx) = cx.add_window_view(|_, cx| Root::new(ledger, TODAY, cx));
+    cx.update(|window, cx| {
+        let focus = root.read(cx).focus_handle(cx);
+        window.focus(&focus, cx);
+    });
+    cx.simulate_keystrokes("6");
+    cx.run_until_parked();
+    cx.simulate_keystrokes("ctrl-enter enter space ctrl-enter");
+    cx.run_until_parked();
+    let (result, history) = root.read_with(cx, |r, _| {
+        (r.console.result.is_some(), r.console.history.len())
+    });
+    assert!(!result, "blank text is not a query");
+    assert_eq!(history, 0);
+    cx.simulate_input("SELECT 1");
+    cx.simulate_keystrokes("ctrl-enter");
+    cx.run_until_parked();
+    assert!(root.read_with(cx, |r, _| matches!(r.console.result, Some(Ok(_)))));
+}

@@ -8,7 +8,8 @@ use rust_decimal::Decimal;
 use crate::fmt::fixed;
 
 /// A multi-line text buffer with one cursor, counted in characters.
-#[derive(Clone, Debug, Default)]
+/// It always holds at least one line, empty or not.
+#[derive(Clone, Debug)]
 pub struct Editor {
     lines: Vec<String>,
     row: usize,
@@ -24,6 +25,12 @@ fn chars(s: &str) -> usize {
 /// The byte offset of character `col` in `s`.
 fn byte(s: &str, col: usize) -> usize {
     s.char_indices().nth(col).map_or(s.len(), |(i, _)| i)
+}
+
+impl Default for Editor {
+    fn default() -> Self {
+        Self::new("")
+    }
 }
 
 impl Editor {

@@ -356,7 +356,8 @@ impl Root {
 
     /// Run what the editor holds, once the database is up.
     pub fn run_query(&mut self, cx: &mut Context<Self>) {
-        if self.console.running {
+        if self.console.running || self.console.editor.text().trim().is_empty()
+        {
             return;
         }
         self.console.running = true;

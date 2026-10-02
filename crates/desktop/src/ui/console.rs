@@ -391,9 +391,13 @@ fn editor(root: &Root, t: &Theme, cx: &mut Context<Root>) -> Div {
                 .text_color(t.dim)
                 .child(div().text_color(t.green).child("✓"))
                 .child(format!(" ran {}", run.at)),
-            (Some(Err(f)), _) => div()
-                .text_color(t.red)
-                .child(format!("✕ {} error", f.kind.to_lowercase())),
+            (Some(Err(f)), _) => {
+                div().text_color(t.red).child(if f.kind == "Error" {
+                    "✕ error".to_string()
+                } else {
+                    format!("✕ {} error", f.kind.to_lowercase())
+                })
+            }
             _ => div(),
         }
     };
@@ -639,11 +643,11 @@ fn failure(f: &Failure, t: &Theme, cx: &mut Context<Root>) -> Div {
                 .flex()
                 .flex_row()
                 .whitespace_nowrap()
-                .child(
-                    div()
-                        .text_color(t.red)
-                        .child(format!("{} Error: ", f.kind)),
-                )
+                .child(div().text_color(t.red).child(if f.kind == "Error" {
+                    "Error: ".to_string()
+                } else {
+                    format!("{} Error: ", f.kind)
+                }))
                 .child(line.to_owned())
         } else if let Some(rest) = line.strip_prefix("LINE ") {
             let (n, code) = rest.split_once(':').unwrap_or((rest, ""));

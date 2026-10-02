@@ -233,3 +233,20 @@ fn a_finished_run_goes_to_the_top_of_the_history() {
     assert_eq!(c.history[1].outcome, Ok(1));
     assert_eq!(c.history[1].name, "top");
 }
+
+#[test]
+fn an_empty_editor_still_has_a_line_to_type_on() {
+    let mut e = Editor::default();
+    assert_eq!(e.lines().len(), 1);
+    e.insert("x");
+    e.backspace();
+    e.backspace();
+    e.newline();
+    assert_eq!(e.text(), "\n");
+    let c = Console::new(&[]);
+    assert_eq!(
+        c.editor.lines().len(),
+        1,
+        "no saved queries, one empty line"
+    );
+}
