@@ -1,8 +1,8 @@
 # Investments
 
-Open **Investments** in the sidebar, or go directly to `/investments`. The page
-uses the ledger's first operating currency and shows holdings as of the reader's
-local calendar day. Future transactions and future prices are excluded.
+Open **Invest** in the tab bar or press `4`. The page uses the ledger's first
+operating currency and shows holdings as of the app's current day. Future
+transactions and future prices are excluded.
 
 The portfolio combines positive balances of non-operating commodities in asset
 accounts. It includes small positions and holdings across every account, with
@@ -10,13 +10,13 @@ no personal/business split. Operating-currency cash, including balances in
 accounts named as investments, is not part of this commodity portfolio.
 
 The allocation chart uses `asset-class` metadata on commodity directives.
-Click a class to filter the holdings; account names, labels, and tickers are
-searchable. Sorting covers value, estimated gain, name, and oldest quote.
-Filtering does not change the portfolio totals or allocation denominator.
+Account names, labels, and tickers are searchable in the holdings filter.
+Sorting covers value, estimated gain, and name. Filtering does not change the
+portfolio totals or allocation denominator. The allocation panel also groups
+holdings by account.
 
-Expand a holding to inspect its quantity, price date, activity dates, and the
-accounts that hold it. Account links open their registers. Transaction search
-matches tickers in posting amounts and provides source-file references.
+Transaction search matches tickers in posting amounts and provides source-file
+references.
 
 Unpriced holdings are named separately and excluded from valuation and allocation.
 Quotes at least 45 days old are marked as stale. Prices are read from the ledger;
@@ -28,7 +28,7 @@ They are estimates, not specific-lot or tax calculations. A holding with missing
 acquisition costs has no gain estimate; missing cost is never zero cost. The
 coverage figure shows how much priced value has a recorded cost basis. Realized
 gains, dividends, fees, and total investment return are not calculated by this
-page. Accounting errors and connection failures withhold gain estimates.
+page. Accounting errors withhold gain estimates.
 
 Declare descriptive metadata and prices in the ledger, for example:
 
@@ -40,18 +40,17 @@ Declare descriptive metadata and prices in the ledger, for example:
 2026-09-08 price FUND 125.50 USD
 ```
 
-The existing Reports page keeps its compact portfolio summary and links here
-for the detailed view.
+The Reports page keeps its compact portfolio summary; the Invest page provides
+the detailed view.
 
 ## Performance over a period
 
-`GET /api/investments/performance?start=2025-12-31&as_of=2026-09-08`
-returns opening and closing values, net flows, price gain, a return estimate,
-a sampled value history, and results for each holding, including positions sold
-within the period. Omit `start` for all ledger history. Dates are end-of-day:
+The performance panel shows opening and closing values, net flows, price gain,
+a return estimate, and sampled value history. Dates are end-of-day:
 transactions on the opening date are included in opening value, and subsequent
-transactions through `as_of` are period flows. Future entries and prices are
-excluded. Samples include the endpoints, month ends, and investment activity days.
+transactions through the current day are period flows. Future entries and
+prices are excluded. Samples include the endpoints, month ends, and investment
+activity days.
 
 The portfolio boundary is the same non-operating commodities in asset accounts
 as the holdings page. Net-zero units transferred between asset accounts are
@@ -72,13 +71,12 @@ report currency. It excludes cash dividends, interest, fees, and taxes; new unit
 received as rewards are additions valued at their arrival price, not price gains.
 It is not total return. Missing flow conversions or historical valuations prevent
 a complete portfolio result. Negative inventory is unsupported. Old quotes are
-flagged, and accounting issues or failed reloads withhold gain/return estimates.
+flagged, and accounting issues withhold gain/return estimates.
 Ledger quotes can lag execution prices, so this is only as current as the prices
 recorded in the ledger.
 
 The Investments page offers 1M, 3M, 6M, YTD, 1Y, and All windows. YTD opens
 on the prior December 31. Other windows use calendar months, clamped to the
 last valid day. The chart compares portfolio value with opening value plus net
-flows; their difference is price gain. Hover or use the history slider and arrow
-keys to inspect a recorded sample. A separate period table retains sold holdings;
-the existing allocation and holdings sections remain the current snapshot.
+flows; their difference is price gain. The allocation and holdings sections
+remain the current snapshot.

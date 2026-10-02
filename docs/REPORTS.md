@@ -3,7 +3,7 @@
 The reports page answers the questions the monthly budget can't: not "did
 I overspend on groceries" but "where is this going, and when do I get to
 stop". Everything here is a pure read over `Ledger`, computed in
-`crates/core/src/reports/` and drawn by `ui/src/components/Reports.tsx`.
+`crates/core/src/reports/` and drawn by `crates/desktop/src/ui/reports.rs`.
 
 ## Shipped
 
@@ -16,7 +16,7 @@ stop". Everything here is a pure read over `Ledger`, computed in
 
 ## Planned
 
-Each line is one task: core computation (with tests) → API shape → card.
+Each line is one task: core computation (with tests) → desktop model → view.
 
 - [x] **1 · Runway** — liquid assets ÷ monthly spend. FIRE answers "when
       can I stop?"; nothing yet answers "what if income stops next

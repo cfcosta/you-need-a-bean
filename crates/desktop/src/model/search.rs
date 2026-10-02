@@ -1,7 +1,6 @@
 //! The ⌘K prompt: every term must appear somewhere in a transaction —
 //! date, flag, payee, narration, tags, links, accounts, amounts or
-//! metadata — case-insensitive, newest first. The same rule as the web
-//! app's search.
+//! metadata — case-insensitive, newest first.
 
 use bean_core::model::{Day, Ledger};
 use rust_decimal::Decimal;

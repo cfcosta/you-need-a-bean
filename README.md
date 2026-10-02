@@ -61,5 +61,6 @@ every report something to report on. All of it invented — no part of it
 comes from anyone's books. `examples/realistic/build.py` regenerates it,
 which is also how to move its dates forward once they age.
 
-Design and computation rules live in `docs/PLAN.md`; `docs/mockup-v3.html`
-is the layout the UI grew out of, though the look has moved on since.
+Design and computation rules live in `docs/PLAN.md`. The native interface
+lives under `crates/desktop/src/ui/` and is checked against headless visual
+references in `crates/desktop/tests/reference/`.

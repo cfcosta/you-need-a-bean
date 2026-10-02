@@ -1,5 +1,5 @@
-//! Searching the ledger the way the web app does: every term must
-//! appear somewhere in the transaction, newest first.
+//! Searching the ledger: every term must appear somewhere in the
+//! transaction, newest first.
 
 mod common;
 

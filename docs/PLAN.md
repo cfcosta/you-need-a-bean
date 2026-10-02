@@ -1,20 +1,16 @@
 # you need a bean — implementation plan
 
-A read-only, YNAB-style monthly budget viewer for beancount ledgers.
-Single Rust binary, UI embedded. You point it at a ledger file and it
-serves a local web app:
+A read-only financial viewer for Beancount ledgers. Point the native app at
+a ledger and it opens the overview in a desktop window:
 
 ```
 you-need-a-bean examples/example.beancount
-# → serving http://127.0.0.1:2326  (parsed 2,412 directives across 1 file in 38ms)
 ```
 
-The layout follows `docs/mockup-v3.html`: dark sidebar with ledger chip
-and account balances, monthly budget table with "vs typical" bullet bars,
-right inspector with target card / 6-month chart / currency split /
-transaction list with expandable metadata. It keeps the mockup's Tokyo
-Night palette; the typography and the shape of the cards have moved on,
-as described under UI below.
+The interface uses the Plain Text design language: one monospace face,
+a 14/22 rhythm, outlined sections, and figures written as the sums they
+represent. It supports Tokyo Night day and night palettes and switches to
+a phone layout below 640px.
 
 ## Architecture
 
@@ -24,15 +20,17 @@ crates/desktop  you-need-a-bean-desktop  binary "you-need-a-bean": the GPUI app
 ```
 
 Data flow: parse all files once at startup into an immutable `Ledger`
-(indexed aggregates), share it behind an `Arc`, answer every view
-from the in-memory model. No database; the app polls the ledger's files and
-rebuilds the model in the background when they change.
+(indexed aggregates), share it behind an `Arc`, and answer every financial
+view directly from the in-memory model. The app polls the ledger's files and
+rebuilds the model in the background when they change. The SQL console lazily
+loads the same reading into an in-memory DuckDB database when first opened.
 
 - **Parser crate**: `beancount-parser` (nom-based, fast, metadata/tags/links
   support, generic over the decimal type). We use `rust_decimal::Decimal`
-  internally; amounts serialize as JSON numbers at the API boundary.
-- **UI**: gpui-pre, drawn from the Plain Text design canvas; a headless
-  visual test diffs every page against the canvas boards.
+  internally.
+- **UI**: gpui-pre, drawn from the Plain Text design canvas; headless visual
+  tests compare every page with committed day, night, desktop, and phone
+  references.
 
 ## Ingestion rules
 
@@ -71,13 +69,13 @@ rebuilds the model in the background when they change.
   every month would just print its average twice — so the column is
   blank down the regular rows and filled down the lumpy ones.
 - **Status**: ratio r = spent/avg; `over` if r > 1, `warn` if r > 0.85,
-  else `good` (mockup thresholds).
+  else `good`.
 - **Conversion** to the display currency at date D (end of selected month):
   direct price ≤ D, else inverse price ≤ D, else one-hop pivot through an
   operating currency. Unconvertible amounts are excluded from converted
   totals but always shown in the native split (e.g. `VACHR`).
 - **Income tile** = −(sum of postings to `Income:*`) for the month, converted.
-- **Sidebar balances** = cumulative postings from ledger start through the
+- **Account balances** = cumulative postings from ledger start through the
   end of the selected month, per commodity. An account is **tracking** if
   it holds any non-operating-currency commodity (e.g. stock lots), else
   **budget**; `ynab: "budget" | "tracking" | "hidden"` open-metadata
@@ -187,216 +185,68 @@ priced at the month's end).
   the twelve complete months before the current one, clamped to the
   ledger; a debt's `trail` (its balance after every transaction) covers
   the `basis` months.
-- **In the UI** (`ui/src/debt.ts`): the "Which first?" card simulates
-  the debts being paid down, month by month, in two orders —
-  highest rate first (avalanche) and smallest balance first
-  (snowball) — with the extra the reader picks and every finished
-  debt's payment rolled into the next; the masthead's debt-free
-  stat hints at the same rollover ("Mar 2028 with payments rolling
-  on"). The two orders are drawn as a race: one bar per debt from
-  now to the month it ends, a finish line per order.
-- **No prose.** A card does not explain its figures in paragraphs;
-  each fact has a place. The masthead's share bars print each debt's
-  share inside the segment (when it is wide enough), and its costs
-  stat hints the year's cost at the blended rate. A loan's pay-down-
-  or-invest call is a `Verdict` chip (`verdict`: "Clear it first",
-  "Invest instead" or "No hurry", with the reason beside it, toned
-  go/hold/free); what secures it is a gauge captioned with the loan
-  against the asset and what selling it would leave clear or short.
-  A card's interest-paid cell hints since when; its in-credit pill
-  explains itself on hover. Under every slider a `Readout` row of
-  figures says what the setting comes to (the payment, the payoff
-  month, the interest to come; with an extra, how much sooner and
-  how much less interest). The one paragraph left is the
-  foreign-currency line (`foreignText`), which has no figure to be;
-  `beatenText` is a trophy's tooltip.
-- **No subtitles.** Every owing debt gets a colour (`hues`, five
-  hues cycling, biggest debt first) that it keeps everywhere: the
-  masthead's owed-versus-cost bars (`costShares`), the strip of the
-  next 31 days with each payment standing where it falls
-  (`stripMarks` lays labels out in lanes so they never collide), the
-  ring on its card, and its bar in the race. A card's head says what
-  the debt is with a ring (progress for a loan, limit used for a
-  card) and pills — the rate, toned by `rateTone` against the assumed
-  return; secured on what; carrying, cleared, or in credit; billed in
-  which currency — instead of a line of text under the title. Beaten
-  debts are tiles, not rows.
-- **This month** (`PlanCard`): the cash in budget accounts drawn as a
-  bar cut into what is due in the next 31 days, a typical month of
-  spending, the fixed costs kept back, and what is spare; the spare
-  is cut again into what the plan sends to the debts and what is left
-  over, and the key names every part (the spare even at zero, so an
-  empty plan says why). Under it, a row per payment to send (`monthPlan`):
-  the day, the debt in its colour, the amount and what is left on the
-  debt after it. The rows start from `upcoming`; the spare is then
-  placed down the chosen order (`targets`: the debts being paid down,
-  skipping a loan whose rate is under the assumed return, since on
-  paper that money does better invested), each debt taking what
-  clears it before the next gets any, and a debt whose payment already
-  went this month gets a row dated today. A toggle picks the order
-  when more than one debt is in line; when a loan was skipped, the
-  "left over" key item says so on hover. "Add the due dates to your
-  calendar" (its tooltip says what the file is) builds
-  an iCalendar file (`ui/src/ics.ts`, `dueEvents`): one all-day event
-  per upcoming payment, repeating monthly on the due day for the
-  payoff's months (twelve for a card cleared in full, whose amount
-  varies, so its summary says "statement due"), a stable UID per
-  account so a re-import updates rather than duplicates, lines folded
-  at 75 octets and text escaped as RFC 5545 asks. A due day past a
-  month's end skips that month, as the standard has it.
-- **Which first?** starts its slider at the usual monthly surplus
-  (`sliderStart`, snapped to the slider's step) and marks that spot
-  on the range with a "usual" tick, so the race opens on what the
-  reader can actually sustain rather than on zero; the readout under
-  it adds the usual payments, the extra and the month's total. The
-  card's figure is what the dearest-first order saves, or the
-  debt-free month when the two orders come to the same.
-- **On a carried card**: "What is carried" is the makeup as a bar in
-  the card's colour, fading from the biggest part to the smallest, a
-  row per part (what it was for, how many charges since when, what is
-  owed and the interest it has run up). "On the treadmill" is a pair
-  of bars per month, what went on the card against what came off it,
-  interest stacked on the charges in red, the months the pace is read
-  over drawn in full and the earlier ones faded, then three fact
-  cells (`treadmillFacts`): the real net a month (paid against
-  charged), where that pace leads against where the minimum alone
-  says ("never" when the payments trail the charges, only cover
-  them, or the interest outruns them), and the interest on the way
-  against the minimum's.
-
-## HTTP API
-
-All responses are JSON. Amounts are numbers in the requested display
-currency unless stated. `cur` defaults to the first operating currency,
-`basis` to 6 (allowed: 3, 6, 12).
-
-- `GET /api/summary`
-  `{ title, files, directives, parse_ms, operating_currencies, months:
-  [first, …, last], today, default_month }`
-- `GET /api/month/{YYYY-MM}?basis=&cur=`
-  `{ month, is_current, day, days_in_month, income, spent, typical,
-  groups: [{ name, spent, avg, categories: [{ account, label, spent, avg,
-  status, ratio, split: {CUR: amount} }] }], accounts: { budget: [...],
-  tracking: [...] } }` where each account row is `{ account, label,
-  balances: {CUR: amount}, converted }`.
-- `GET /api/category/{account}/{YYYY-MM}?basis=&cur=`
-  `{ account, label, spent, avg, status, window: [from, to], history:
-  [{month, spent}×6], split, txns: [{ date, flag, payee, narration, tags,
-  links, meta, amount, currency, converted, postings: [{account, amount,
-  currency}] }] }`
-- `GET /api/liabilities?basis=&cur=`
-  `{ month, owed, installment, revolving, interest: { month, year,
-  earned_month, earned_year, window: [from, to] }, cost_year,
-  blended_rate, debt_free, assumed_return, cover: { cash, owed, covered,
-  after }, upcoming: [{ account, label, date, amount }], notices: [{
-  kind, account, label, amount, day }], debts: [{ account, label, kind,
-  owed, balances: {CUR: amount}, foreign: [{ code, amount, converted }],
-  limit, utilisation, collateral: { account, label, value } | null,
-  peak, progress, rate, payment, due_day, next_due, principal_paid,
-  interest_paid, payments: [{ date, total, principal, interest }],
-  history: [{ month, owed }], trail: [{ date, owed, delta }], payoff: {
-  months, month, interest }, cycle: { charges, payments, carried,
-  in_full }, treadmill: { months: [{ month, charges, payments,
-  interest }], pace, charged, paid, net, payoff } | null, makeup: {
-  rows: [{ account, label, owed, charged, interest, since, count }],
-  total } | null }], beaten: [{ account, label, peak, principal_paid,
-  interest_paid, first, last }], extra: { cash, due, spend, buffer,
-  now, monthly }, unpriced }` — rules under "Liabilities" above.
-  Zero is always sent as `0.0`, never `-0.0`.
-- Anything else under `/api/` → 404 JSON; bad month/currency → 400.
-- `/` and static assets → embedded UI (SPA fallback to index.html).
+- **Desktop presentation**: the liabilities page summarizes what is owed,
+  free cash, interest, the next payment, and one section per open debt.
+  Each debt shows its recent balance, projected payoff, recent payments,
+  and a slider for trying an extra monthly payment. The slider uses the
+  same cent-rounded amortization as the core report.
 
 ## UI
 
-Bun + React 19 + Tailwind v4 (`bun-plugin-tailwind`). The design is an
-editorial finance journal in the Tokyo Night colours, two sets of custom
-properties in `ui/src/index.css`: Night (dark, the default) and Day
-(light). Blue is money that is yours, purple is what the market holds
-for you, green is kept or under, red is over or owed. Figures and titles
-are set in Bricolage Grotesque, the interface in Inter, account names in
-JetBrains Mono; the fonts live under `ui/src/fonts/` and ship inside
-the bundle, so the app never reaches for the network. The scheme
-follows the system by default and can be pinned from the switch at the
-foot of the sidebar; that choice is kept in local storage
-(`ui/src/theme.ts`), not in the URL, since it is about the screen rather
-than the ledger. Components map 1:1 to the mockup's renderers: `Sidebar`, `Topbar`, `StatStrip`,
-`BudgetTable` (VsBar), `Inspector` (TargetCard, HistoryChart,
-CurrencySplit, TxnList). Client state: `{month, basis, cur, cat,
-openTxns, closedGroups}` — same as the mockup's `state` object.
+The native interface is built with `gpui-pre`. `Root` owns the current
+ledger reading and the reader's page choices; page-specific models turn core
+reports into display-ready figures, and modules under `crates/desktop/src/ui/`
+draw them. JetBrains Mono ships in the binary, so the app does not need a
+font or network request at startup.
 
-Three pages share the shell: the budget, `Reports` (`/reports`) and
-`Liabilities` (`/liabilities`), routed in `ui/src/router.ts`. The
-Liabilities page opens with a masthead (owed, the month's and the
-year's interest, a year at these rates, the debt-free month, cash
-against the cards, interest earned, a bar cut per debt, the payments
-coming up) and the notices, both full width; under them the body is
-two even columns — first what to do, "This month" beside "Which
-first?", then the debts themselves, the loans beside the cards, each
-group headed with its total — and the debts you have beaten close the
-page full width. A ledger with only loans, or only cards, has no
-second group to pair with, so the one group spreads across both
-columns under a head that spans them: the two biggest open a column
-each and the rest go to whichever column is shorter, measured by
-`tall` in `Liabilities.tsx`, an estimate of a card's height read off
-the rendered page. Below 1080px the columns become one. Each debt has a
-card: a loan's balance by month with the
-projection to zero and a slider that tries a bigger payment
-(`ui/src/debt.ts` amortises the way the server does, to the cent), the
-principal against the interest paid, and the recent payments; a card's
-day-by-day sawtooth with every payment marked and its cycle. No card
-explains itself in a paragraph: its figures, chips and marks carry
-what a sentence would have said (see "No prose" under Liabilities
-above). Card heads, keys and chart scales are shared through
-`components/Card.tsx` and `chart.ts`.
+Six tabs share the window: Overview, Budget, Reports, Invest, Debts, and SQL.
+Account registers open beneath Budget, while search can jump from any page to
+the matching account and month. Digit keys open tabs; `h`/`l` move between
+them, `j`/`k` walk rows, `d`/`u` scroll, `/` searches, and `t` switches the
+color scheme. Below 640px the same state is drawn in a phone layout.
+
+Night and day palettes live in `crates/desktop/src/theme.rs`. Blue denotes
+cash and principal, purple investments, green favorable movement, and red
+amounts owed or adverse movement. The embedded JetBrains Mono weights keep
+labels, sums, and table columns on the same character grid.
 
 ## Performance
 
-- Parse each file once; includes discovered breadth-first and parsed in
+- Parse each file once; includes are discovered breadth-first and parsed in
   parallel (`std::thread::scope`) per wave.
-- Startup precomputes: per-(account, month) currency sums + transaction
-  index; per-account cumulative balances per month; sorted price series
-  per currency pair. Requests are hash lookups + a few dozen adds.
-- Release profile: `lto = "thin"`, `codegen-units = 1`.
-- Acceptance: the 339 KB `examples/example.beancount` parses well under
-  100 ms; a synthetic ~100k-directive ledger stays comfortably subsecond
-  end-to-end at startup, and API responses stay in single-digit ms.
+- Startup precomputes per-(account, month) currency sums, the transaction
+  index, cumulative account balances, and sorted price series.
+- Page models are cached by their relevant choices and rebuilt only when the
+  ledger, month, basis, or range changes.
+- DuckDB is loaded lazily and off the UI thread when the SQL tab is opened.
+- Release builds use `lto = "thin"` and one codegen unit.
 
 ### Reproducible synthetic benchmark
 
-Corpus: `bun tools/perf-gen.ts /tmp/big 2100` — a deterministic
-120-month ledger (2016-09 – 2026-08), 252,505 directives across 123
-files (~26 MB), two operating currencies, and glob includes. Every
-account, payee, amount, and date in the corpus is generated.
-
-Build the release binary, serve `/tmp/big/main.beancount`, then measure
-startup through the first HTTP response, resident memory, median/max API
-latency, static-asset latency, browser completion, and rapid month
-navigation. Results depend on the host and should be recorded locally;
-the committed corpus contains no personal-ledger or host-specific output.
+`bun tools/perf-gen.ts /tmp/big 2100` creates a deterministic 120-month
+ledger with 252,505 directives across 123 files. Build the release binary and
+open `/tmp/big/main.beancount` while profiling startup, memory, and page
+interaction. The generated corpus contains no personal-ledger or host-specific
+output.
 
 ## Testing
 
-Strict TDD: every behavior lands as a failing test first; `jj commit`
-after each red→green cycle (Conventional Commits).
+Strict TDD: every behavior lands as a failing test first; `jj commit` after
+each red-to-green cycle.
 
-1. **core unit/integration tests** — include resolution (relative, glob,
-   dedup, cycles), options, pretty names, monthly aggregation, averages,
-   status, conversion incl. pivot + unconvertible, balances, budget vs
-   tracking split, transaction listings. Fixture ledgers live in
-   `crates/core/tests/fixtures/`.
-2. **API tests** — axum router exercised in-process (`tower::ServiceExt`),
-   asserting JSON shapes against a fixture ledger.
-3. **Corpus test** — every root ledger in `examples/` (including the new
-   `examples/multi/` include-based, multi-currency one) must load with a
-   plausible directive count and serve `/api/summary` + a month page.
-4. **E2E** — headless Chromium driven over CDP against the release binary
-   on `examples/example.beancount`: sidebar chip, friendly names, month
-   navigation, currency toggle, inspector interactions, screenshots.
-5. **UI unit tests** — `bun test` over the pure modules (`router`,
-   `months`, `format`, `debt`); the amortisation fixture there matches
-   the core one figure for figure.
+1. **Core unit and integration tests** cover loading, accounting, conversion,
+   monthly aggregation, reports, search data, and investment performance.
+2. **Desktop model tests** cover every page's display-ready calculations and
+   formatting without rendering a window.
+3. **Interaction and frame tests** exercise key bindings, scrolling, row
+   navigation, SQL editing, reload behavior, and responsive layout in GPUI's
+   test harness.
+4. **Visual tests** render day, night, desktop, and phone boards and compare
+   them with `crates/desktop/tests/reference/`.
+5. **Real-ledger tests** are opt-in and keep local financial data out of the
+   normal test run and repository.
 
 ## Out of scope (for now)
 
-Live reload on file change, URL hash state, editing anything, documents,
-budget goal editing (targets are always trailing averages), plugins.
+Editing the ledger, institution connections, imports, external reconciliation,
+payment execution, editable budget goals, and plugins.

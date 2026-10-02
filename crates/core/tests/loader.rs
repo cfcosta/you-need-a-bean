@@ -161,8 +161,8 @@ fn every_syntax_error_is_reported_across_files() {
 
 #[test]
 fn a_syntax_summary_fits_on_one_line_and_counts_the_rest() {
-    // The browser cannot draw a diagnostic, so it gets the first error as a
-    // line of text -- and has to learn that it is not the only one.
+    // The window cannot draw a full diagnostic, so it gets the first error
+    // as one line of text -- and has to learn that it is not the only one.
     let err = load(&fixture("several/main.beancount")).unwrap_err();
     let summary = err.summary();
     assert!(

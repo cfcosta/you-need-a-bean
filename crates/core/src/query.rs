@@ -1,8 +1,7 @@
-//! The budget queries the API serves: trailing averages, status, the
-//! monthly table, sidebar balances, and per-category drill-downs.
+//! The budget views: trailing averages, status, the monthly table,
+//! account balances, and per-category drill-downs.
 //!
-//! Everything here is a pure read over the indexes in [`Ledger`]; the
-//! HTTP layer only shapes these results into JSON.
+//! Everything here is a pure read over the indexes in [`Ledger`].
 
 use std::collections::HashMap;
 
@@ -12,7 +11,7 @@ use crate::model::{
     AccountInfo, AccountKind, Day, Ledger, MonthKey, Txn, add_sum,
 };
 
-/// Spend vs the typical month, with the mockup's thresholds.
+/// Spend vs the typical month, with the interface's thresholds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     Good,

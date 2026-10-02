@@ -63,8 +63,7 @@ pub fn percent(ratio: Decimal, places: u32) -> String {
     format!("{}%", fixed(ratio * Decimal::ONE_HUNDRED, places))
 }
 
-/// The symbol a currency is written with, or its code when it has none
-/// (the same table as the web app).
+/// The symbol a currency is written with, or its code when it has none.
 pub fn symbol(cur: &str) -> &str {
     match cur {
         "USD" => "$",

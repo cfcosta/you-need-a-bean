@@ -197,7 +197,7 @@ impl LoadError {
     /// The error as a single line, location included.
     ///
     /// For the places that cannot draw a diagnostic and still have to say
-    /// something useful: the API's error banner, a log. Anything with a
+    /// something useful: the window's error banner, a log. Anything with a
     /// terminal should render the diagnostic itself and get the source line
     /// with it.
     pub fn summary(&self) -> String {

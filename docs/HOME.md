@@ -20,10 +20,9 @@ cash and investment scenarios. Opening an account shows its own register.
 
 ## Dated facts and planning
 
-Every browser request sends its local calendar date as `as_of=YYYY-MM-DD`.
-API callers can use the same parameter for a reproducible reading; without
-it, the server uses its UTC calendar day. Current balances and prices stop
-at that day. Future ledger entries remain searchable and feed the forecast.
+The app uses the local calendar day by default. Pass `--today YYYY-MM-DD`
+to pin a reproducible reading. Current balances and prices stop at that day.
+Future ledger entries remain searchable and feed the forecast.
 
 Cash after reserves is the sum of eligible cash accounts less declared
 reserves. It is **not a safe-to-spend guarantee**. Known upcoming outflows
@@ -34,8 +33,8 @@ Cash runway divides cash after reserves by average recorded expenses across
 up to six completed months, using the same window as the overview's spending
 baseline. It assumes no new income and excludes loan principal repayments.
 Zero or negative available cash gives zero months; missing or nonpositive
-spending history has no estimate. Accounting, pricing, or connection issues
-pause the estimate. The card shows its monthly expense baseline and dates.
+spending history has no estimate. Accounting or pricing issues pause the
+estimate. The card shows its monthly expense baseline and dates.
 
 The 30/60/90-day timeline combines recorded future cash movements with
 estimated recurring cash expenses and debt payments. Internal transfers
@@ -56,8 +55,6 @@ latest price available at the snapshot date, not future quotes.
 Metadata belongs beneath an existing `open` directive. Amounts for reserves
 and goals use the ledger's **first operating currency**. The interface also
 uses that currency for display, falling back to USD when none is declared.
-Legacy currency overrides in page URLs are ignored; API callers can still
-request a currency explicitly.
 
 ```beancount
 2026-01-01 open Assets:Bank:Savings USD
@@ -108,17 +105,13 @@ coverage gaps remain visible review items. They are not automatically fixed.
 The older realistic fixture now exposes two balance mismatches that were
 previously ignored; it remains useful for reviewing incomplete-data states.
 
-## Investigation and API
+## Investigation
 
 Use Search or Cmd/Ctrl+K to search accounts, payees, dates, narration, tags,
 links, and metadata. All words must match, case-insensitively. Results include
-future entries, full postings, attached documents, and source file/line.
-Search spans the whole ledger and returns 50 results per page.
-
-- `GET /api/home?cur=USD&as_of=2026-09-07`
-- `GET /api/search?q=rent&offset=0&cur=USD&as_of=2026-09-07`
-- `/api/summary` now includes structured accounting issues and assertions.
-- `/api/reports` and `/api/liabilities` expose `planning_ready`.
+future entries, full postings, and source file/line.
+Search spans the whole ledger; opening a result takes you to its account
+register and month.
 
 The app stays local and read-only. Institution connections, imports,
 external reconciliation, editor changes, and payment execution remain outside
