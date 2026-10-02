@@ -480,6 +480,195 @@ pub fn layout(a: &Answer) -> Layout {
     }
 }
 
+/// `DECIMAL(38,18)` → `dec`: a type the way the console writes it.
+pub fn short_type(ty: &str) -> String {
+    let base = ty.split('(').next().unwrap_or(ty);
+    match base {
+        "DECIMAL" => "dec".into(),
+        "VARCHAR" => "text".into(),
+        "INTEGER" | "BIGINT" | "SMALLINT" | "TINYINT" | "HUGEINT" => {
+            "int".into()
+        }
+        "DOUBLE" | "FLOAT" => "float".into(),
+        other => other.to_lowercase(),
+    }
+}
+
+/// How a cell of an answer is drawn.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Style {
+    Plain,
+    Date,
+    /// The same day as the row above, in the first column: `″`.
+    Ditto,
+    Null,
+    /// A payee or narration, in the ledger's quotes.
+    Quoted,
+    /// An account name, set back like the ledger sets it.
+    Account,
+    /// A figure above zero in a column that also holds losses.
+    Gain,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Shown {
+    pub text: String,
+    pub style: Style,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Head {
+    pub name: String,
+    /// The short type: `dec`, `text`.
+    pub ty: String,
+}
+
+/// An answer written out once, ready to draw any of its rows: every
+/// keystroke in the editor redraws the page, and formatting a thousand
+/// rows of figures each time is what made typing slow.
+#[derive(Clone, Debug)]
+pub struct Table {
+    pub columns: Vec<Head>,
+    pub rows: Vec<Vec<Shown>>,
+    /// Each column's width in characters, header included, at most 40.
+    pub widths: Vec<f32>,
+    /// The widest text column, which takes the room that is left.
+    pub flexible: Option<usize>,
+    pub layout: Layout,
+    /// Rows the query produced, kept or not.
+    pub total: usize,
+    pub elapsed_ms: f64,
+}
+
+/// The fewest characters the flexible column is squeezed to, and the
+/// width of the bar column.
+const FLEX_FLOOR: f32 = 20.;
+pub const BAR_CHARS: f32 = 16.;
+
+impl Table {
+    /// How wide the table must be, in characters, before it scrolls
+    /// sideways rather than squeezing its columns.
+    pub fn min_chars(&self) -> f32 {
+        let fixed: f32 = self
+            .widths
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| Some(*i) != self.flexible)
+            .map(|(_, w)| w)
+            .sum();
+        let flex = if self.flexible.is_some() {
+            FLEX_FLOOR
+        } else {
+            0.
+        };
+        let bars = if self.layout.bars.is_some() {
+            BAR_CHARS
+        } else {
+            0.
+        };
+        fixed + flex + bars
+    }
+}
+
+fn looks_like_account(s: &str) -> bool {
+    s.contains(':') && s.chars().next().is_some_and(char::is_uppercase)
+}
+
+/// Whether a column holds both gains and losses.
+fn mixed(a: &Answer, i: usize) -> bool {
+    let has = |neg: bool| {
+        a.rows.iter().any(|r| match r.get(i) {
+            Some(Cell::Decimal(d)) => {
+                !d.is_zero() && d.is_sign_negative() == neg
+            }
+            _ => false,
+        })
+    };
+    has(true) && has(false)
+}
+
+pub fn prepare(a: &Answer) -> Table {
+    let signed: Vec<bool> = (0..a.columns.len()).map(|i| mixed(a, i)).collect();
+    let rows: Vec<Vec<Shown>> = a
+        .rows
+        .iter()
+        .enumerate()
+        .map(|(k, r)| {
+            r.iter()
+                .enumerate()
+                .map(|(i, c)| {
+                    let name = a.columns.get(i).map_or("", |c| c.name.as_str());
+                    let ditto = i == 0
+                        && k > 0
+                        && matches!(c, Cell::Date(_))
+                        && a.rows[k - 1].first() == Some(c);
+                    let style = match c {
+                        _ if ditto => Style::Ditto,
+                        Cell::Null => Style::Null,
+                        Cell::Date(_) => Style::Date,
+                        Cell::Text(_)
+                            if name == "payee" || name == "narration" =>
+                        {
+                            Style::Quoted
+                        }
+                        Cell::Text(s) if looks_like_account(s) => {
+                            Style::Account
+                        }
+                        Cell::Decimal(d)
+                            if signed[i]
+                                && d.is_sign_positive()
+                                && !d.is_zero() =>
+                        {
+                            Style::Gain
+                        }
+                        _ => Style::Plain,
+                    };
+                    let text = match style {
+                        Style::Ditto => "″".to_string(),
+                        Style::Gain => format!("+{}", write_cell(c)),
+                        _ => write_cell(c),
+                    };
+                    Shown { text, style }
+                })
+                .collect()
+        })
+        .collect();
+    let columns: Vec<Head> = a
+        .columns
+        .iter()
+        .map(|c| Head {
+            name: c.name.clone(),
+            ty: short_type(&c.ty),
+        })
+        .collect();
+    let mut widths: Vec<f32> = columns
+        .iter()
+        .map(|c| (c.name.chars().count() + 1 + c.ty.chars().count()) as f32)
+        .collect();
+    for row in &rows {
+        for (i, cell) in row.iter().enumerate() {
+            let quotes = if cell.style == Style::Quoted { 2 } else { 0 };
+            let n = (cell.text.chars().count() + quotes) as f32;
+            if let Some(w) = widths.get_mut(i) {
+                *w = w.max(n);
+            }
+        }
+    }
+    let layout = layout(a);
+    let flexible = (0..widths.len())
+        .filter(|i| !layout.numeric[*i] && a.columns[*i].ty == "VARCHAR")
+        .max_by(|x, y| widths[*x].total_cmp(&widths[*y]));
+    Table {
+        columns,
+        rows,
+        widths: widths.into_iter().map(|w| w.min(40.)).collect(),
+        flexible,
+        layout,
+        total: a.total,
+        elapsed_ms: a.elapsed.as_secs_f64() * 1000.,
+    }
+}
+
 /// One run, for the history list.
 #[derive(Clone, Debug)]
 pub struct Run {
@@ -506,6 +695,8 @@ pub struct Console {
     pub open_table: Option<String>,
     /// The database's tables and views, once it is up.
     pub schema: Vec<Relation>,
+    /// The answer on show, written out for drawing.
+    pub table: Option<std::rc::Rc<Table>>,
 }
 
 impl Console {
@@ -569,6 +760,8 @@ impl Console {
             },
         );
         self.history.truncate(50);
+        self.table =
+            outcome.as_ref().ok().map(|a| std::rc::Rc::new(prepare(a)));
         self.result = Some(outcome);
         self.running = false;
     }

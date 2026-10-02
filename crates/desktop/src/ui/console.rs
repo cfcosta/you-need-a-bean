@@ -1,19 +1,25 @@
 //! `Query.dc.html`: the SQL console. The schema, saved queries and the
 //! runs so far down the left; the editor and its answer on the right.
 
-use bean_sql::{Answer, Cell, Failure};
+use std::rc::Rc;
+
+use bean_sql::{Cell, Failure};
 use gpui::{
     AnyElement, Context, Div, FontWeight, Hsla, InteractiveElement,
     IntoElement, MouseButton, MouseDownEvent, ParentElement, SharedString,
     StatefulInteractiveElement, Styled, canvas, div, prelude::*, px,
+    uniform_list,
 };
 
 use super::{
     budget::wrap,
-    kit::{Fill, boxed_right, dash, slim, sum_rule},
+    kit::{Fill, Follow, boxed_right, dash, slim, sum_rule},
 };
 use crate::{
-    model::console::{Layout, Tok, highlight, layout, suggestion, write_cell},
+    model::console::{
+        BAR_CHARS, Shown, Style, Table, Tok, highlight, short_type, suggestion,
+        write_cell,
+    },
     root::{Field, Root},
     theme::Theme,
 };
@@ -23,8 +29,6 @@ const CH: f32 = 8.4;
 const CH_PHONE: f32 = 7.2;
 /// The rail's width: 34 characters.
 const RAIL: f32 = 34. * CH;
-/// At most this many rows of an answer are drawn.
-pub const DRAWN: usize = 500;
 
 fn tok_color(t: &Theme, tok: Tok) -> Hsla {
     match tok {
@@ -37,20 +41,6 @@ fn tok_color(t: &Theme, tok: Tok) -> Hsla {
         Tok::Punct => t.dim,
         Tok::Comment => t.mut_,
         Tok::Space | Tok::Ident => t.ink,
-    }
-}
-
-/// `DECIMAL(38,18)` → `dec`: the type the way the rail writes it.
-fn short_type(ty: &str) -> String {
-    let base = ty.split('(').next().unwrap_or(ty);
-    match base {
-        "DECIMAL" => "dec".into(),
-        "VARCHAR" => "text".into(),
-        "INTEGER" | "BIGINT" | "SMALLINT" | "TINYINT" | "HUGEINT" => {
-            "int".into()
-        }
-        "DOUBLE" | "FLOAT" => "float".into(),
-        other => other.to_lowercase(),
     }
 }
 
@@ -437,112 +427,100 @@ fn editor(root: &Root, t: &Theme, cx: &mut Context<Root>) -> Div {
         )
 }
 
-/// How wide each column of an answer is drawn, in characters; the
-/// widest text column takes what is left.
-fn widths(a: &Answer, l: &Layout) -> (Vec<f32>, Option<usize>) {
-    let mut w: Vec<f32> = a
-        .columns
-        .iter()
-        .map(|c| (c.name.chars().count() + 1 + short_type(&c.ty).len()) as f32)
-        .collect();
-    for row in a.rows.iter().take(DRAWN) {
-        for (i, cell) in row.iter().enumerate() {
-            let n = write_cell(cell).chars().count() as f32
-                + if matches!(cell, Cell::Text(_)) {
-                    2.
-                } else {
-                    0.
-                };
-            w[i] = w[i].max(n);
+/// An answer row's height: one 22px line and 2px above and below.
+const ROW_H: f32 = 26.;
+/// Rows on show before the answer scrolls within its box.
+const VISIBLE: usize = 20;
+const GAP: f32 = 16.;
+
+/// One cell, drawn the way `prepare` decided.
+fn shown(t: &Theme, s: &Shown) -> Div {
+    let text = SharedString::from(s.text.clone());
+    match s.style {
+        Style::Plain => div().child(text),
+        Style::Date => div().text_color(t.cyan).child(text),
+        Style::Ditto => {
+            div().flex().justify_end().text_color(t.mut_).child(text)
         }
-    }
-    let flexible = (0..w.len())
-        .filter(|i| !l.numeric[*i])
-        .filter(|i| a.columns[*i].ty == "VARCHAR")
-        .max_by(|a, b| w[*a].total_cmp(&w[*b]));
-    (w.into_iter().map(|n| n.min(40.)).collect(), flexible)
-}
-
-fn looks_like_account(s: &str) -> bool {
-    s.contains(':') && s.chars().next().is_some_and(char::is_uppercase)
-}
-
-/// One answer cell, coloured by what it holds.
-fn cell_view(t: &Theme, column: &str, c: &Cell, signed: bool) -> Div {
-    match c {
-        Cell::Null => div().text_color(t.mut_).child("NULL"),
-        Cell::Date(_) => div().text_color(t.cyan).child(write_cell(c)),
-        Cell::Text(s) if column == "payee" || column == "narration" => div()
+        Style::Null => div().text_color(t.mut_).child(text),
+        Style::Account => div().text_color(t.dim).child(text),
+        Style::Gain => div().text_color(t.green).child(text),
+        Style::Quoted => div()
             .flex()
             .flex_row()
             .child(div().text_color(t.mut_).child("\""))
-            .child(s.clone())
+            .child(text)
             .child(div().text_color(t.mut_).child("\"")),
-        Cell::Text(s) if looks_like_account(s) => {
-            div().text_color(t.dim).child(s.clone())
-        }
-        Cell::Decimal(d) if signed && d.is_sign_positive() && !d.is_zero() => {
-            div()
-                .text_color(t.green)
-                .child(format!("+{}", write_cell(c)))
-        }
-        _ => div().child(write_cell(c)),
     }
 }
 
-/// Whether a figure column holds both gains and losses, and so wants its
-/// gains marked with a plus.
-fn mixed(a: &Answer, i: usize) -> bool {
-    let has = |neg: bool| {
-        a.rows.iter().any(|r| match r.get(i) {
-            Some(Cell::Decimal(d)) => {
-                !d.is_zero() && d.is_sign_negative() == neg
-            }
-            _ => false,
-        })
+/// Column `i` of `table`, sized the way every row sizes it.
+fn column(table: &Table, i: usize, d: Div) -> Div {
+    let d = if Some(i) == table.flexible {
+        d.flex_1().min_w(px(0.)).overflow_hidden()
+    } else {
+        d.w(px(table.widths[i] * CH)).flex_none().overflow_hidden()
     };
-    has(true) && has(false)
+    if table.layout.numeric[i] {
+        d.flex().justify_end()
+    } else {
+        d
+    }
+}
+
+fn bar_column(d: Div) -> Div {
+    d.w(px(BAR_CHARS * CH)).flex_shrink_1().min_w(px(0.))
+}
+
+fn table_row() -> Div {
+    div()
+        .flex()
+        .flex_row()
+        .gap(px(GAP))
+        .items_center()
+        .whitespace_nowrap()
+}
+
+/// Row `k` of the answer.
+fn answer_row(
+    table: &Table,
+    k: usize,
+    on: bool,
+    t: &Theme,
+    follow: &Follow,
+) -> Div {
+    let mut line = table_row().w_full().h(px(ROW_H)).hover(|s| s.bg(t.hl));
+    for (i, cell) in table.rows[k].iter().enumerate() {
+        line = line.child(column(table, i, div().child(shown(t, cell))));
+    }
+    if let Some(share) = table.layout.shares.get(k).copied() {
+        line = line.child(bar_column(div().child(slim(
+            t,
+            vec![
+                (share.max(0.002), Fill::Solid(t.blue)),
+                ((1. - share).max(0.), Fill::Hatch(t.line2)),
+            ],
+        ))));
+    }
+    super::kit::lit(line, on, true, t, follow)
 }
 
 fn answer(
-    a: &Answer,
-    (lit, follow): (Option<usize>, &super::kit::Follow),
+    root: &Root,
+    table: &Rc<Table>,
     t: &Theme,
     cx: &mut Context<Root>,
 ) -> Div {
-    let l = layout(a);
-    let (w, flexible) = widths(a, &l);
-    let signed: Vec<bool> = (0..a.columns.len()).map(|i| mixed(a, i)).collect();
-    let col = |i: usize, d: Div| -> Div {
-        let d = if Some(i) == flexible {
-            d.flex_1().min_w(px(0.)).overflow_hidden()
-        } else {
-            d.w(px(w[i] * CH)).flex_none().overflow_hidden()
-        };
-        if l.numeric[i] {
-            d.flex().justify_end()
-        } else {
-            d
-        }
-    };
-    let bar_cell = |d: Div| d.w(px(16. * CH)).flex_shrink_1().min_w(px(0.));
-    let row = || {
-        div()
-            .flex()
-            .flex_row()
-            .gap(px(16.))
-            .items_center()
-            .whitespace_nowrap()
-    };
-
-    let mut head = row()
+    let n = table.rows.len();
+    let mut head = table_row()
         .text_color(t.ink2)
         .pb(px(6.))
         .mb(px(4.))
         .border_b_1()
         .border_color(t.line2);
-    for (i, c) in a.columns.iter().enumerate() {
-        head = head.child(col(
+    for (i, c) in table.columns.iter().enumerate() {
+        head = head.child(column(
+            table,
             i,
             div().child(
                 div()
@@ -555,95 +533,88 @@ fn answer(
                         div()
                             .text_size(px(12.))
                             .text_color(t.mut_)
-                            .child(short_type(&c.ty)),
+                            .child(c.ty.clone()),
                     ),
             ),
         ));
     }
-    if l.bars.is_some() {
-        head = head.child(bar_cell(div()));
+    if table.layout.bars.is_some() {
+        head = head.child(bar_column(div()));
     }
 
-    let mut body = div().flex().flex_col();
-    for (k, r) in a.rows.iter().take(DRAWN).enumerate() {
-        let mut line = super::kit::lit(
-            row().py(px(2.)).hover(|s| s.bg(t.hl)),
-            lit == Some(k),
-            true,
-            t,
-            follow,
-        );
-        for (i, c) in r.iter().enumerate() {
-            let ditto = i == 0
-                && k > 0
-                && matches!(c, Cell::Date(_))
-                && a.rows[k - 1].first() == Some(c);
-            let v = if ditto {
-                div().flex().justify_end().text_color(t.mut_).child("″")
-            } else {
-                cell_view(t, &a.columns[i].name, c, signed[i])
-            };
-            line = line.child(col(i, div().child(v)));
-        }
-        if let Some(share) = l.shares.get(k) {
-            line = line.child(bar_cell(div().child(slim(
-                t,
-                vec![
-                    (share.max(0.002), Fill::Solid(t.blue)),
-                    ((1. - share).max(0.), Fill::Hatch(t.line2)),
-                ],
-            ))));
-        }
-        body = body.child(line);
-    }
-
-    let shown = a.rows.len().min(DRAWN);
-    let count = if a.total > shown {
-        format!("= {shown} of {} rows", a.total)
-    } else {
-        format!("= {} rows", a.total)
+    // Only the rows in view are built: the list asks for them as it
+    // scrolls, from the table written out once when the answer came.
+    let rows = {
+        let (table, t, follow, lit) =
+            (table.clone(), t.clone(), root.follow.clone(), root.row);
+        uniform_list("answer-rows", n, move |range, _, _| {
+            range
+                .map(|k| answer_row(&table, k, lit == Some(k), &t, &follow))
+                .collect::<Vec<_>>()
+        })
+        .track_scroll(&root.answer_scroll)
+        .h(px(n.min(VISIBLE) as f32 * ROW_H))
     };
-    let mut foot = row();
-    let mut first = true;
-    for (i, total) in l.totals.iter().enumerate() {
+
+    let count = if table.total > n {
+        format!("= {n} of {} rows", table.total)
+    } else {
+        format!("= {} rows", table.total)
+    };
+    let mut foot = table_row();
+    for (i, total) in table.layout.totals.iter().enumerate() {
         let d = match total {
-            _ if first => {
-                first = false;
-                div().text_color(t.dim).child(count.clone())
-            }
+            _ if i == 0 => div().text_color(t.dim).child(count.clone()),
             Some(c @ Cell::Int(_)) => {
                 div().text_color(t.dim).child(write_cell(c))
             }
             Some(c) => div().font_weight(FontWeight::BOLD).child(write_cell(c)),
             None => div(),
         };
-        foot = foot.child(if i == 0 && flexible != Some(0) {
-            d.w(px(w[0] * CH)).flex_none()
+        foot = foot.child(if i == 0 && table.flexible != Some(0) {
+            d.w(px(table.widths[0] * CH))
+                .flex_none()
+                .whitespace_nowrap()
         } else {
-            col(i, d)
+            column(table, i, d)
         });
     }
-    if l.bars.is_some() {
-        foot = foot.child(bar_cell(div()));
+    if table.layout.bars.is_some() {
+        foot = foot.child(bar_column(div()));
     }
 
-    let rows_label = if a.total > shown {
-        format!("{shown} of {} rows", a.total)
-    } else {
-        format!("{} rows", a.total)
-    };
-    let ms = a.elapsed.as_secs_f64() * 1000.;
-    boxed_right(t, "result", format!("{rows_label} · {ms:.1} ms"))
+    // Too many columns for the box: the table keeps its widths and the
+    // box scrolls sideways under it.
+    let gaps = (table.columns.len() + usize::from(table.layout.bars.is_some()))
+        .saturating_sub(1) as f32
+        * GAP;
+    let grid = div()
+        .flex()
+        .flex_col()
+        .w_full()
+        .min_w(px(table.min_chars() * CH + gaps))
         .child(head)
-        .child(body)
-        .child(sum_rule(t).child(foot))
-        .child(
-            div().flex().flex_row().justify_end().mt(px(18.)).child(
-                button(t, "copy", false)
-                    .on_click(cx.listener(|r, _, _, cx| r.copy_answer(cx)))
-                    .child("copy"),
-            ),
-        )
+        .child(rows)
+        .child(sum_rule(t).child(foot));
+
+    let rows_label = if table.total > n {
+        format!("{n} of {} rows", table.total)
+    } else {
+        format!("{} rows", table.total)
+    };
+    boxed_right(
+        t,
+        "result",
+        format!("{rows_label} · {:.1} ms", table.elapsed_ms),
+    )
+    .child(div().id("answer-x").overflow_x_scroll().child(grid))
+    .child(
+        div().flex().flex_row().justify_end().mt(px(18.)).child(
+            button(t, "copy", false)
+                .on_click(cx.listener(|r, _, _, cx| r.copy_answer(cx)))
+                .child("copy"),
+        ),
+    )
 }
 
 fn failure(f: &Failure, t: &Theme, cx: &mut Context<Root>) -> Div {
@@ -723,7 +694,11 @@ fn failure(f: &Failure, t: &Theme, cx: &mut Context<Root>) -> Div {
 
 fn result(root: &Root, t: &Theme, cx: &mut Context<Root>) -> Option<Div> {
     match &root.console.result {
-        Some(Ok(a)) => Some(answer(a, (root.row, &root.follow), t, cx)),
+        Some(Ok(_)) => root
+            .console
+            .table
+            .as_ref()
+            .map(|table| answer(root, table, t, cx)),
         Some(Err(f)) => Some(failure(f, t, cx)),
         None if root.console.running => Some(
             boxed_right(t, "result", "running…")
@@ -841,7 +816,11 @@ pub fn phone(root: &mut Root, t: &Theme, cx: &mut Context<Root>) -> AnyElement {
         );
 
     let result = match &root.console.result {
-        Some(Ok(a)) => Some(phone_answer(a, t)),
+        Some(Ok(_)) => root
+            .console
+            .table
+            .as_ref()
+            .map(|table| phone_answer(table, t)),
         Some(Err(f)) => {
             Some(failure(f, t, cx).px(px(16.)).pt(px(22.)).pb(px(16.)))
         }
@@ -865,11 +844,14 @@ pub fn phone(root: &mut Root, t: &Theme, cx: &mut Context<Root>) -> AnyElement {
         .into_any_element()
 }
 
+/// Rows drawn on a phone, where there is no room to scroll a table.
+const PHONE_ROWS: usize = 100;
+
 /// An answer on a phone: the words of each row on the left, its last
 /// figure on the right, and under it the bar or the other figures.
-fn phone_answer(a: &Answer, t: &Theme) -> Div {
-    let l = layout(a);
-    let last = (0..a.columns.len()).rev().find(|i| l.numeric[*i]);
+fn phone_answer(table: &Table, t: &Theme) -> Div {
+    let l = &table.layout;
+    let last = (0..table.columns.len()).rev().find(|i| l.numeric[*i]);
     let mut b = super::phone::pbox(t, "result").child(
         div()
             .absolute()
@@ -880,11 +862,10 @@ fn phone_answer(a: &Answer, t: &Theme) -> Div {
             .text_color(t.mut_)
             .child(format!(
                 "{} rows · {:.1} ms",
-                a.total,
-                a.elapsed.as_secs_f64() * 1000.
+                table.total, table.elapsed_ms
             )),
     );
-    for (k, r) in a.rows.iter().take(DRAWN).enumerate() {
+    for (k, r) in table.rows.iter().take(PHONE_ROWS).enumerate() {
         let mut words = div()
             .flex()
             .flex_row()
@@ -897,27 +878,33 @@ fn phone_answer(a: &Answer, t: &Theme) -> Div {
                 continue;
             }
             if l.numeric[i] {
-                rest.push(write_cell(c));
+                rest.push(c.text.clone());
                 continue;
             }
-            let d = match c {
-                Cell::Date((_, m, d)) => {
-                    div().text_color(t.cyan).child(format!("{m:02}-{d:02}"))
+            let d = match c.style {
+                Style::Date | Style::Ditto => {
+                    let day = table.rows[..=k]
+                        .iter()
+                        .rev()
+                        .find(|r| r[i].style == Style::Date)
+                        .map_or(c.text.clone(), |r| r[i].text.clone());
+                    div()
+                        .text_color(t.cyan)
+                        .child(day.get(5..).unwrap_or(&day).to_owned())
                 }
-                Cell::Text(s) if looks_like_account(s) => {
-                    div().text_color(t.dim).child(
-                        s.split_once(':')
-                            .map_or(s.as_str(), |x| x.1)
-                            .to_owned(),
-                    )
-                }
-                other => div().child(write_cell(other)),
+                Style::Account => div().text_color(t.dim).child(
+                    c.text
+                        .split_once(':')
+                        .map_or(c.text.as_str(), |x| x.1)
+                        .to_owned(),
+                ),
+                _ => div().child(c.text.clone()),
             };
             words = words.child(d);
         }
         let figure = last
             .and_then(|i| r.get(i))
-            .map(write_cell)
+            .map(|c| c.text.clone())
             .unwrap_or_default();
         let mut item = div().flex().flex_col().gap(px(3.)).py(px(4.)).child(
             div()
@@ -958,7 +945,11 @@ fn phone_answer(a: &Answer, t: &Theme) -> Div {
             .flex()
             .flex_row()
             .justify_between()
-            .child(div().text_color(t.dim).child(format!("= {} rows", a.total)))
+            .child(
+                div()
+                    .text_color(t.dim)
+                    .child(format!("= {} rows", table.total)),
+            )
             .child(div().font_weight(FontWeight::BOLD).child(total)),
     )
 }

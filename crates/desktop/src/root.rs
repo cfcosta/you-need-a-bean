@@ -255,6 +255,8 @@ pub struct Root {
     pub row: Option<usize>,
     /// Lets the lit row scroll itself into view.
     pub follow: kit::Follow,
+    /// Where the console's answer is scrolled to within its box.
+    pub answer_scroll: gpui::UniformListScrollHandle,
     focus: FocusHandle,
 }
 
@@ -289,6 +291,7 @@ impl Root {
             clock: None,
             scroll: scroll.clone(),
             row: None,
+            answer_scroll: gpui::UniformListScrollHandle::new(),
             follow: kit::Follow {
                 scroll,
                 pending: Default::default(),
@@ -944,10 +947,9 @@ impl Root {
             Page::Liabilities => {
                 self.liabilities().map_or(0, |l| l.open_debts().len())
             }
-            Page::Query => match &self.console.result {
-                Some(Ok(a)) => a.rows.len().min(crate::ui::console::DRAWN),
-                _ => 0,
-            },
+            Page::Query => {
+                self.console.table.as_ref().map_or(0, |t| t.rows.len())
+            }
         }
     }
 
@@ -983,6 +985,10 @@ impl Root {
         };
         self.row = Some(next);
         self.follow.pending.set(true);
+        if self.page == Page::Query {
+            self.answer_scroll
+                .scroll_to_item(next, gpui::ScrollStrategy::Nearest);
+        }
         cx.notify();
     }
 

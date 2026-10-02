@@ -250,3 +250,91 @@ fn an_empty_editor_still_has_a_line_to_type_on() {
         "no saved queries, one empty line"
     );
 }
+
+mod table {
+    use super::*;
+    use bean_desktop::model::console::{Style, prepare};
+
+    fn food() -> Answer {
+        answer(
+            &[
+                ("month", "DATE"),
+                ("account", "VARCHAR"),
+                ("payee", "VARCHAR"),
+                ("spent", "DECIMAL(38,18)"),
+            ],
+            vec![
+                vec![
+                    Cell::Date((2026, 6, 1)),
+                    Cell::Text("Expenses:Food:Groceries".into()),
+                    Cell::Text("Green Basket".into()),
+                    Cell::Decimal(d("441")),
+                ],
+                vec![
+                    Cell::Date((2026, 6, 1)),
+                    Cell::Text("Expenses:Food:Coffee".into()),
+                    Cell::Null,
+                    Cell::Decimal(d("60")),
+                ],
+            ],
+        )
+    }
+
+    #[test]
+    fn cells_are_written_once_with_how_to_draw_them() {
+        let t = prepare(&food());
+        assert_eq!(t.rows.len(), 2);
+        assert_eq!(t.rows[0][0].text, "2026-06-01");
+        assert_eq!(t.rows[0][0].style, Style::Date);
+        assert_eq!(t.rows[1][0].style, Style::Ditto, "the same day again");
+        assert_eq!(t.rows[0][1].style, Style::Account);
+        assert_eq!(t.rows[0][2].style, Style::Quoted);
+        assert_eq!(t.rows[1][2].style, Style::Null);
+        assert_eq!(t.rows[0][3].text, "441.00");
+        assert_eq!(t.columns[3].ty, "dec");
+    }
+
+    #[test]
+    fn columns_are_as_wide_as_their_widest_cell_up_to_a_limit() {
+        let t = prepare(&food());
+        // `account text` is 12 wide; the longest account is 23.
+        assert_eq!(t.widths[1], 23.);
+        // A quoted payee counts its quotes.
+        assert_eq!(t.widths[2], 14.);
+        assert_eq!(t.flexible, Some(1), "the widest text column flexes");
+        let long = answer(
+            &[("note", "VARCHAR"), ("n", "INTEGER")],
+            vec![vec![Cell::Text("x".repeat(90)), Cell::Int(1)]],
+        );
+        assert_eq!(prepare(&long).widths[0], 40.);
+    }
+
+    #[test]
+    fn gains_are_marked_where_a_column_holds_both_signs() {
+        let a = answer(
+            &[("amount", "DECIMAL(38,18)"), ("cost", "DECIMAL(38,18)")],
+            vec![
+                vec![Cell::Decimal(d("5")), Cell::Decimal(d("5"))],
+                vec![Cell::Decimal(d("-5")), Cell::Decimal(d("6"))],
+            ],
+        );
+        let t = prepare(&a);
+        assert_eq!(t.rows[0][0].style, Style::Gain);
+        assert_eq!(t.rows[0][0].text, "+5.00");
+        assert_eq!(t.rows[0][1].style, Style::Plain, "never negative, no plus");
+    }
+
+    #[test]
+    fn the_table_is_at_least_as_wide_as_its_columns() {
+        let t = prepare(&food());
+        // fixed columns + the flexible one's floor + the gaps, in ch.
+        let fixed: f32 = t
+            .widths
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| Some(*i) != t.flexible)
+            .map(|(_, w)| w)
+            .sum();
+        assert!(t.min_chars() >= fixed + 20.);
+    }
+}
