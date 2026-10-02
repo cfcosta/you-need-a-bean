@@ -40,8 +40,9 @@ actions!(
         ToggleScheme,
         PrevTab,
         NextTab,
-        ScrollDown,
-        ScrollUp,
+        NextRow,
+        PrevRow,
+        OpenRow,
         HalfPageDown,
         HalfPageUp,
         ScrollToEnd,
@@ -54,8 +55,8 @@ actions!(
 const CONTEXT: &str = "Bean";
 
 /// The keys, vim-flavoured: digits open pages, `h`/`l` step through
-/// them, `j`/`k`/`d`/`u`/`G`/`gg` scroll, `t` flips the scheme, `/`
-/// searches. None of them fire while a prompt or field has the keys.
+/// them, `j`/`k` walk the open table and `enter` follows its row,
+/// `d`/`u`/`G`/`gg` scroll, `t` flips the scheme, `/` searches. None of them fire while a prompt or field has the keys.
 pub fn bind_keys(cx: &mut App) {
     let pages = Some("Bean && !Search && !Typing");
     cx.bind_keys([
@@ -72,8 +73,9 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("t", ToggleScheme, pages),
         KeyBinding::new("h", PrevTab, pages),
         KeyBinding::new("l", NextTab, pages),
-        KeyBinding::new("j", ScrollDown, pages),
-        KeyBinding::new("k", ScrollUp, pages),
+        KeyBinding::new("j", NextRow, pages),
+        KeyBinding::new("k", PrevRow, pages),
+        KeyBinding::new("enter", OpenRow, pages),
         KeyBinding::new("d", HalfPageDown, pages),
         KeyBinding::new("u", HalfPageUp, pages),
         KeyBinding::new("shift-g", ScrollToEnd, pages),
@@ -248,11 +250,18 @@ pub struct Root {
     pub clock: Option<String>,
     /// Where the page is scrolled to.
     pub scroll: gpui::ScrollHandle,
+    /// The lit row of the open page's main table, once `j` or `k` has
+    /// been pressed there.
+    pub row: Option<usize>,
+    /// Lets the lit row scroll itself into view.
+    pub follow: kit::Follow,
     focus: FocusHandle,
 }
 
 impl Root {
     pub fn empty(cx: &mut Context<Self>) -> Self {
+        // One handle: the page scrolls by it, and the lit row reads it.
+        let scroll = gpui::ScrollHandle::new();
         Self {
             data: None,
             page: Page::Overview,
@@ -278,7 +287,12 @@ impl Root {
             pending_run: false,
             code_origin: Default::default(),
             clock: None,
-            scroll: gpui::ScrollHandle::new(),
+            scroll: scroll.clone(),
+            row: None,
+            follow: kit::Follow {
+                scroll,
+                pending: Default::default(),
+            },
             focus: cx.focus_handle(),
         }
     }
@@ -303,6 +317,7 @@ impl Root {
     pub fn open(&mut self, page: Page, cx: &mut Context<Self>) {
         if page != self.page {
             self.scroll.set_offset(gpui::point(px(0.), px(0.)));
+            self.row = None;
         }
         self.page = page;
         if page == Page::Query {
@@ -714,6 +729,7 @@ impl Root {
     pub fn open_account(&mut self, account: String, cx: &mut Context<Self>) {
         if self.page != Page::Account {
             self.scroll.set_offset(gpui::point(px(0.), px(0.)));
+            self.row = None;
         }
         self.account = Some(account);
         self.page = Page::Account;
@@ -897,6 +913,116 @@ impl Root {
         cx.notify();
     }
 
+    /// How many rows the open page's main table has.
+    pub fn row_count(&mut self) -> usize {
+        match self.page {
+            Page::Overview => self
+                .data
+                .as_ref()
+                .map(|d| {
+                    let o = &d.overview;
+                    let fc = o.forecast.get(
+                        self.horizon.min(o.forecast.len().saturating_sub(1)),
+                    );
+                    fc.map_or(0, |fc| o.upcoming(fc.days).len())
+                        .min(kit::EVENTS_SHOWN)
+                })
+                .unwrap_or(0),
+            Page::Budget => self.budget().map_or(0, |b| {
+                b.lines.iter().filter(|l| l.account.is_some()).count()
+            }),
+            Page::Account => self.register().map_or(0, |r| r.entries.len()),
+            Page::Reports => {
+                self.reports().map_or(0, |r| r.view.payees.items.len())
+            }
+            Page::Investments => {
+                let (filter, sort) =
+                    (self.holding_filter.clone(), self.holding_sort);
+                self.investments()
+                    .map_or(0, |i| i.holdings(&filter, sort).len())
+            }
+            Page::Liabilities => {
+                self.liabilities().map_or(0, |l| l.open_debts().len())
+            }
+            Page::Query => match &self.console.result {
+                Some(Ok(a)) => a.rows.len().min(crate::ui::console::DRAWN),
+                _ => 0,
+            },
+        }
+    }
+
+    /// Move the lit row `delta` rows along, staying inside the table. On
+    /// the budget the row is the category the inspector shows. A page
+    /// with no table scrolls instead.
+    pub fn move_row(&mut self, delta: isize, cx: &mut Context<Self>) {
+        if self.page == Page::Budget {
+            let Some(b) = self.budget() else { return };
+            let order: Vec<String> =
+                b.lines.iter().filter_map(|l| l.account.clone()).collect();
+            let shown = b.inspector.map(|i| i.account);
+            let at = shown
+                .and_then(|a| order.iter().position(|o| *o == a))
+                .unwrap_or(0) as isize;
+            let next = (at + delta).clamp(0, order.len() as isize - 1);
+            if let Some(account) = order.get(next as usize).cloned() {
+                self.follow.pending.set(true);
+                self.select_category(account, cx);
+            }
+            return;
+        }
+        let count = self.row_count();
+        if count == 0 {
+            self.scroll_by(delta as f32 * 3. * kit::LINE, cx);
+            return;
+        }
+        let next = match self.row {
+            None => 0,
+            Some(at) => {
+                (at as isize + delta).clamp(0, count as isize - 1) as usize
+            }
+        };
+        self.row = Some(next);
+        self.follow.pending.set(true);
+        cx.notify();
+    }
+
+    /// Follow the lit row where it leads: a category or a debt to its
+    /// register, a payee to a search for it.
+    pub fn open_row(&mut self, cx: &mut Context<Self>) {
+        match self.page {
+            Page::Budget => {
+                let shown =
+                    self.budget().and_then(|b| b.inspector.map(|i| i.account));
+                if let Some(account) = shown {
+                    self.open_account(account, cx);
+                }
+            }
+            Page::Liabilities => {
+                let Some(k) = self.row else { return };
+                let account = self.liabilities().and_then(|l| {
+                    l.open_debts().get(k).map(|d| d.account.clone())
+                });
+                if let Some(account) = account {
+                    self.open_account(account, cx);
+                }
+            }
+            Page::Reports => {
+                let Some(k) = self.row else { return };
+                let name = self.reports().and_then(|r| {
+                    r.view.payees.items.get(k).map(|p| p.name.clone())
+                });
+                if let Some(name) = name {
+                    self.search = Some(Search {
+                        query: name,
+                        ..Default::default()
+                    });
+                    cx.notify();
+                }
+            }
+            _ => {}
+        }
+    }
+
     /// The tab `step` places along from the open one, wrapping round.
     pub fn step_tab(&mut self, step: isize, cx: &mut Context<Self>) {
         let tabs = Page::TABS.len() as isize;
@@ -1017,12 +1143,9 @@ impl Render for Root {
             )
             .on_action(cx.listener(|r, _: &PrevTab, _, cx| r.step_tab(-1, cx)))
             .on_action(cx.listener(|r, _: &NextTab, _, cx| r.step_tab(1, cx)))
-            .on_action(cx.listener(|r, _: &ScrollDown, _, cx| {
-                r.scroll_by(3. * kit::LINE, cx)
-            }))
-            .on_action(cx.listener(|r, _: &ScrollUp, _, cx| {
-                r.scroll_by(-3. * kit::LINE, cx)
-            }))
+            .on_action(cx.listener(|r, _: &NextRow, _, cx| r.move_row(1, cx)))
+            .on_action(cx.listener(|r, _: &PrevRow, _, cx| r.move_row(-1, cx)))
+            .on_action(cx.listener(|r, _: &OpenRow, _, cx| r.open_row(cx)))
             .on_action(cx.listener(|r, _: &HalfPageDown, _, cx| {
                 let half = r.half_page();
                 r.scroll_by(half, cx)

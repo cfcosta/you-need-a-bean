@@ -185,7 +185,7 @@ pub fn page(
         .flex_col()
         .gap(px(44.))
         .min_w(px(0.))
-        .child(categories(&b, selected.as_deref(), t, cx))
+        .child(categories(&b, selected.as_deref(), &root.follow, t, cx))
         .child(month_box(&b, t));
     let right = div()
         .flex()
@@ -270,6 +270,7 @@ fn columns(
 fn categories(
     b: &Budget,
     selected: Option<&str>,
+    follow: &super::kit::Follow,
     t: &Theme,
     cx: &mut Context<Root>,
 ) -> Div {
@@ -295,7 +296,7 @@ fn categories(
         .lines
         .iter()
         .enumerate()
-        .map(|(i, l)| tree_row(i, l, selected, t, cx));
+        .map(|(i, l)| tree_row(i, l, selected, follow, t, cx));
     let (ratio, status) =
         crate::model::budget::ratio_status(b.spent, b.typical);
     let color = status_color(t, status);
@@ -324,6 +325,7 @@ fn tree_row(
     i: usize,
     l: &Line,
     selected: Option<&str>,
+    follow: &super::kit::Follow,
     t: &Theme,
     cx: &mut Context<Root>,
 ) -> AnyElement {
@@ -368,18 +370,8 @@ fn tree_row(
     .py(px(6.))
     .px(px(10.))
     .mx(px(-10.))
-    .relative()
-    .when(on, |d| {
-        d.bg(t.sel).child(
-            div()
-                .absolute()
-                .left_0()
-                .top_0()
-                .bottom_0()
-                .w(px(2.))
-                .bg(t.blue),
-        )
-    });
+    .relative();
+    let cells = super::kit::lit(cells, on, true, t, follow);
     let row = div().id(("category", i)).child(cells).hover(|s| s.bg(t.hl));
     match l.account.clone() {
         Some(account) => row

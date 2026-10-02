@@ -87,7 +87,7 @@ pub fn page(
         .child(independence(&r, t, wide).col_span(12))
         .child(moved(&r, t).col_span(span7))
         .child(cashflow(&r, t).col_span(span5))
-        .child(payees(&r, t).col_span(span7))
+        .child(payees(&r, root.row, &root.follow, t).col_span(span7))
         .child(year(&r, t).col_span(span5))
         .child(projects(&r, t).col_span(span7))
         .child(rests(&r, t).col_span(span5));
@@ -478,11 +478,16 @@ fn cashflow(r: &Reports, t: &Theme) -> Div {
         )
 }
 
-fn payees(r: &Reports, t: &Theme) -> Div {
+fn payees(
+    r: &Reports,
+    lit: Option<usize>,
+    follow: &super::kit::Follow,
+    t: &Theme,
+) -> Div {
     let p = &r.view.payees;
     let rows = p.items.iter().enumerate().map(|(k, i)| {
         let sh = f(i.share).clamp(0., 1.);
-        grid_row(
+        let row = grid_row(
             14.,
             vec![
                 (
@@ -518,9 +523,10 @@ fn payees(r: &Reports, t: &Theme) -> Div {
         )
         .py(px(4.))
         .px(px(10.))
-        .mx(px(-10.))
-        .id(("payee", k))
-        .hover(|s| s.bg(t.hl))
+        .mx(px(-10.));
+        super::kit::lit(row, lit == Some(k), true, t, follow)
+            .id(("payee", k))
+            .hover(|s| s.bg(t.hl))
     });
     boxed_right(
         t,

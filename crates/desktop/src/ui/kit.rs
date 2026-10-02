@@ -468,3 +468,75 @@ pub fn split(
                 .child(right),
         )
 }
+
+/// What the page is scrolled by, and whether the lit row should bring
+/// itself into view the next time it is painted (it should after `j`
+/// or `k`, and not when the reader scrolls away from it).
+#[derive(Clone, Default)]
+pub struct Follow {
+    pub scroll: gpui::ScrollHandle,
+    pub pending: std::rc::Rc<std::cell::Cell<bool>>,
+}
+
+/// Room left above and below a row scrolled into view.
+const FOLLOW_MARGIN: f32 = 44.;
+
+/// A row lit as the reader's place in a table: the selection colour (or,
+/// for a whole box, `fill: false`, just the bar) and a blue bar down its
+/// left edge. It scrolls the page to keep itself in view.
+pub fn lit(d: Div, on: bool, fill: bool, t: &Theme, follow: &Follow) -> Div {
+    if !on {
+        return d;
+    }
+    let f = follow.clone();
+    d.relative()
+        .when(fill, |d| d.bg(t.sel))
+        .child(
+            div()
+                .absolute()
+                .left_0()
+                .top_0()
+                .bottom_0()
+                .w(px(2.))
+                .bg(t.blue),
+        )
+        .child(
+            // Painted after the page has been laid out, so the scroll
+            // container knows its own bounds by then.
+            canvas(
+                |_, _, _| (),
+                move |bounds, _, window, _| {
+                    if !f.pending.get() {
+                        return;
+                    }
+                    // Before the first layout the page has no size yet;
+                    // wait a frame for it.
+                    if f32::from(f.scroll.bounds().size.height) > 0. {
+                        f.pending.set(false);
+                        keep_in_view(&f.scroll, bounds);
+                    }
+                    window.refresh();
+                },
+            )
+            .absolute()
+            .inset_0(),
+        )
+}
+
+fn keep_in_view(scroll: &gpui::ScrollHandle, row: Bounds<Pixels>) {
+    let view = scroll.bounds();
+    let max = f32::from(scroll.max_offset().y).max(0.);
+    let at = -f32::from(scroll.offset().y);
+    let top = f32::from(row.top()) - f32::from(view.top());
+    let bottom = f32::from(row.bottom()) - f32::from(view.top());
+    let height = f32::from(view.size.height);
+    let next = if top < FOLLOW_MARGIN {
+        at + top - FOLLOW_MARGIN
+    } else if bottom > height - FOLLOW_MARGIN {
+        at + bottom - height + FOLLOW_MARGIN
+    } else {
+        return;
+    };
+    let x = scroll.offset().x;
+    scroll.set_offset(point(x, px(-next.clamp(0., max))));
+}

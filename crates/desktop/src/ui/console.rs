@@ -24,7 +24,7 @@ const CH_PHONE: f32 = 7.2;
 /// The rail's width: 34 characters.
 const RAIL: f32 = 34. * CH;
 /// At most this many rows of an answer are drawn.
-const DRAWN: usize = 500;
+pub const DRAWN: usize = 500;
 
 fn tok_color(t: &Theme, tok: Tok) -> Hsla {
     match tok {
@@ -504,7 +504,12 @@ fn mixed(a: &Answer, i: usize) -> bool {
     has(true) && has(false)
 }
 
-fn answer(a: &Answer, t: &Theme, cx: &mut Context<Root>) -> Div {
+fn answer(
+    a: &Answer,
+    (lit, follow): (Option<usize>, &super::kit::Follow),
+    t: &Theme,
+    cx: &mut Context<Root>,
+) -> Div {
     let l = layout(a);
     let (w, flexible) = widths(a, &l);
     let signed: Vec<bool> = (0..a.columns.len()).map(|i| mixed(a, i)).collect();
@@ -561,7 +566,13 @@ fn answer(a: &Answer, t: &Theme, cx: &mut Context<Root>) -> Div {
 
     let mut body = div().flex().flex_col();
     for (k, r) in a.rows.iter().take(DRAWN).enumerate() {
-        let mut line = row().py(px(2.)).hover(|s| s.bg(t.hl));
+        let mut line = super::kit::lit(
+            row().py(px(2.)).hover(|s| s.bg(t.hl)),
+            lit == Some(k),
+            true,
+            t,
+            follow,
+        );
         for (i, c) in r.iter().enumerate() {
             let ditto = i == 0
                 && k > 0
@@ -712,7 +723,7 @@ fn failure(f: &Failure, t: &Theme, cx: &mut Context<Root>) -> Div {
 
 fn result(root: &Root, t: &Theme, cx: &mut Context<Root>) -> Option<Div> {
     match &root.console.result {
-        Some(Ok(a)) => Some(answer(a, t, cx)),
+        Some(Ok(a)) => Some(answer(a, (root.row, &root.follow), t, cx)),
         Some(Err(f)) => Some(failure(f, t, cx)),
         None if root.console.running => Some(
             boxed_right(t, "result", "running…")

@@ -1,6 +1,6 @@
-//! Vim's motions on the pages: `h`/`l` step through the tabs, `j`/`k`
-//! scroll a few lines, `d`/`u` half a page, `G` to the end, `gg` to
-//! the top.
+//! Vim's motions on the pages: `h`/`l` step through the tabs, `d`/`u`
+//! scroll half a page, `G` to the end, `gg` to the top. (`j`/`k` walk a
+//! table's rows; see `rows.rs`.)
 
 mod common;
 
@@ -83,11 +83,6 @@ fn the_motions_scroll_the_page(cx: &mut TestAppContext) {
     let (at, max, half) = scroll(&root, cx);
     assert_eq!(at, 0.);
     assert!(max > 600., "the reports run past the window");
-
-    cx.simulate_keystrokes("j");
-    assert_eq!(scroll(&root, cx).0, 66., "three lines");
-    cx.simulate_keystrokes("k k");
-    assert_eq!(scroll(&root, cx).0, 0., "never above the top");
 
     cx.simulate_keystrokes("d");
     assert_eq!(scroll(&root, cx).0, half);

@@ -65,7 +65,14 @@ pub fn page(
         .child(cover(&l, t).col_span(if wide { 5 } else { 12 }));
     for (k, debt) in l.open_debts().into_iter().enumerate() {
         let extra = root.extra.get(&debt.account).copied().unwrap_or_default();
-        grid = grid.child(loan(k, &l, debt, extra, t, cx).col_span(12));
+        let lit = super::kit::lit(
+            loan(k, &l, debt, extra, t, cx),
+            root.row == Some(k),
+            false,
+            t,
+            &root.follow,
+        );
+        grid = grid.child(lit.col_span(12));
     }
     wrap(width, grid)
 }

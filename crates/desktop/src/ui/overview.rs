@@ -427,7 +427,15 @@ fn next_days(
                 .mt(px(26.))
                 .flex()
                 .flex_col()
-                .children(shown.map(|e| entry(t, e)))
+                .children(shown.enumerate().map(|(k, e)| {
+                    super::kit::lit(
+                        entry(t, e),
+                        root.row == Some(k),
+                        true,
+                        t,
+                        &root.follow,
+                    )
+                }))
                 .child(
                     div()
                         .flex()
@@ -449,7 +457,7 @@ fn next_days(
 }
 
 /// One upcoming transaction, written the way the ledger would write it.
-fn entry(t: &Theme, e: &Event) -> impl IntoElement {
+fn entry(t: &Theme, e: &Event) -> gpui::Div {
     let income = e.amount > Decimal::ZERO;
     div()
         .flex()

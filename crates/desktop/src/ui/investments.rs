@@ -64,7 +64,18 @@ pub fn page(
         .child(portfolio(&i, today, t).col_span(if wide { 7 } else { 12 }))
         .child(allocation(&i, t).col_span(if wide { 5 } else { 12 }))
         .child(performance(&i, t, cx).col_span(12))
-        .child(holdings(&i, &filter, editing, sort, t, cx).col_span(12));
+        .child(
+            holdings(
+                &i,
+                &filter,
+                editing,
+                sort,
+                (root.row, &root.follow),
+                t,
+                cx,
+            )
+            .col_span(12),
+        );
     wrap(width, grid)
 }
 
@@ -398,6 +409,7 @@ fn holdings(
     filter: &str,
     editing: bool,
     sort: Sort,
+    (lit, follow): (Option<usize>, &super::kit::Follow),
     t: &Theme,
     cx: &mut Context<Root>,
 ) -> Div {
@@ -469,7 +481,7 @@ fn holdings(
     .pb(px(6.));
     let rows = shown.iter().enumerate().map(|(k, p)| {
         let s = f(p.share).clamp(0., 1.);
-        hold_cols(
+        let row = hold_cols(
             CH,
             [
                 line([
@@ -508,9 +520,10 @@ fn holdings(
         .px(px(10.))
         .mx(px(-10.))
         .border_t_1()
-        .border_color(t.line)
-        .id(("holding", k))
-        .hover(|s| s.bg(t.hl))
+        .border_color(t.line);
+        super::kit::lit(row, lit == Some(k), true, t, follow)
+            .id(("holding", k))
+            .hover(|s| s.bg(t.hl))
     });
     boxed(t, "holdings")
         .child(

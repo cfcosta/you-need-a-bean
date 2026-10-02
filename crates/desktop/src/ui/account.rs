@@ -69,7 +69,7 @@ pub fn page(
         .items_start()
         .child(balance(&r, t).col_span(if wide { 7 } else { 12 }))
         .child(flows(&r, t).col_span(if wide { 5 } else { 12 }))
-        .child(register(&r, t).col_span(12));
+        .child(register(&r, root.row, &root.follow, t).col_span(12));
 
     wrap(
         width,
@@ -249,7 +249,13 @@ fn leg_color(t: &Theme, account: &str) -> Hsla {
     }
 }
 
-fn entry(k: usize, e: &Entry, t: &Theme) -> AnyElement {
+fn entry(
+    k: usize,
+    e: &Entry,
+    on: bool,
+    follow: &super::kit::Follow,
+    t: &Theme,
+) -> AnyElement {
     let flagged = e.flag == '!';
     let who = if e.payee.is_empty() {
         line([
@@ -271,7 +277,7 @@ fn entry(k: usize, e: &Entry, t: &Theme) -> AnyElement {
             ),
         )
     };
-    reg_cols(
+    let row = reg_cols(
         CH,
         [
             div()
@@ -305,13 +311,19 @@ fn entry(k: usize, e: &Entry, t: &Theme) -> AnyElement {
     .py(px(6.))
     .px(px(10.))
     .mx(px(-10.))
-    .when(flagged, |d| d.bg(t.hl))
-    .id(("entry", k))
-    .hover(|s| s.bg(t.hl))
-    .into_any_element()
+    .when(flagged, |d| d.bg(t.hl));
+    super::kit::lit(row, on, true, t, follow)
+        .id(("entry", k))
+        .hover(|s| s.bg(t.hl))
+        .into_any_element()
 }
 
-fn register(r: &Register, t: &Theme) -> Div {
+fn register(
+    r: &Register,
+    lit: Option<usize>,
+    follow: &super::kit::Follow,
+    t: &Theme,
+) -> Div {
     let text = |s: &str| {
         div()
             .child(SharedString::from(s.to_owned()))
@@ -349,5 +361,10 @@ fn register(r: &Register, t: &Theme) -> Div {
     boxed_right(t, "register", format!("{} txns", r.entries.len()))
         .child(head)
         .child(opening)
-        .children(r.entries.iter().enumerate().map(|(k, e)| entry(k, e, t)))
+        .children(
+            r.entries
+                .iter()
+                .enumerate()
+                .map(|(k, e)| entry(k, e, lit == Some(k), follow, t)),
+        )
 }
