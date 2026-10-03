@@ -10,7 +10,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bean_core::model::{Day, Ledger};
+use bean_core::{
+    date::{epoch_days, from_epoch_days},
+    model::{Day, Ledger},
+};
 use duckdb::{
     Connection, ToSql,
     arrow::datatypes::DataType,
@@ -173,33 +176,10 @@ fn views(currency: &str) -> String {
     )
 }
 
-/// Days since 1970-01-01, which is how DuckDB stores a `DATE`.
-fn epoch_days(d: Day) -> i32 {
-    let (y, m, dd) = (i64::from(d.0), i64::from(d.1), i64::from(d.2));
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = y.div_euclid(400);
-    let yoe = y - era * 400;
-    let mp = (m + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + dd - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    (era * 146_097 + doe - 719_468) as i32
-}
-
-fn civil(days: i32) -> Day {
-    let z = i64::from(days) + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let dd = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = yoe + era * 400 + i64::from(m <= 2);
-    (y as u16, m as u8, dd as u8)
-}
-
 fn date(d: Day) -> Value {
-    Value::Date32(epoch_days(d))
+    let days = i32::try_from(epoch_days(d))
+        .expect("a Day always fits DuckDB's Date32 range");
+    Value::Date32(days)
 }
 
 /// `v` as an integer count of 10⁻¹⁸ units. Done in i128 because
@@ -460,7 +440,7 @@ fn timestamp(micros: i64) -> Cell {
     const DAY: i64 = 86_400_000_000;
     let days = micros.div_euclid(DAY);
     let rest = micros.rem_euclid(DAY) / 1_000_000;
-    let day = civil(days as i32);
+    let day = from_epoch_days(days);
     if rest == 0 {
         return Cell::Date(day);
     }
@@ -503,7 +483,7 @@ fn cell(v: ValueRef<'_>) -> Cell {
         ValueRef::Text(bytes) => {
             Cell::Text(String::from_utf8_lossy(bytes).into_owned())
         }
-        ValueRef::Date32(days) => Cell::Date(civil(days)),
+        ValueRef::Date32(days) => Cell::Date(from_epoch_days(i64::from(days))),
         ValueRef::Timestamp(unit, t) => timestamp(unit.to_micros(t)),
         other => match Value::from(other) {
             Value::Text(s) => Cell::Other(s),
@@ -564,14 +544,6 @@ fn type_name(t: &DataType) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn dates_survive_the_round_trip_through_epoch_days() {
-        for d in [(1970, 1, 1), (2026, 2, 28), (2028, 2, 29), (1999, 12, 31)] {
-            assert_eq!(civil(epoch_days(d)), d);
-        }
-        assert_eq!(epoch_days((1970, 1, 2)), 1);
-    }
 
     #[test]
     fn large_amounts_keep_every_digit_at_the_fixed_scale() {

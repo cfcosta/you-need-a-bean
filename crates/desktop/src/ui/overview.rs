@@ -335,7 +335,7 @@ fn next_days(
         .events
         .iter()
         .filter(|e| e.amount > Decimal::ZERO)
-        .map(|e| crate::model::ordinal(e.date) - crate::model::ordinal(o.today))
+        .map(|e| bean_core::date::days_between(o.today, e.date))
         .collect();
     let mut changed = false;
     let bars = fc

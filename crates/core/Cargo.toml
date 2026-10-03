@@ -22,6 +22,8 @@ thiserror = "2.0.20"
 criterion = { version = "0.8", default-features = false, features = [
   "cargo_bench_support",
 ] }
+hegeltest = "0.48.1"
+jiff = "0.2"
 
 [[bench]]
 name = "pipeline"

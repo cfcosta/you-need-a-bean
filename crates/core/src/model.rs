@@ -3,7 +3,6 @@
 //! posting sums, transaction listings, and price-based currency conversion.
 
 use std::collections::{BTreeMap, HashMap};
-use std::fmt;
 use std::path::PathBuf;
 
 use beancount_parser::metadata::Value;
@@ -12,111 +11,10 @@ use rust_decimal::Decimal;
 
 use crate::loader::{Document, LoadedLedger};
 
-/// A concrete calendar date as `(year, month, day)`.
-pub type Day = (u16, u8, u8);
-
-/// Whole days from `from` to `to`, negative when `to` came first.
-///
-/// Days since a fixed epoch by way of Howard Hinnant's civil-date
-/// algorithm: shift the year to start in March so the leap day lands at
-/// the end and never has to be special-cased.
-pub fn days_between(from: Day, to: Day) -> i64 {
-    fn serial((y, m, d): Day) -> i64 {
-        let (y, m, d) = (i64::from(y), i64::from(m), i64::from(d));
-        let y = if m <= 2 { y - 1 } else { y };
-        let era = y.div_euclid(400);
-        let year_of_era = y - era * 400;
-        let day_of_year =
-            (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + d - 1;
-        let day_of_era = year_of_era * 365 + year_of_era / 4
-            - year_of_era / 100
-            + day_of_year;
-        era * 146_097 + day_of_era
-    }
-    serial(to) - serial(from)
-}
+pub use crate::date::{Day, MonthKey, days_between};
 
 /// Price points for one `(from, to)` currency pair, sorted by date.
 type PriceSeries = Vec<(Day, Decimal)>;
-
-/// A calendar month, the unit every budget view is keyed on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct MonthKey {
-    pub year: u16,
-    pub month: u8,
-}
-
-impl MonthKey {
-    pub fn new(year: u16, month: u8) -> Self {
-        debug_assert!((1..=12).contains(&month));
-        Self { year, month }
-    }
-
-    /// Strict `YYYY-MM`.
-    pub fn parse(s: &str) -> Option<Self> {
-        let (y, m) = s.split_once('-')?;
-        if y.len() != 4 || m.len() != 2 {
-            return None;
-        }
-        let year: u16 = y.parse().ok()?;
-        let month: u8 = m.parse().ok()?;
-        (1..=12).contains(&month).then(|| Self::new(year, month))
-    }
-
-    pub fn next(self) -> Self {
-        if self.month == 12 {
-            Self::new(self.year + 1, 1)
-        } else {
-            Self::new(self.year, self.month + 1)
-        }
-    }
-
-    pub fn days_in_month(self) -> u8 {
-        match self.month {
-            1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-            4 | 6 | 9 | 11 => 30,
-            _ => {
-                let y = self.year;
-                let leap = y.is_multiple_of(4)
-                    && (!y.is_multiple_of(100) || y.is_multiple_of(400));
-                if leap { 29 } else { 28 }
-            }
-        }
-    }
-
-    /// The last day of the month — the date conversions are valued at.
-    pub fn end_of_month(self) -> Day {
-        (self.year, self.month, self.days_in_month())
-    }
-
-    /// Zero-based month count since year 0, for month arithmetic.
-    fn ordinal(self) -> u32 {
-        u32::from(self.year) * 12 + u32::from(self.month) - 1
-    }
-
-    fn from_ordinal(ordinal: u32) -> Self {
-        Self::new((ordinal / 12) as u16, (ordinal % 12 + 1) as u8)
-    }
-
-    pub fn minus(self, months: u32) -> Self {
-        Self::from_ordinal(self.ordinal().saturating_sub(months))
-    }
-
-    pub fn prev(self) -> Self {
-        self.minus(1)
-    }
-
-    /// Number of months in the inclusive range `self..=to` (0 if empty).
-    pub fn months_until(self, to: MonthKey) -> u32 {
-        (to.ordinal() + 1).saturating_sub(self.ordinal())
-    }
-}
-
-impl fmt::Display for MonthKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:04}-{:02}", self.year, self.month)
-    }
-}
 
 /// How an asset/liability account shows up in the sidebar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

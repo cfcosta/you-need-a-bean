@@ -1,8 +1,7 @@
 //! The financial home: facts today, explicit commitments, and visible uncertainty.
 //! All arithmetic stays decimal until the presentation boundary.
-use crate::model::{
-    AccountInfo, AccountKind, Day, Ledger, MonthKey, Txn, days_between,
-};
+use crate::date::{add_days, add_months_clamped, days_between};
+use crate::model::{AccountInfo, AccountKind, Day, Ledger, MonthKey, Txn};
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
@@ -17,22 +16,6 @@ pub fn parse_date(s: &str) -> Option<Day> {
     let m = MonthKey::parse(&s[..7])?;
     let d = s[8..].parse::<u8>().ok()?;
     (d > 0 && d <= m.days_in_month()).then_some((m.year, m.month, d))
-}
-fn next_day(d: Day) -> Day {
-    let m = MonthKey::new(d.0, d.1);
-    if d.2 < m.days_in_month() {
-        (d.0, d.1, d.2 + 1)
-    } else {
-        let n = m.next();
-        (n.year, n.month, 1)
-    }
-}
-fn shift_month(d: Day, count: u32) -> Day {
-    let mut m = MonthKey::new(d.0, d.1);
-    for _ in 0..count {
-        m = m.next();
-    }
-    (m.year, m.month, d.2.min(m.days_in_month()))
 }
 fn cash_account(a: &AccountInfo) -> bool {
     a.account.starts_with("Assets:")
@@ -248,17 +231,18 @@ impl Ledger {
             for occurrence in 1..=110 {
                 use crate::reports::Cadence;
                 let day = match r.cadence {
-                    Cadence::Monthly => shift_month(r.last, occurrence),
-                    Cadence::Quarterly => shift_month(r.last, occurrence * 3),
-                    Cadence::Yearly => shift_month(r.last, occurrence * 12),
-                    cadence => {
-                        let mut d = r.last;
-                        for _ in 0..occurrence
-                            * if cadence == Cadence::Weekly { 7 } else { 14 }
-                        {
-                            d = next_day(d);
-                        }
-                        d
+                    Cadence::Monthly => add_months_clamped(r.last, occurrence),
+                    Cadence::Quarterly => {
+                        add_months_clamped(r.last, occurrence * 3)
+                    }
+                    Cadence::Yearly => {
+                        add_months_clamped(r.last, occurrence * 12)
+                    }
+                    Cadence::Weekly => {
+                        add_days(r.last, i64::from(occurrence) * 7)
+                    }
+                    Cadence::Biweekly => {
+                        add_days(r.last, i64::from(occurrence) * 14)
                     }
                 };
                 if days_between(today, day) > 90 {
@@ -292,7 +276,7 @@ impl Ledger {
             let mut remaining =
                 debt.map(|d| d.owed).unwrap_or_default().max(Decimal::ZERO);
             for month in 0..=3 {
-                let day = shift_month(u.date, month);
+                let day = add_months_clamped(u.date, month);
                 if day < today || days_between(today, day) > 90 {
                     continue;
                 }
